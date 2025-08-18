@@ -1,14 +1,22 @@
+import path from '@/constants/path'
 import LOGO_IMG from '../../../../../public/Images/logo.png'
+import { Link } from 'react-router'
 export default function Header() {
   return (
     <div className={`relative w-full max-h-[50px] bg-[url('')] bg-cover rounded-xl bg-center`}>
       <div className='relative z-10 flex items-center text-center justify-around  max-w-md mx-auto mt-7 p-3 backdrop-blur-lg bg-white/20 border border-gray-300/30 rounded-2xl shadow-lg'>
-        <div className='text-white text-[15px] font-medium cursor-pointer hover:text-white/80 transition-colors'>
+        <Link
+          to={path.auth.login}
+          className='text-white text-[15px] font-medium cursor-pointer hover:text-white/80 transition-colors'
+        >
           Login
-        </div>
-        <div className='text-white text-[15px] font-medium cursor-pointer hover:text-white/80 transition-colors'>
+        </Link>
+        <Link
+          to={path.auth.signup}
+          className='text-white text-[15px] font-medium cursor-pointer hover:text-white/80 transition-colors'
+        >
           SignUp
-        </div>
+        </Link>
         <div className='flex items-center'>
           <img src={LOGO_IMG} className='rounded-md size-12 object-cover' alt='Logo' />
         </div>
