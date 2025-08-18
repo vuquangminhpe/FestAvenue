@@ -10,6 +10,8 @@ import MyLayout from './layouts/MyLayout'
 import Login from './pages/User/Public/Login'
 import NotAuthLayout from './layouts/Not_Auth_Layout'
 import IMG_LOGIN from '../public/Images/Login_Page.png'
+import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
+import SignUp from './pages/User/Public/Signup/Signup'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -191,6 +193,18 @@ export default function useRouteElement() {
               <MainLayout>
                 <NotAuthLayout img={IMG_LOGIN}>
                   <Login />
+                </NotAuthLayout>
+              </MainLayout>
+            </SuspenseWrapper>
+          )
+        },
+        {
+          path: path.auth.signup,
+          element: (
+            <SuspenseWrapper>
+              <MainLayout>
+                <NotAuthLayout img={IMG_SIGNUP}>
+                  <SignUp />
                 </NotAuthLayout>
               </MainLayout>
             </SuspenseWrapper>

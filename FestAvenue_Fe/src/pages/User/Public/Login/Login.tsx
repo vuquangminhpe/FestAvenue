@@ -1,9 +1,10 @@
-import React, { useState, type ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { Eye, EyeOff, Chrome } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@radix-ui/react-label'
-
+import { Link } from 'react-router'
+import path from '@/constants/path'
 interface FormData {
   email: string
   password: string
@@ -14,7 +15,7 @@ interface FormErrors {
   password?: string
 }
 
-const Login: React.FC = () => {
+const Login = () => {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: ''
@@ -93,10 +94,6 @@ const Login: React.FC = () => {
 
   const handleForgotPassword = (): void => {
     console.log('Forgot password clicked')
-  }
-
-  const handleSignUp = (): void => {
-    console.log('Sign up clicked')
   }
 
   const handleTermsClick = (): void => {
@@ -228,12 +225,12 @@ const Login: React.FC = () => {
           {/* Sign Up Link */}
           <div className='mt-8 text-center'>
             <span className='text-gray-600'>Don't have an account? </span>
-            <button
-              onClick={handleSignUp}
+            <Link
+              to={path.auth.signup}
               className='text-indigo-600 hover:text-indigo-700 font-semibold transition-colors'
             >
               Sign up
-            </button>
+            </Link>
           </div>
         </div>
 
