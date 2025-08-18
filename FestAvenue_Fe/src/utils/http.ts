@@ -63,7 +63,7 @@ class Http {
         }
         const { url } = response.config
 
-        if (url === path.auth.signup || url === path.auth.login || url === path.auth.signupSelf) {
+        if (url === path.auth.signup || url === path.auth.login || url === path.auth.signup) {
           try {
             const data = response.data
             if (data?.data?.token) {
