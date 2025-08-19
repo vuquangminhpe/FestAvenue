@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@radix-ui/react-label'
 import { Link } from 'react-router'
 import path from '@/constants/path'
+import { useMutation } from '@tanstack/react-query'
+import userApi from '@/apis/user.api'
+import { toast } from 'sonner'
 interface FormData {
   email: string
   password: string
@@ -23,6 +26,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const loginMutation = useMutation({
+    mutationFn: () => userApi.login_normal({ email: formData.email, password: formData.password }),
+    onSuccess: (data) => {
+      toast.success(`${data?.message}` || 'Đăng nhập thành công')
+    },
+    onError: (error) => {
+      toast.error(`${error?.message}` || 'Sai tài khoản hoặc mật khẩu')
+    }
+  })
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -45,7 +57,7 @@ const Login = () => {
 
   const handleSubmit = async (): Promise<void> => {
     if (!validateForm()) return
-
+    loginMutation.mutateAsync()
     setIsLoading(true)
 
     setTimeout(() => {

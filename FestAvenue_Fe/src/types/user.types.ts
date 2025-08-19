@@ -4,3 +4,11 @@ export interface responseUser {
 export interface UserProfileResponse {
   name: string
 }
+
+export interface bodyLoginType {
+  email: string
+  password: string
+}
+export interface loginResponse {
+  accessToken: string
+}
