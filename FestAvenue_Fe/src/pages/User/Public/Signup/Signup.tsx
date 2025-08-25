@@ -5,11 +5,16 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import path from '@/constants/path'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { useMutation } from '@tanstack/react-query'
+import userApi from '@/apis/user.api'
+import { toast } from 'sonner'
+
 interface FormData {
   email: string
   firstName: string
   lastName: string
+  phone: string
   password: string
   acceptTerms: boolean
 }
@@ -18,6 +23,7 @@ interface FormErrors {
   email?: string
   firstName?: string
   lastName?: string
+  phone?: string
   password?: string
   acceptTerms?: string
 }
@@ -45,17 +51,42 @@ const FormField = ({ label, error, children, htmlFor }: FormFieldProps) => {
 }
 
 const SignUp = () => {
+  const navigate = useNavigate()
+
   const [formData, setFormData] = useState<FormData>({
     email: '',
     firstName: '',
     lastName: '',
+    phone: '',
     password: '',
     acceptTerms: false
   })
 
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  const registerMutation = useMutation({
+    mutationFn: async () =>
+      (userApi as any).register?.({
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        password: formData.password
+      }),
+    onSuccess: (res: any) => {
+      toast.success(res?.message || 'Tạo tài khoản thành công')
+      navigate(path.auth.login)
+    },
+    onError: (err: any) => {
+      const msg =
+        err?.response?.data?.status?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Đăng ký thất bại'
+      toast.error(msg)
+    }
+  })
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -78,6 +109,12 @@ const SignUp = () => {
       newErrors.lastName = 'Last name must be at least 2 characters'
     }
 
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required'
+    } else if (!/^[0-9]{9,11}$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number'
+    }
+
     if (!formData.password) {
       newErrors.password = 'Password is required'
     } else if (formData.password.length < 8) {
@@ -96,17 +133,12 @@ const SignUp = () => {
 
   const handleSubmit = async (): Promise<void> => {
     if (!validateForm()) return
-
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      console.log('Signup submitted:', formData)
-    }, 2000)
+    if (registerMutation.isPending) return
+    registerMutation.mutate()
   }
 
   const handleInputChange = (field: keyof FormData, value: string | boolean): void => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
@@ -122,6 +154,7 @@ const SignUp = () => {
         <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse'></div>
         <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-300 to-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000'></div>
       </div>
+
       {/* Logo Section */}
       <div className='text-center mb-8'>
         <div className='inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl mb-6 shadow-lg'>
@@ -131,6 +164,7 @@ const SignUp = () => {
           FestAvenue
         </h1>
       </div>
+
       <div className='bg-white/80 backdrop-blur-md rounded-3xl shadow-md border border-white/20 px-8 py-2'>
         {/* Welcome Section */}
         <div className='text-center mb-8'>
@@ -177,6 +211,18 @@ const SignUp = () => {
             </FormField>
           </div>
 
+          {/* Phone Field */}
+          <FormField label='Phone Number' error={errors.phone} htmlFor='phone'>
+            <Input
+              id='phone'
+              type='tel'
+              placeholder='Enter your phone number'
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+              className={errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+            />
+          </FormField>
+
           {/* Password Field */}
           <FormField label='Create Password' error={errors.password} htmlFor='password'>
             <div className='relative'>
@@ -204,7 +250,7 @@ const SignUp = () => {
               <Checkbox
                 id='acceptTerms'
                 checked={formData.acceptTerms}
-                onChange={(e) => handleInputChange('acceptTerms', (e.target as HTMLInputElement).checked)}
+                onCheckedChange={(v) => handleInputChange('acceptTerms', Boolean(v))}
                 className={errors.acceptTerms ? 'border-red-500' : ''}
               />
               <label htmlFor='acceptTerms' className='text-sm text-gray-600 leading-relaxed'>
@@ -227,8 +273,8 @@ const SignUp = () => {
           </div>
 
           {/* Submit Button */}
-          <Button onClick={handleSubmit} className='w-full' size='lg' disabled={isLoading}>
-            {isLoading ? (
+          <Button onClick={handleSubmit} className='w-full' size='lg' disabled={registerMutation.isPending}>
+            {registerMutation.isPending ? (
               <div className='flex items-center'>
                 <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2'></div>
                 Creating Account...
