@@ -8,6 +8,7 @@ const path = {
     root: '/auth',
     login: '/auth/login',
     signup: '/auth/signup',
+    verify_email: '/auth/verify-email',
     email_verification: '/auth/email-verification',
     findId: '/auth/find-id',
     findPassword: '/auth/find-password',

@@ -12,3 +12,14 @@ export interface bodyLoginType {
 export interface loginResponse {
   accessToken: string
 }
+
+export interface bodyRegisterType {
+  email: string
+  password: string
+  firstName: string
+  lastName: string
+  phone: string
+}
+
+export interface registerResponse {
+}

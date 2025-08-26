@@ -12,6 +12,7 @@ import NotAuthLayout from './layouts/Not_Auth_Layout'
 import IMG_LOGIN from '../public/Images/Login_Page.png'
 import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
 import SignUp from './pages/User/Public/Signup/Signup'
+import VerifyEmail from './pages/User/Public/VerifyEmail/VerifyEmail'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -209,7 +210,13 @@ export default function useRouteElement() {
               </MainLayout>
             </SuspenseWrapper>
           )
-        }
+        },
+        {
+          path: path.auth.verify_email,
+          element: (
+            <VerifyEmail />
+          )
+        },
       ]
     },
     {
