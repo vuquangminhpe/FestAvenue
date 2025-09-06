@@ -11,7 +11,7 @@ function App() {
 
   useEffect(() => {
     if (check_accessToken) {
-      const accessToken = location.search.split('=')[2]
+      const accessToken = location.search.split('=')[1]
       saveAccessTokenToLS(accessToken)
     }
   }, [check_accessToken, location.search])
