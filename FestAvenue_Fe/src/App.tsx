@@ -7,7 +7,6 @@ import { saveAccessTokenToLS } from './utils/auth'
 function App() {
   const location = useLocation()
   const check_accessToken = location.search.includes('accessToken')
-  console.log(location)
 
   useEffect(() => {
     if (check_accessToken) {
