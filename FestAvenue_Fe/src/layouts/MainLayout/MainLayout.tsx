@@ -8,9 +8,7 @@ interface Props {
 export default function MainLayout({ children }: Props) {
   return (
     <div className='w-full min-h-screen flex flex-col max-w-[1920px] mx-auto relative'>
-      <div className='fixed top-0 left-0 w-full z-50'>
-        <Header />
-      </div>
+      <Header />
       <div>{children}</div>
       <Footer />
     </div>

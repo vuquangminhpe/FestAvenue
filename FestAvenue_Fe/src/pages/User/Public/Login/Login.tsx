@@ -3,11 +3,12 @@ import { Eye, EyeOff, Chrome } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@radix-ui/react-label'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import path from '@/constants/path'
 import { useMutation } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import { toast } from 'sonner'
+import { saveAccessTokenToLS } from '@/utils/auth'
 interface FormData {
   email: string
   password: string
@@ -23,12 +24,15 @@ const Login = () => {
     email: '',
     password: ''
   })
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const loginMutation = useMutation({
     mutationFn: () => userApi.login_normal({ email: formData.email, password: formData.password }),
     onSuccess: (data) => {
+      saveAccessTokenToLS(data?.data?.accessToken)
+      navigate(path.home)
       toast.success(`${data?.message}` || 'Đăng nhập thành công')
     },
     onError: (error) => {
