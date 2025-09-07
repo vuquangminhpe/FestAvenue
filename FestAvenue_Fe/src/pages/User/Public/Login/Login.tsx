@@ -9,6 +9,8 @@ import { useMutation } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import { toast } from 'sonner'
 import { saveAccessTokenToLS } from '@/utils/auth'
+import LOGO_IMG from '../../../../../public/Images/Fest.png'
+
 interface FormData {
   email: string
   password: string
@@ -130,13 +132,8 @@ const Login = () => {
 
       <div className='relative w-full'>
         {/* Logo */}
-        <div className='text-center mb-8'>
-          <div className='inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl mb-4 shadow-md'>
-            <span className='text-white font-bold text-xl'>FA</span>
-          </div>
-          <h1 className='text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent'>
-            FestAvenue
-          </h1>
+        <div className='text-center flex justify-center w-full'>
+          <img src={LOGO_IMG} alt='ITEM_LOGO' className='size-[240px] translate-y-[60px]' />
         </div>
 
         {/* Main Card */}

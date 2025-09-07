@@ -9,6 +9,7 @@ export default function MainLayout({ children }: Props) {
   return (
     <div className='w-full min-h-screen flex flex-col max-w-[1920px] mx-auto relative'>
       <Header />
+
       <div>{children}</div>
       <Footer />
     </div>

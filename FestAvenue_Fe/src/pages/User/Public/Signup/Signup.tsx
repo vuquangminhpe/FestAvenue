@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Label } from '@/components/ui/label'
@@ -9,6 +10,7 @@ import { Link, useNavigate } from 'react-router'
 import { useMutation } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import { toast } from 'sonner'
+import LOGO_IMG from '../../../../../public/Images/Fest.png'
 
 interface FormData {
   email: string
@@ -67,23 +69,20 @@ const SignUp = () => {
 
   const registerMutation = useMutation({
     mutationFn: async () =>
-      (userApi as any).register?.({
+      userApi.register?.({
         email: formData.email,
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone,
         password: formData.password
       }),
-    onSuccess: (res: any) => {
+    onSuccess: (res) => {
       toast.success(res?.message || 'Tạo tài khoản thành công')
       navigate(path.auth.login)
     },
     onError: (err: any) => {
       const msg =
-        err?.response?.data?.status?.message ||
-        err?.response?.data?.message ||
-        err?.message ||
-        'Đăng ký thất bại'
+        err?.response?.data?.status?.message || err?.response?.data?.message || err?.message || 'Đăng ký thất bại'
       toast.error(msg)
     }
   })
@@ -156,13 +155,8 @@ const SignUp = () => {
       </div>
 
       {/* Logo Section */}
-      <div className='text-center mb-8'>
-        <div className='inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl mb-6 shadow-lg'>
-          <span className='text-white font-bold text-xl'>FA</span>
-        </div>
-        <h1 className='text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2'>
-          FestAvenue
-        </h1>
+      <div className='text-center flex justify-center w-full'>
+        <img src={LOGO_IMG} alt='ITEM_LOGO' className='size-[240px] translate-y-[60px]' />
       </div>
 
       <div className='bg-white/80 backdrop-blur-md rounded-3xl shadow-md border border-white/20 px-8 py-2'>
