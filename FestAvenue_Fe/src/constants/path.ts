@@ -22,7 +22,9 @@ const path = {
     profile: '/user/profile',
 
     my: {
-      root: '/user/my'
+      root: '/user/my',
+      profile: '/user/my/profile',
+      credit: '/user/my/credit'
     },
     credit: {
       root: '/user/credit',

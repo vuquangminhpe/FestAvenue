@@ -1,7 +1,7 @@
 /* eslint-disable prefer-const */
 /* eslint-disable react-refresh/only-export-components */
 import { Navigate, Outlet, useLocation, useRoutes } from 'react-router'
-import { Fragment, Suspense } from 'react'
+import { Suspense } from 'react'
 import path from './constants/path'
 import { useAdminStore, useUsersStore } from './contexts/app.context'
 import MainLayout from './layouts/MainLayout'
@@ -13,6 +13,7 @@ import IMG_LOGIN from '../public/Images/Login_Page.png'
 import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
 import SignUp from './pages/User/Public/Signup/Signup'
 import VerifyEmail from './pages/User/Public/VerifyEmail/VerifyEmail'
+import UserProfile from './pages/User/Auth/My/MyProfile/UserProfile'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -138,16 +139,19 @@ const Loader = () => (
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
+  console.log('Is authenticated:', isLogin)
   return isLogin ? <Outlet /> : <Navigate to={path.auth.login} />
 }
 
 function RejectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
+  console.log('Is authenticated:', isLogin)
   return !isLogin ? <Outlet /> : <Navigate to={path.home} />
 }
 
 function ProtectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
+
   let location = useLocation()
   return isLogin ? (
     <Suspense fallback={<Loader />}></Suspense>
@@ -213,10 +217,8 @@ export default function useRouteElement() {
         },
         {
           path: path.auth.verify_email,
-          element: (
-            <VerifyEmail />
-          )
-        },
+          element: <VerifyEmail />
+        }
       ]
     },
     {
@@ -228,17 +230,17 @@ export default function useRouteElement() {
           element: (
             <SuspenseWrapper>
               <MainLayout>
-                <Fragment />
+                <Outlet />
               </MainLayout>
             </SuspenseWrapper>
           ),
           children: [
             {
-              path: path.user.my.root,
+              path: path.user.my.profile,
               element: (
                 <SuspenseWrapper>
                   <MyLayout>
-                    <Fragment />
+                    <UserProfile />
                   </MyLayout>
                 </SuspenseWrapper>
               )
@@ -255,7 +257,7 @@ export default function useRouteElement() {
           path: path.admin.users,
           element: (
             <SuspenseWrapper>
-              <Fragment />
+              <Outlet />
             </SuspenseWrapper>
           )
         }
@@ -269,7 +271,7 @@ export default function useRouteElement() {
           index: true,
           element: (
             <SuspenseWrapper>
-              <Fragment />
+              <Outlet />
             </SuspenseWrapper>
           )
         }

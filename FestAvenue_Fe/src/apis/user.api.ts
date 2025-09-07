@@ -1,5 +1,12 @@
 import type { APIResponse } from '@/types/API.types'
-import type { bodyLoginType, loginResponse, bodyRegisterType, registerResponse } from '@/types/user.types'
+import type {
+  bodyLoginType,
+  loginResponse,
+  bodyRegisterType,
+  registerResponse,
+  updateBodyProfile,
+  updatePasswordBody
+} from '@/types/user.types'
 import http from '@/utils/http'
 
 const userApi = {
@@ -12,7 +19,19 @@ const userApi = {
     return data?.data
   },
   register_verify: async (token: string) => {
-    const data = await http.get<APIResponse<registerResponse>>(`/register/verify-account?token=${token}`)
+    const data = await http.get<APIResponse<{ messages: string }>>(`/register/verify-account?token=${token}`)
+    return data?.data
+  },
+  updateMyProfile: async (body: updateBodyProfile) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/profile/update-profile', body)
+    return data?.data
+  },
+  updateMyPassword: async (body: updatePasswordBody) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/profile/change-password', body)
+    return data?.data
+  },
+  deleteMyAccount: async () => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/profile/delete-account')
     return data?.data
   }
 }

@@ -121,7 +121,7 @@ export default function Header() {
                 </Link>
                 <Link
                   to={path.auth.signup}
-                  className='px-6 py-2 bg-gradient-to-r from-cyan-400 to-blue-300 text-white font-medium rounded-full hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl'
+                  className='px-6 py-2 bg-gradient-to-r from-cyan-400 to-blue-300 text-white font-medium rounded-full  shadow-lg '
                 >
                   Đăng ký
                 </Link>
@@ -167,7 +167,7 @@ export default function Header() {
                     <div className='absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 animate-in fade-in-0 zoom-in-95 duration-200'>
                       <div className='py-2'>
                         <Link
-                          to='/profile'
+                          to={path.user.my.profile}
                           className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -308,7 +308,7 @@ export default function Header() {
                 </Link>
                 <div className='border-t border-gray-100 my-2' />
                 <Link
-                  to='/profile'
+                  to={path.user.my.profile}
                   className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors'
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

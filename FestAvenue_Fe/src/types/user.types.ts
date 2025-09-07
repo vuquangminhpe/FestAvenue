@@ -22,4 +22,17 @@ export interface bodyRegisterType {
 }
 
 export interface registerResponse {
+  messages: string
+}
+export interface updateBodyProfile {
+  profileImage?: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  avatar?: string
+}
+export interface updatePasswordBody {
+  currentPassword: string
+  newPassword: string
+  confirmNewPassword: string
 }
