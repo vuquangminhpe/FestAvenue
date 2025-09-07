@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 
 import { Heart, MapPin, Calendar, Clock, Star, X, ArrowRight, Loader2, Filter } from 'lucide-react'
 import MouseAnimate from '@/components/custom/MouseAnimate'
+import { Helmet } from 'react-helmet-async'
 
 // Animation hook for scroll-triggered animations
 const useIntersectionObserver = (threshold = 0.1) => {
@@ -377,6 +378,10 @@ const Home = () => {
 
   return (
     <>
+      <Helmet>
+        <title>Trang chủ Fest Avenue</title>
+        <meta name='description' content='Trang chủ của chúng tôi' />
+      </Helmet>
       <style>{`
         @keyframes shimmer {
           0% {

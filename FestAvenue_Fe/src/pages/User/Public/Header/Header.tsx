@@ -46,7 +46,6 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Searching for:', searchQuery)
   }
 
   const toggleMobileMenu = (e: React.MouseEvent) => {
@@ -264,7 +263,7 @@ export default function Header() {
                 </Link>
                 <Link
                   to={path.auth.signup}
-                  className='block mx-4 my-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 text-center'
+                  className='block mx-4 my-2 px-6 py-3 bg-gradient-to-r from-cyan-400 to-blue-300 text-white font-medium rounded-lg hover:from-cyan-300-700 hover:to-blue-300 transition-all duration-200 text-center'
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Đăng ký

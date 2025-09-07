@@ -5,7 +5,9 @@ import type {
   bodyRegisterType,
   registerResponse,
   updateBodyProfile,
-  updatePasswordBody
+  updatePasswordBody,
+  bodyResetPassword,
+  userRes
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -23,7 +25,7 @@ const userApi = {
     return data?.data
   },
   updateMyProfile: async (body: updateBodyProfile) => {
-    const data = await http.post<APIResponse<{ messages: string }>>('/profile/update-profile', body)
+    const data = await http.put<APIResponse<{ messages: string }>>('/profile/update-profile', body)
     return data?.data
   },
   updateMyPassword: async (body: updatePasswordBody) => {
@@ -43,6 +45,18 @@ const userApi = {
       },
       timeout: 0
     })
+    return data?.data
+  },
+  ForgotPassword: async (email: string) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/reset-password/forgot-password', email)
+    return data?.data
+  },
+  resetPassword: async (body: bodyResetPassword) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/reset-password/reset-password', body)
+    return data?.data
+  },
+  getMyProfile: async () => {
+    const data = await http.get<APIResponse<userRes>>('/profile/my-profile')
     return data?.data
   }
 }

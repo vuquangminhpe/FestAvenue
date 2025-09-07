@@ -1,4 +1,4 @@
-import type { UserProfileResponse } from '@/types/user.types'
+import type { userRes } from '@/types/user.types'
 import { getAccessTokenFromLS, getAdminTokenFromLS } from '@/utils/auth'
 
 import { create } from 'zustand'
@@ -10,8 +10,8 @@ interface AdminState {
 interface UsersState {
   isAuth: boolean
   setIsAuth: (value: boolean) => void
-  isProfile?: UserProfileResponse
-  setIsProfile: (value: UserProfileResponse | undefined) => void
+  isProfile?: userRes
+  setIsProfile: (value: userRes | undefined) => void
   userAvatar?: string
   setUserAvatar: (value: string) => void
 }

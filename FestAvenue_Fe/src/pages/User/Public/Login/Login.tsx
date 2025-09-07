@@ -68,7 +68,6 @@ const Login = () => {
 
     setTimeout(() => {
       setIsLoading(false)
-      console.log('Login submitted:', formData)
     }, 2000)
   }
 
@@ -111,7 +110,7 @@ const Login = () => {
   }
 
   const handleForgotPassword = (): void => {
-    console.log('Forgot password clicked')
+    navigate(path.auth.forgotPassword)
   }
 
   const handleTermsClick = (): void => {
@@ -139,18 +138,18 @@ const Login = () => {
         {/* Main Card */}
         <div className='bg-white/80 backdrop-blur-md rounded-3xl shadow-md border border-white/20 p-8'>
           <div className='text-center mb-8'>
-            <h2 className='text-2xl font-bold text-gray-900 mb-2'>Welcome Back!</h2>
-            <p className='text-gray-600'>Sign in to your account to continue</p>
+            <h2 className='text-2xl font-bold text-gray-900 mb-2'>Chào mừng trở lại!</h2>
+            <p className='text-gray-600'>Đăng nhập vào tài khoản của bạn để tiếp tục</p>
           </div>
 
           <div className='space-y-6'>
             {/* Email Input */}
             <div>
-              <Label htmlFor='email'>Email Address</Label>
+              <Label htmlFor='email'>Địa chỉ email</Label>
               <Input
                 id='email'
                 type='email'
-                placeholder='Enter your email'
+                placeholder='Hãy nhập địa chỉ email'
                 value={formData.email}
                 onChange={handleEmailChange}
                 className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
@@ -165,12 +164,12 @@ const Login = () => {
 
             {/* Password Input */}
             <div>
-              <Label htmlFor='password'>Password</Label>
+              <Label htmlFor='password'>Mật khẩu</Label>
               <div className='relative'>
                 <Input
                   id='password'
                   type={showPassword ? 'text' : 'password'}
-                  placeholder='Enter your password'
+                  placeholder='Hãy nhập mật khẩu'
                   value={formData.password}
                   onChange={handlePasswordChange}
                   className={errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
@@ -196,21 +195,21 @@ const Login = () => {
               <button
                 type='button'
                 onClick={handleForgotPassword}
-                className='text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors'
+                className='text-sm text-black hover:text-gray-600 cursor-pointer font-medium transition-colors'
               >
-                Forgot Password?
+                Bạn đã quên mật khẩu?
               </button>
             </div>
 
             {/* Submit Button */}
-            <Button onClick={handleSubmit} className='w-full' size='lg' disabled={isLoading}>
+            <Button onClick={handleSubmit} className='w-full cursor-pointer' size='lg' disabled={isLoading}>
               {isLoading ? (
                 <div className='flex items-center'>
                   <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2'></div>
-                  Signing In...
+                  Đang đăng nhập...
                 </div>
               ) : (
-                'Sign In'
+                'Đăng nhập'
               )}
             </Button>
           </div>
@@ -231,18 +230,15 @@ const Login = () => {
               onClick={() => (window.location.href = googleOAuthUrl)}
             >
               <Chrome className='w-5 h-5 mr-3' />
-              Continue with Google
+              Đăng nhập với google
             </Button>
           </div>
 
           {/* Sign Up Link */}
           <div className='mt-8 text-center'>
-            <span className='text-gray-600'>Don't have an account? </span>
-            <Link
-              to={path.auth.signup}
-              className='text-indigo-600 hover:text-indigo-700 font-semibold transition-colors'
-            >
-              Sign up
+            <span className='text-gray-600'>Bạn chưa có tài khoản? </span>
+            <Link to={path.auth.signup} className='text-black hover:text-gray-600 font-semibold transition-colors'>
+              Đăng ký
             </Link>
           </div>
         </div>
@@ -250,13 +246,19 @@ const Login = () => {
         {/* Footer */}
         <div className='mt-8 text-center'>
           <p className='text-sm text-gray-500'>
-            By signing in, you agree to our{' '}
-            <button onClick={handleTermsClick} className='text-indigo-600 hover:text-indigo-700 transition-colors'>
-              Terms of Service
+            Bằng cách đăng nhập, bạn đồng ý với{' '}
+            <button
+              onClick={handleTermsClick}
+              className='text-black hover:text-gray-600 font-semibold transition-colors cursor-pointer'
+            >
+              Điều khoản dịch vụ
             </button>{' '}
-            and{' '}
-            <button onClick={handlePrivacyClick} className='text-indigo-600 hover:text-indigo-700 transition-colors'>
-              Privacy Policy
+            và{' '}
+            <button
+              onClick={handlePrivacyClick}
+              className='text-black hover:text-gray-600 font-semibold transition-colors cursor-pointer'
+            >
+              Chính sách bảo mật
             </button>
           </p>
         </div>

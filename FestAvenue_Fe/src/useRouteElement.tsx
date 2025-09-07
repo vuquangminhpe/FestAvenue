@@ -14,6 +14,8 @@ import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
 import SignUp from './pages/User/Public/Signup/Signup'
 import VerifyEmail from './pages/User/Public/VerifyEmail/VerifyEmail'
 import UserProfile from './pages/User/Auth/My/MyProfile/UserProfile'
+import ForgotPassword from './pages/User/Public/ForgotPassword'
+import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -139,13 +141,11 @@ const Loader = () => (
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
-  console.log('Is authenticated:', isLogin)
   return isLogin ? <Outlet /> : <Navigate to={path.auth.login} />
 }
 
 function RejectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
-  console.log('Is authenticated:', isLogin)
   return !isLogin ? <Outlet /> : <Navigate to={path.home} />
 }
 
@@ -183,6 +183,26 @@ export default function useRouteElement() {
         <SuspenseWrapper>
           <MainLayout>
             <Home />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.auth.forgotPassword,
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <ForgotPassword />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.auth.resetPassword,
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <ResetPassword />
           </MainLayout>
         </SuspenseWrapper>
       )

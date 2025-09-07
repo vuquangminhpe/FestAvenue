@@ -171,7 +171,7 @@ const AccountSettings: React.FC = () => {
   const toggleEditPhone = (isEdit: boolean) => {
     setIsEditingPhone(isEdit)
     if (isEdit) {
-      setNewPhone(userProfile?.name || '')
+      setNewPhone(userProfile?.phone || '')
     } else {
       setNewPhone('')
     }
@@ -179,20 +179,20 @@ const AccountSettings: React.FC = () => {
   }
 
   const handleNicknameEdit = async () => {
-    if (newNickname === 'DEGEN') {
-      setNicknameError('Biệt danh đang được sử dụng.')
-      return
-    }
     if (newNickname.length > 0 && newNickname.length <= 10) {
-      try {
-        await updateProfileMutation({ firstName: newNickname })
-        toast.success('Biệt danh đã được cập nhật thành công.')
-        setIsEditingNickname(false)
-        setNicknameError('')
-      } catch (error) {
-        console.log('error: ', error)
-        toast.error('Lỗi xảy ra khi cập nhật biệt danh')
-      }
+      await updateProfileMutation(
+        { firstName: newNickname },
+        {
+          onSuccess: () => {
+            toast.success('Biệt danh đã được cập nhật thành công.')
+            setIsEditingNickname(false)
+            setNicknameError('')
+          },
+          onError: () => {
+            toast.error('Cật nhật thất bại')
+          }
+        }
+      )
     } else {
       setNicknameError('Vui lòng nhập biệt danh từ 1-10 ký tự.')
     }
@@ -271,11 +271,11 @@ const AccountSettings: React.FC = () => {
                           <div className='flex items-center gap-2'>
                             <div className='size-2 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600'></div>
                             <div className='text-[16px] font-semibold tracking-tight line-clamp-1'>
-                              {userProfile?.name || userProfile?.name}
+                              {userProfile?.email}
                             </div>
                           </div>
                           <div className='flex items-center gap-2 text-slate-600 pl-4'>
-                            <div className='text-[14px] truncate'>{userProfile?.name}</div>
+                            <div className='text-[14px] truncate'>{`${userProfile?.firstName}  ${userProfile?.lastName}`}</div>
                           </div>{' '}
                         </div>
                       </div>
@@ -339,39 +339,24 @@ const AccountSettings: React.FC = () => {
                       <div className='space-y-2'>
                         <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
                           <User className='w-4 h-4' />
-                          Tên
+                          Họ
                         </label>
                         <Input
-                          defaultValue={userProfile?.name || 'Không có tên'}
+                          defaultValue={userProfile ? userProfile.firstName : 'Không có tên'}
                           disabled
                           className='h-12 bg-slate-50 border-slate-200 rounded-lg'
                         />
                       </div>
-
-                      {/* Email Field */}
-                      <div className='space-y-2'>
-                        <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
-                          <Mail className='w-4 h-4' />
-                          Email
-                        </label>
-                        <Input
-                          defaultValue={userProfile?.name}
-                          disabled
-                          className='h-12 bg-slate-50 border-slate-200 rounded-lg'
-                        />
-                        <p className='text-xs text-slate-500'>*Không thể chỉnh sửa email.</p>
-                      </div>
-
                       {/* Nickname Field */}
                       <div className='space-y-2'>
                         <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
                           <Edit3 className='w-4 h-4' />
-                          Biệt danh
+                          Tên
                         </label>
                         <div className='relative'>
                           <Input
-                            value={isEditingNickname ? newNickname : userProfile ? userProfile.name : ''}
-                            placeholder='Nhập biệt danh'
+                            value={isEditingNickname ? newNickname : userProfile ? userProfile.lastName : ''}
+                            placeholder='Nhập tên'
                             maxLength={10}
                             onChange={(e) => setNewNickname(e.target.value)}
                             disabled={pendingUpdateProfile || !isEditingNickname}
@@ -418,6 +403,19 @@ const AccountSettings: React.FC = () => {
                           <p className='text-xs text-slate-500'>*Có thể thay đổi tối đa 10 ký tự.</p>
                         )}
                       </div>
+                      {/* Email Field */}
+                      <div className='space-y-2'>
+                        <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
+                          <Mail className='w-4 h-4' />
+                          Email
+                        </label>
+                        <Input
+                          defaultValue={userProfile?.email}
+                          disabled
+                          className='h-12 bg-slate-50 border-slate-200 rounded-lg'
+                        />
+                        <p className='text-xs text-slate-500'>*Không thể chỉnh sửa email.</p>
+                      </div>
                     </div>
 
                     {/* Second column: Phone, Password */}
@@ -427,7 +425,7 @@ const AccountSettings: React.FC = () => {
                         <label className='text-sm font-medium text-slate-700'>Số điện thoại</label>
                         <div className='relative'>
                           <Input
-                            value={isEditingPhone ? newPhone : userProfile?.name || ''}
+                            value={isEditingPhone ? newPhone : userProfile?.phone || ''}
                             placeholder='Nhập số điện thoại'
                             onChange={(e) => setNewPhone(e.target.value)}
                             disabled={pendingUpdateProfile || !isEditingPhone}

@@ -248,13 +248,9 @@ const SignUp = () => {
                 className={errors.acceptTerms ? 'border-red-500' : ''}
               />
               <label htmlFor='acceptTerms' className='text-sm text-gray-600 leading-relaxed'>
-                I accept the{' '}
-                <button
-                  type='button'
-                  className='text-indigo-600 hover:text-indigo-700 font-medium transition-colors'
-                  onClick={() => console.log('Terms clicked')}
-                >
-                  Terms & Conditions
+                Tôi đồng ý{' '}
+                <button type='button' className='text-cyan-500 hover:text-cyan-400 font-medium transition-colors'>
+                  Điều khoản & Điều kiện
                 </button>
               </label>
             </div>
@@ -271,10 +267,10 @@ const SignUp = () => {
             {registerMutation.isPending ? (
               <div className='flex items-center'>
                 <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2'></div>
-                Creating Account...
+                Đang tạo tài khoản...
               </div>
             ) : (
-              'Create Account'
+              'Tạo tài khoản'
             )}
           </Button>
         </div>
@@ -288,32 +284,21 @@ const SignUp = () => {
 
         {/* Login Link */}
         <div className='mt-8 text-center'>
-          <span className='text-gray-600'>Already have an account? </span>
+          <span className='text-gray-600'>Bạn đã có tài khoản? </span>
           <Link
             to={path.auth.login}
-            className='text-indigo-600 cursor-pointer hover:text-indigo-700 font-semibold transition-colors'
+            className='text-cyan-500 hover:text-cyan-400 cursor-pointer  font-semibold transition-colors'
           >
-            Sign in
+            Đăng nhập
           </Link>
         </div>
 
         {/* Footer */}
         <div className='mt-8 text-center w-full mx-auto'>
           <p className='text-sm text-gray-500'>
-            By creating an account, you agree to our{' '}
-            <button
-              onClick={() => console.log('Terms clicked')}
-              className='text-indigo-600 hover:text-indigo-700 transition-colors'
-            >
-              Terms of Service
-            </button>{' '}
-            and{' '}
-            <button
-              onClick={() => console.log('Privacy clicked')}
-              className='text-indigo-600 hover:text-indigo-700 transition-colors'
-            >
-              Privacy Policy
-            </button>
+            Bằng cách tạo một tài khoản, bạn đồng ý với chúng tôi{' '}
+            <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Điều khoản dịch vụ</button> và{' '}
+            <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Chính sách bảo mật</button>
           </p>
         </div>
       </div>

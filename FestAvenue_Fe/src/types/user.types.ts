@@ -1,9 +1,6 @@
 export interface responseUser {
   name: string
 }
-export interface UserProfileResponse {
-  name: string
-}
 
 export interface bodyLoginType {
   email: string
@@ -35,4 +32,31 @@ export interface updatePasswordBody {
   currentPassword: string
   newPassword: string
   confirmNewPassword: string
+}
+export interface bodyResetPassword {
+  token: string
+  newPassword: string
+}
+export interface userRes {
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+  phone: string
+  roles: [string]
+  avatar: string
+  status: number
+  lastLogin: string
+  twoFactorEnabled: boolean
+  organization: string
+  preferences: {
+    language: string
+    timezone: string
+    notifications: {
+      email: boolean
+      sms: boolean
+      push: boolean
+    }
+  }
+  createdBy: string
 }
