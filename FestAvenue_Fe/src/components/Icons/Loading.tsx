@@ -1,4 +1,4 @@
-import { SVGProps } from 'react'
+import type { SVGProps } from 'react'
 const Loading = (props: SVGProps<SVGSVGElement>) => (
   <svg xmlns='http://www.w3.org/2000/svg' width={146} height={152} viewBox='0 0 146 152' fill='none' {...props}>
     <g fill='#fff' clipPath='url(#a)'>

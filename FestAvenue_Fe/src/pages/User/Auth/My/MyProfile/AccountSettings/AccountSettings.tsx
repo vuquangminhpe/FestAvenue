@@ -94,6 +94,9 @@ const AccountSettings: React.FC = () => {
   const deletedAccountMutation = useMutation({
     mutationFn: userApi.deleteMyAccount
   })
+  const uploadsStorageMutation = useMutation({
+    mutationFn: (file: File) => userApi.uploadsStorage(file)
+  })
   const updatePasswordMutation = useMutation({
     mutationFn: userApi.updateMyPassword
   })
@@ -137,22 +140,25 @@ const AccountSettings: React.FC = () => {
   }
 
   const handleUpdateAvatar = async () => {
-    try {
-      if (newAvatar) {
-        // Convert file to base64 or use different approach for JSON body
-        const reader = new FileReader()
-        reader.onload = async () => {
-          const base64 = reader.result as string
-          await updateProfileMutation({ profileImage: base64 })
-          toast.success('Ảnh hồ sơ đã được cập nhật thành công.')
-          handleCancelUploadAvatar()
+    if (newAvatar) {
+      uploadsStorageMutation.mutateAsync(newAvatar, {
+        onSuccess: (data) => {
+          updateProfileMutation(
+            { avatar: data?.data as any },
+            {
+              onSuccess: () => {
+                toast.success('Cập nhật ảnh thành công')
+              },
+              onError: () => {
+                toast.error('Cập nhật ảnh thất bại')
+              }
+            }
+          )
+        },
+        onError: () => {
+          toast.error('Cập nhật thất bại, hãy thử lại trong ít phút !!!')
         }
-        reader.readAsDataURL(newAvatar)
-      }
-    } catch (error) {
-      console.log('error: ', error)
-      toast.error('Lỗi xảy ra khi cập nhật ảnh hồ sơ')
-      handleCancelUploadAvatar()
+      })
     }
   }
 
