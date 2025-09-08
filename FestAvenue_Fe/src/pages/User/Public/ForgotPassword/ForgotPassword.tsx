@@ -98,7 +98,7 @@ const ForgotPassword = () => {
       <div className='w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden'>
         <div className=' p-6 pb-0 text-center'>
           <img src={LOGO_IMG} alt='FestAvenue Logo' className='h-[250px] w-[250px] mx-auto rounded-full' />
-          <h1 className='text-2xl font-bold text-white mb-1'>Quên mật khẩu?</h1>
+          <h1 className='text-2xl text-black font-bold mb-1'>Quên mật khẩu?</h1>
           <p className='text-black font-semibold text-sm -translate-y-20'>
             Đừng lo lắng, chúng tôi sẽ giúp bạn khôi phục mật khẩu
           </p>
