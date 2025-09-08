@@ -20,6 +20,10 @@ const path = {
   user: {
     root: '/user',
     profile: '/user/profile',
+    organization: {
+      root: '/user/organization',
+      created_organization: '/user/organization/create-organization'
+    },
     event: {
       root: '/user/event',
       create_event: '/user/event/create_event'

@@ -1,3 +1,4 @@
+import path from '@/constants/path'
 import { useUsersStore } from '@/contexts/app.context'
 import { Building, X, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -12,7 +13,6 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
   const profile = useUsersStore((state) => state.isProfile)
   const [internalVisible, setInternalVisible] = useState(true)
 
-  // Reset internal visibility when isVisible prop changes from false to true
   useEffect(() => {
     if (isVisible) {
       setInternalVisible(true)
@@ -61,7 +61,7 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
             {/* Action buttons */}
             <div className='flex space-x-2'>
               <Link
-                to='/create-organization'
+                to={path.user.organization.created_organization}
                 className='inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-cyan-400 to-blue-300 text-white text-xs font-medium rounded-lg hover:from-cyan-500 hover:to-blue-400 transition-all duration-200 shadow-sm hover:shadow-md'
               >
                 <Plus className='h-3 w-3 mr-1' />
