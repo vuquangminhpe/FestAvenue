@@ -2,27 +2,16 @@ import path from '@/constants/path'
 import LOGO_IMG from '../../../../../public/Images/Fest.png'
 import { Link } from 'react-router'
 import { useEffect, useState } from 'react'
-import { getAccessTokenFromLS, clearLocalStorage } from '@/utils/auth'
+import { clearLocalStorage } from '@/utils/auth'
 import { Search, Heart, HelpCircle, User, LogOut, Menu, X } from 'lucide-react'
+import { useUsersStore } from '@/contexts/app.context'
 
 export default function Header() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [userName] = useState('Emily')
+  const isAuthenticated = useUsersStore((data) => data.isAuth)
+  const profile = useUsersStore((data) => data.isProfile)
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = getAccessTokenFromLS()
-      setIsAuthenticated(!!token)
-    }
-
-    checkAuth()
-
-    window.addEventListener('storage', checkAuth)
-    return () => window.removeEventListener('storage', checkAuth)
-  }, [])
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -40,7 +29,6 @@ export default function Header() {
 
   const handleLogout = () => {
     clearLocalStorage()
-    setIsAuthenticated(false)
     setIsUserMenuOpen(false)
   }
 
@@ -99,7 +87,7 @@ export default function Header() {
                   Tìm sự kiện
                 </Link>
                 <Link
-                  to='/create-event'
+                  to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                   className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200'
                 >
                   Tạo sự kiện
@@ -128,7 +116,7 @@ export default function Header() {
             ) : (
               <>
                 <Link
-                  to='/create-event'
+                  to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                   className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200'
                 >
                   Tạo sự kiện
@@ -158,7 +146,9 @@ export default function Header() {
                     <div className='w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center'>
                       <User className='h-5 w-5 text-white' />
                     </div>
-                    <span className='font-medium text-gray-700 hidden xl:inline'>{userName}</span>
+                    <span className='font-medium text-gray-700 hidden xl:inline'>
+                      {profile?.firstName} {profile?.lastName}
+                    </span>
                   </button>
 
                   {/* Desktop User Dropdown Menu */}
@@ -239,7 +229,7 @@ export default function Header() {
                   Tìm sự kiện
                 </Link>
                 <Link
-                  to='/create-event'
+                  to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                   className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -277,13 +267,15 @@ export default function Header() {
                     <User className='h-6 w-6 text-white' />
                   </div>
                   <div>
-                    <p className='font-medium text-gray-900'>{userName}</p>
+                    <p className='font-medium text-gray-900'>
+                      {profile?.firstName} {profile?.lastName}
+                    </p>
                     <p className='text-sm text-gray-500'>Đã đăng nhập</p>
                   </div>
                 </div>
 
                 <Link
-                  to='/create-event'
+                  to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                   className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

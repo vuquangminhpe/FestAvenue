@@ -20,7 +20,10 @@ const path = {
   user: {
     root: '/user',
     profile: '/user/profile',
-
+    event: {
+      root: '/user/event',
+      create_event: '/user/event/create_event'
+    },
     my: {
       root: '/user/my',
       profile: '/user/my/profile',
