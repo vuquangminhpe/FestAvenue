@@ -29,12 +29,7 @@ const items = [
     icon: <CustomIcon name='UserOutline' className='h-[14px] w-[14px]' />,
     preloadKey: 'user-profile'
   },
-  {
-    title: 'Tổ chức',
-    url: path.user.organization.created_organization,
-    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
-    preloadKey: 'create-organization'
-  },
+
   {
     title: 'Tín dụng',
     url: path.user.my.credit,

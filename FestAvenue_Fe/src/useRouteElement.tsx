@@ -270,9 +270,7 @@ export default function useRouteElement() {
               path: path.user.organization.created_organization,
               element: (
                 <SuspenseWrapper>
-                  <MyLayout>
-                    <CreateOrganization />
-                  </MyLayout>
+                  <CreateOrganization />
                 </SuspenseWrapper>
               )
             }
