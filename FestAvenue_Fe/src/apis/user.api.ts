@@ -8,7 +8,10 @@ import type {
   updatePasswordBody,
   bodyResetPassword,
   userRes,
-  bodyUpdateAvatar
+  bodyUpdateAvatar,
+  CreateOrganizationBody,
+  CreateOrganizationResponse,
+  OrganizationResponse
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -66,6 +69,32 @@ const userApi = {
   },
   deletedFileStorage: async (fileName: string) => {
     const data = await http.delete<APIResponse<{ messages: string }>>(`/storage/delete-file?fileName=${fileName}`)
+    return data?.data
+  },
+  createOrganization: async (body: CreateOrganizationBody) => {
+    const data = await http.post<APIResponse<CreateOrganizationResponse>>('/organization/create-organization', body)
+    return data?.data
+  },
+  getMyOrganization: async () => {
+    const data = await http.get<APIResponse<OrganizationResponse>>('/organization/my-organization')
+    return data?.data
+  },
+  checkOrganizationExists: async (name: string) => {
+    const data = await http.get<APIResponse<{ exists: boolean; organization?: OrganizationResponse }>>(
+      `/organization/check-exists?name=${encodeURIComponent(name)}`
+    )
+    return data?.data
+  },
+  getOrganizationById: async (id: string) => {
+    const data = await http.get<APIResponse<OrganizationResponse>>(`/organization/${id}`)
+    return data?.data
+  },
+  updateOrganization: async (id: string, body: Partial<CreateOrganizationBody>) => {
+    const data = await http.put<APIResponse<OrganizationResponse>>(`/organization/${id}`, body)
+    return data?.data
+  },
+  deleteOrganization: async (id: string) => {
+    const data = await http.delete<APIResponse<{ message: string }>>(`/organization/${id}`)
     return data?.data
   }
 }

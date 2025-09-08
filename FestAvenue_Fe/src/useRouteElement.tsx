@@ -16,6 +16,7 @@ import VerifyEmail from './pages/User/Public/VerifyEmail/VerifyEmail'
 import UserProfile from './pages/User/Auth/My/MyProfile/UserProfile'
 import ForgotPassword from './pages/User/Public/ForgotPassword'
 import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
+import CreateOrganization from './pages/User/Auth/Organization/CreateOrganization'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -261,6 +262,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <MyLayout>
                     <UserProfile />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.organization.created_organization,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <CreateOrganization />
                   </MyLayout>
                 </SuspenseWrapper>
               )

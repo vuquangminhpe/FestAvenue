@@ -13,8 +13,10 @@ import {
 } from '@/components/ui/sidebar'
 import path from '@/constants/path'
 import { cn } from '@/lib/utils'
-import { useState, useEffect, useRef, Fragment } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef, Fragment, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useBulkPreloader } from '@/hooks/useBulkPreloader'
+import SmartLink from '@/components/custom'
 
 interface MyLayoutProps {
   children?: React.ReactNode
@@ -22,21 +24,28 @@ interface MyLayoutProps {
 
 const items = [
   {
-    title: 'profile',
+    title: 'Trang cá nhân',
     url: path.user.my.profile,
-    icon: <CustomIcon name='UserOutline' className='h-[14px] w-[14px]' />
+    icon: <CustomIcon name='UserOutline' className='h-[14px] w-[14px]' />,
+    preloadKey: 'user-profile'
   },
-
   {
-    title: 'credits',
+    title: 'Tổ chức',
+    url: path.user.organization.created_organization,
+    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
+    preloadKey: 'create-organization'
+  },
+  {
+    title: 'Tín dụng',
     url: path.user.my.credit,
-    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />
+    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
+    preloadKey: 'credit-page'
   }
 ]
 
 export default function MyLayout({ children }: MyLayoutProps) {
   const location = useLocation()
-  const [activeTab, setActiveTab] = useState<string>('계정 정보')
+  const [activeTab, setActiveTab] = useState<string>('Trang cá nhân')
   const [indicatorStyle, setIndicatorStyle] = useState<{ top: number; height: number }>({ top: 0, height: 0 })
   const [mobileIndicatorStyle, setMobileIndicatorStyle] = useState<{ left: number; width: number }>({
     left: 0,
@@ -45,6 +54,9 @@ export default function MyLayout({ children }: MyLayoutProps) {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const mobileRef = useRef<HTMLUListElement>(null)
 
+  // Preload các components khi idle
+  useBulkPreloader(['create-organization'], 'idle')
+
   useEffect(() => {
     const currentItem = items.find((item) => item.url === location.pathname)
     if (currentItem) {
@@ -52,31 +64,24 @@ export default function MyLayout({ children }: MyLayoutProps) {
     }
   }, [location.pathname])
 
-  // Update desktop indicator position
-  useEffect(() => {
-    const updateIndicator = () => {
-      if (sidebarRef.current) {
-        const activeIndex = items.findIndex((item) => item.title === activeTab)
-        if (activeIndex !== -1) {
-          const menuItems = sidebarRef.current.querySelectorAll('[data-menu-item]')
-          const activeElement = menuItems[activeIndex] as HTMLElement
-          if (activeElement) {
-            setIndicatorStyle({
-              top: activeElement.offsetTop + 6,
-              height: activeElement.offsetHeight - 14
-            })
-          }
+  // Optimized indicator updates
+  const updateIndicator = useCallback(() => {
+    if (sidebarRef.current) {
+      const activeIndex = items.findIndex((item) => item.title === activeTab)
+      if (activeIndex !== -1) {
+        const menuItems = sidebarRef.current.querySelectorAll('[data-menu-item]')
+        const activeElement = menuItems[activeIndex] as HTMLElement
+        if (activeElement) {
+          setIndicatorStyle({
+            top: activeElement.offsetTop + 6,
+            height: activeElement.offsetHeight - 14
+          })
         }
       }
     }
-
-    updateIndicator()
-    const timer = setTimeout(updateIndicator, 50)
-    return () => clearTimeout(timer)
   }, [activeTab])
 
-  // Update mobile indicator position
-  useEffect(() => {
+  const updateMobileIndicator = useCallback(() => {
     if (mobileRef.current) {
       const activeIndex = items.findIndex((item) => item.title === activeTab)
       if (activeIndex !== -1) {
@@ -91,6 +96,11 @@ export default function MyLayout({ children }: MyLayoutProps) {
       }
     }
   }, [activeTab])
+
+  useEffect(() => {
+    updateIndicator()
+    updateMobileIndicator()
+  }, [updateIndicator, updateMobileIndicator])
 
   return (
     <Fragment>
@@ -120,7 +130,6 @@ export default function MyLayout({ children }: MyLayoutProps) {
                       opacity: indicatorStyle.height > 0 ? 1 : 0,
                       transform: indicatorStyle.height > 0 ? 'scale(1)' : 'scale(0.95)'
                     }}
-                    onTransitionEnd={() => {}}
                   />
 
                   <SidebarMenu className='gap-y-2 relative z-10'>
@@ -130,10 +139,21 @@ export default function MyLayout({ children }: MyLayoutProps) {
                           className='h-fit -translate-y-2 data-[active=true]:bg-transparent data-[active=true]:rounded-[8px] relative group'
                           isActive={false}
                         >
-                          <Link
+                          <SmartLink
                             to={item.url}
                             onClick={() => setActiveTab(item.title)}
                             className='flex items-center gap-x-2 w-full h-12 px-4 rounded-lg transition-all duration-200 ease-out hover:bg-gray-50 hover:shadow-sm relative overflow-hidden border border-transparent hover:border-gray-200'
+                            // Preload configuration - chỉ cho Organization
+                            preloadTarget={
+                              item.preloadKey === 'create-organization'
+                                ? {
+                                    path: item.preloadKey,
+                                    importFn: () =>
+                                      import('@/pages/User/Auth/Organization/CreateOrganization/CreateOrganization'),
+                                    delay: 100 // 100ms delay khi hover
+                                  }
+                                : undefined
+                            }
                           >
                             {/* Hover ripple effect */}
                             <div className='absolute inset-0 bg-gradient-to-r from-blue-100/0 via-blue-100/50 to-blue-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out' />
@@ -156,7 +176,7 @@ export default function MyLayout({ children }: MyLayoutProps) {
                             {item.title === activeTab && (
                               <div className='ml-auto w-2 h-2 bg-blue-500 rounded-full animate-pulse' />
                             )}
-                          </Link>
+                          </SmartLink>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}
@@ -199,7 +219,7 @@ export default function MyLayout({ children }: MyLayoutProps) {
 
               {items.map((item) => (
                 <li key={item.title} className='relative group' data-mobile-item>
-                  <Link
+                  <SmartLink
                     to={item.url}
                     className={cn(
                       'px-3 h-10 flex items-center whitespace-nowrap border border-transparent cursor-pointer transition-all duration-200 ease-out relative overflow-hidden',
@@ -209,6 +229,17 @@ export default function MyLayout({ children }: MyLayoutProps) {
                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                     )}
                     onClick={() => setActiveTab(item.title)}
+                    // Mobile preload configuration
+                    preloadTarget={
+                      item.preloadKey === 'create-organization'
+                        ? {
+                            path: item.preloadKey,
+                            importFn: () =>
+                              import('@/pages/User/Auth/Organization/CreateOrganization/CreateOrganization'),
+                            delay: 50 // Faster on mobile touch
+                          }
+                        : undefined
+                    }
                   >
                     {/* Hover ripple effect */}
                     <div className='absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out' />
@@ -216,13 +247,14 @@ export default function MyLayout({ children }: MyLayoutProps) {
                     <span className='transition-all duration-200 group-hover:scale-105 relative z-10'>
                       {item.title}
                     </span>
-                  </Link>
+                  </SmartLink>
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
+        {/* Optimized content area */}
         <div className='flex-1 w-full bg-gray-50 py-9 px-7 xl:py-8 xl:pt-16'>{children}</div>
       </div>
     </Fragment>
