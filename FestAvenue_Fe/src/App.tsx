@@ -12,7 +12,7 @@ function App() {
   const check_accessToken = location.search.includes('accessToken')
   const userStore = useUsersStore((set) => set.setIsProfile)
   const { data } = useQuery({
-    queryKey: ['myProfile'],
+    queryKey: ['getMyProfile'],
     queryFn: () => userApi.getMyProfile(),
     enabled: !!getAccessTokenFromLS()
   })

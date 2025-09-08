@@ -3,10 +3,10 @@ import LOGO_IMG from '../../../../../public/Images/Fest.png'
 import { Link } from 'react-router'
 import { useEffect, useState } from 'react'
 import { clearLocalStorage } from '@/utils/auth'
-import { Search, Heart, HelpCircle, User, LogOut, Menu, X, Building } from 'lucide-react'
+import { Search, Heart, HelpCircle, LogOut, Menu, X, Building } from 'lucide-react'
 import { useUsersStore } from '@/contexts/app.context'
 import OrganizationNotification from '@/components/OrganizationNotification'
-
+import LOGO_DEFAULT from '../../../../../public/Images/default-avatar.png'
 export default function Header() {
   const isAuthenticated = useUsersStore((data) => data.isAuth)
   const profile = useUsersStore((data) => data.isProfile)
@@ -50,7 +50,7 @@ export default function Header() {
 
   return (
     <>
-      <header className='w-full bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50'>
+      <header className='w-full z-[100] bg-white shadow-lg border-b border-gray-200 sticky top-0'>
         <div className=' mx-auto px-4 sm:px-6 lg:px-8'>
           {/* Main Header */}
           <div className='flex items-center justify-between h-16 lg:h-20'>
@@ -159,8 +159,8 @@ export default function Header() {
                       onClick={toggleUserMenu}
                       className='flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200'
                     >
-                      <div className='w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center'>
-                        <User className='h-5 w-5 text-white' />
+                      <div className='size-10  rounded-full flex items-center justify-center'>
+                        <img src={profile?.avatar || LOGO_DEFAULT} className='rounded-full' />
                       </div>
                       <span className='font-medium text-gray-700 hidden xl:inline'>
                         {profile?.firstName} {profile?.lastName}
@@ -279,8 +279,8 @@ export default function Header() {
                 <>
                   {/* User Info */}
                   <div className='flex items-center space-x-3 px-4 py-3 bg-gray-50 rounded-lg mb-2'>
-                    <div className='w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center'>
-                      <User className='h-6 w-6 text-white' />
+                    <div className='w-10 h-10  rounded-full flex items-center justify-center'>
+                      <img src={profile?.avatar || LOGO_DEFAULT} className='rounded-full' />
                     </div>
                     <div>
                       <p className='font-medium text-gray-900'>

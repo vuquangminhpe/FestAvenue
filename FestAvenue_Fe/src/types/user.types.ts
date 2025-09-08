@@ -60,3 +60,6 @@ export interface userRes {
   }
   createdBy: string
 }
+export interface bodyUpdateAvatar {
+  avatar: string
+}

@@ -52,15 +52,18 @@ const AccountSettings: React.FC = () => {
   const [isEditingNickname, setIsEditingNickname] = useState(false)
   const [isEditingPassword, setIsEditingPassword] = useState(false)
   const [isEditingPhone, setIsEditingPhone] = useState(false)
+  const [isEditingFirstname, setIsEditingFirstname] = useState(false)
   const [newNickname, setNewNickname] = useState('')
   const [newPhone, setNewPhone] = useState('')
+  const [newFirstname, setNewFirstname] = useState('')
   const [newAvatar, setNewAvatar] = useState<File>()
   const [newAvatarURL, setNewAvatarURL] = useState<string>()
   const [showImageCropper, setShowImageCropper] = useState(false)
   const [originalImageURL, setOriginalImageURL] = useState<string>()
-
+  const isProfile = useUsersStore((data) => data.isProfile)
   const [nicknameError, setNicknameError] = useState('')
   const [phoneError, setPhoneError] = useState('')
+  const [firstnameError, setFirstnameError] = useState('')
   // const deletedAccountMutation = useMutation({
   //   mutationFn: () => userApi.deleteAccount(),
   //   onSuccess: () => {
@@ -69,7 +72,11 @@ const AccountSettings: React.FC = () => {
   //     handleLogout()
   //   }
   // })
-  const { isProfile: userProfile, userAvatar, setIsAuth, setUserAvatar } = useUsersStore((state) => state)
+
+  const deletedImagesStorageMutation = useMutation({
+    mutationFn: userApi.deletedFileStorage
+  })
+  const { isProfile: userProfile, setIsAuth, setUserAvatar } = useUsersStore((state) => state)
 
   const queryClient = useQueryClient()
   const avatarInputRef = useRef<HTMLInputElement>(null)
@@ -83,12 +90,13 @@ const AccountSettings: React.FC = () => {
       confirmPassword: ''
     }
   })
-
+  const updateAvatarMutation = useMutation({
+    mutationFn: userApi.updateAvatarProfile
+  })
   const { isPending: pendingUpdateProfile, mutateAsync: updateProfileMutation } = useMutation({
     mutationFn: userApi.updateMyProfile,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
-      queryClient.invalidateQueries({ queryKey: ['getProfile'] })
+      queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
     }
   })
   const deletedAccountMutation = useMutation({
@@ -141,13 +149,23 @@ const AccountSettings: React.FC = () => {
 
   const handleUpdateAvatar = async () => {
     if (newAvatar) {
+      if (isProfile?.avatar) {
+        try {
+          await deletedImagesStorageMutation.mutateAsync(isProfile.avatar)
+        } catch (error) {
+          console.error('Không thể xóa ảnh cũ:', error)
+        }
+      }
+
       uploadsStorageMutation.mutateAsync(newAvatar, {
         onSuccess: (data) => {
-          updateProfileMutation(
-            { avatar: data?.data as any },
+          updateAvatarMutation.mutateAsync(
+            { avatar: data?.data as unknown as string },
             {
               onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
                 toast.success('Cập nhật ảnh thành công')
+                handleCancelUploadAvatar()
               },
               onError: () => {
                 toast.error('Cập nhật ảnh thất bại')
@@ -168,6 +186,16 @@ const AccountSettings: React.FC = () => {
     setNicknameError('')
   }
 
+  const toggleEditFirstname = (isEdit: boolean) => {
+    setIsEditingFirstname(isEdit)
+    if (isEdit) {
+      setNewFirstname(userProfile?.firstName || '')
+    } else {
+      setNewFirstname('')
+    }
+    setFirstnameError('')
+  }
+
   const toggleEditPhone = (isEdit: boolean) => {
     setIsEditingPhone(isEdit)
     if (isEdit) {
@@ -181,10 +209,10 @@ const AccountSettings: React.FC = () => {
   const handleNicknameEdit = async () => {
     if (newNickname.length > 0 && newNickname.length <= 10) {
       await updateProfileMutation(
-        { firstName: newNickname },
+        { lastName: newNickname },
         {
           onSuccess: () => {
-            toast.success('Biệt danh đã được cập nhật thành công.')
+            toast.success('Tên đã được cập nhật thành công.')
             setIsEditingNickname(false)
             setNicknameError('')
           },
@@ -194,7 +222,27 @@ const AccountSettings: React.FC = () => {
         }
       )
     } else {
-      setNicknameError('Vui lòng nhập biệt danh từ 1-10 ký tự.')
+      setNicknameError('Vui lòng nhập tên từ 1-10 ký tự.')
+    }
+  }
+
+  const handleFirstnameEdit = async () => {
+    if (newFirstname.length > 0 && newFirstname.length <= 20) {
+      await updateProfileMutation(
+        { firstName: newFirstname },
+        {
+          onSuccess: () => {
+            toast.success('Họ đã được cập nhật thành công.')
+            setIsEditingFirstname(false)
+            setFirstnameError('')
+          },
+          onError: () => {
+            toast.error('Cật nhật thất bại')
+          }
+        }
+      )
+    } else {
+      setFirstnameError('Vui lòng nhập họ từ 1-20 ký tự.')
     }
   }
 
@@ -263,7 +311,7 @@ const AccountSettings: React.FC = () => {
                     <div className='relative group'>
                       <div className='size-36 flex rounded-full overflow-hidden ring-4 ring-white shadow-xl'>
                         <img
-                          src={newAvatarURL || userAvatar || defaultAvatar}
+                          src={newAvatarURL || isProfile?.avatar || defaultAvatar}
                           alt='avatar'
                           className='w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-110'
                         />
@@ -335,19 +383,65 @@ const AccountSettings: React.FC = () => {
                   <div className='flex flex-col lg:flex-row gap-14'>
                     {/* First column: Name, Email, Nickname */}
                     <div className='flex-1 space-y-10'>
-                      {/* Name Field */}
+                      {/* Firstname Field */}
                       <div className='space-y-2'>
                         <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
                           <User className='w-4 h-4' />
                           Họ
                         </label>
-                        <Input
-                          defaultValue={userProfile ? userProfile.firstName : 'Không có tên'}
-                          disabled
-                          className='h-12 bg-slate-50 border-slate-200 rounded-lg'
-                        />
+                        <div className='relative'>
+                          <Input
+                            value={
+                              isEditingFirstname ? newFirstname : userProfile ? userProfile.firstName : 'Không có họ'
+                            }
+                            placeholder='Nhập họ'
+                            maxLength={20}
+                            onChange={(e) => setNewFirstname(e.target.value)}
+                            disabled={pendingUpdateProfile || !isEditingFirstname}
+                            className={cn(
+                              'h-12 pr-24 rounded-lg transition-all duration-200',
+                              firstnameError
+                                ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                                : 'border-slate-200 focus:border-blue-500 focus:ring-blue-200',
+                              isEditingFirstname ? 'bg-white' : 'bg-slate-50'
+                            )}
+                          />
+                          {!isEditingFirstname ? (
+                            <button
+                              onClick={() => toggleEditFirstname(true)}
+                              className='absolute right-3 top-1/2 -translate-y-1/2 text-white text-xs font-medium py-2 px-3 rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200'
+                            >
+                              Chỉnh sửa
+                            </button>
+                          ) : (
+                            <div className='absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2'>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className='text-xs px-3 py-1 h-8 rounded-md'
+                                onClick={() => toggleEditFirstname(false)}
+                              >
+                                Hủy
+                              </Button>
+                              <Button
+                                onClick={handleFirstnameEdit}
+                                variant='default'
+                                size='sm'
+                                className='text-xs px-3 py-1 h-8 rounded-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
+                              >
+                                {pendingUpdateProfile ? <LoaderCircle className='w-3 h-3 animate-spin mr-1' /> : null}
+                                Hoàn thành
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {firstnameError ? (
+                          <p className='text-xs text-red-500 mt-1'>{firstnameError}</p>
+                        ) : (
+                          <p className='text-xs text-slate-500'>*Có thể thay đổi tối đa 20 ký tự.</p>
+                        )}
                       </div>
-                      {/* Nickname Field */}
+                      {/* Lastname Field */}
                       <div className='space-y-2'>
                         <label className='text-sm font-medium text-slate-700 flex items-center gap-2'>
                           <Edit3 className='w-4 h-4' />

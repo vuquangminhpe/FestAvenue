@@ -7,7 +7,8 @@ import type {
   updateBodyProfile,
   updatePasswordBody,
   bodyResetPassword,
-  userRes
+  userRes,
+  bodyUpdateAvatar
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -57,6 +58,14 @@ const userApi = {
   },
   getMyProfile: async () => {
     const data = await http.get<APIResponse<userRes>>('/profile/my-profile')
+    return data?.data
+  },
+  updateAvatarProfile: async (body: bodyUpdateAvatar) => {
+    const data = await http.put<APIResponse<{ messages: string }>>('/profile/update-avatar', body)
+    return data?.data
+  },
+  deletedFileStorage: async (fileName: string) => {
+    const data = await http.delete<APIResponse<{ messages: string }>>(`/storage/delete-file?fileName=${fileName}`)
     return data?.data
   }
 }

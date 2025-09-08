@@ -29,7 +29,7 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
   }
 
   return (
-    <div className='fixed top-21 z-[9999] right-4 max-w-sm bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl shadow-lg  animate-in slide-in-from-right-full duration-300'>
+    <div className='fixed lg:top-21 sm:top-30 z-[9999] right-4 max-w-sm bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl shadow-lg  animate-in slide-in-from-right-full duration-300'>
       <div className='relative p-4'>
         {/* Close button */}
         <button
