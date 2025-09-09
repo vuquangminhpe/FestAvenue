@@ -11,7 +11,8 @@ import type {
   bodyUpdateAvatar,
   CreateOrganizationBody,
   CreateOrganizationResponse,
-  OrganizationResponse
+  OrganizationResponse,
+  bodyCheckExits
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -79,9 +80,10 @@ const userApi = {
     const data = await http.get<APIResponse<OrganizationResponse>>('/organization/my-organization')
     return data?.data
   },
-  checkOrganizationExists: async (name: string) => {
-    const data = await http.get<APIResponse<{ exists: boolean; organization?: OrganizationResponse }>>(
-      `/organization/check-exists?name=${encodeURIComponent(name)}`
+  checkOrganizationExists: async (body: bodyCheckExits) => {
+    const data = await http.post<APIResponse<{ exists: boolean; organization?: OrganizationResponse }>>(
+      `/organization/exist-organization`,
+      body
     )
     return data?.data
   },

@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { Helmet } from 'react-helmet-async'
-import GoogleMapReact from 'google-map-react'
 import { gsap } from 'gsap'
 import {
   Building,
@@ -23,7 +22,8 @@ import {
   ArrowLeft,
   Loader2,
   MessageCircle,
-  AlertTriangle
+  AlertTriangle,
+  Settings
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -49,6 +49,8 @@ import path from '@/constants/path'
 import { cn } from '@/lib/utils'
 import { useUsersStore } from '@/contexts/app.context'
 import ChatSystem from '@/components/custom/ChatSystem'
+import LeafletMap from '@/components/custom/MapLeaflet'
+import { SubDescriptionStatus, type OrganizationType } from '@/types/user.types'
 
 // Schema validation
 const organizationSchema = z.object({
@@ -80,21 +82,24 @@ const organizationSchema = z.object({
   instagram: z.string().optional(),
 
   // Subscription
-  plan: z.string().min(1, 'Vui lòng chọn gói dịch vụ')
+  plan: z.string().min(1, 'Vui lòng chọn gói dịch vụ'),
+
+  // Organization Settings - Branding
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  accentColor: z.string().optional(),
+  customDomain: z.string().optional(),
+
+  // Organization Settings - Security
+  ssoEnabled: z.boolean().optional(),
+  minPasswordLength: z.number().min(6).optional(),
+  requireSpecialChar: z.boolean().optional(),
+  requireNumber: z.boolean().optional(),
+  requireUppercase: z.boolean().optional(),
+  passwordExpirationDays: z.number().min(0).optional()
 })
 
 type FormData = z.infer<typeof organizationSchema>
-
-// Map Marker Component
-const MapMarker = ({ lat, lng }: { lat: number; lng: number }) => {
-  console.log(lat, lng)
-
-  return (
-    <div className='absolute -translate-x-1/2 -translate-y-full'>
-      <MapPin className='w-8 h-8 text-red-500 drop-shadow-lg' />
-    </div>
-  )
-}
 
 const industries = [
   'Công nghệ thông tin',
@@ -109,7 +114,7 @@ const industries = [
   'Khác'
 ]
 
-const companySizes = ['1-10 nhân viên', '11-50 nhân viên', '51-200 nhân viên', '201-500 nhân viên', '500+ nhân viên']
+const companySizes = ['10', '50', '200', '500', '1000']
 
 const subscriptionPlans = [
   { value: 'basic', label: 'Cơ bản', price: 'Miễn phí' },
@@ -123,15 +128,20 @@ function CreateOrganization() {
   const [mapZoom] = useState(11)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
-  const [isCheckingName, setIsCheckingName] = useState(false)
-  const [existingOrganization, setExistingOrganization] = useState<any>(null)
+
+  const [isCheckingName] = useState(false)
+  const [existingOrganization, setExistingOrganization] = useState<OrganizationType>(null as any)
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [showChatSystem, setShowChatSystem] = useState(false)
   const [chatConfig, setChatConfig] = useState<{
     groupChatId: string
     requestType: 'request_admin' | 'request_user' | 'dispute'
   } | null>(null)
-
+  const [isLocationChecked, setIsLocationChecked] = useState(false)
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false)
+  const checkExitsLocationMutation = useMutation({
+    mutationFn: userApi.checkOrganizationExists
+  })
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -144,7 +154,7 @@ function CreateOrganization() {
       name: '',
       description: '',
       industry: '',
-      size: '',
+      size: '1',
       website: '',
       street: '',
       city: '',
@@ -158,7 +168,17 @@ function CreateOrganization() {
       twitter: '',
       linkedin: '',
       instagram: '',
-      plan: 'basic'
+      plan: 'basic',
+      primaryColor: '#06b6d4',
+      secondaryColor: '#3b82f6',
+      accentColor: '#8b5cf6',
+      customDomain: '',
+      ssoEnabled: false,
+      minPasswordLength: 8,
+      requireSpecialChar: false,
+      requireNumber: false,
+      requireUppercase: false,
+      passwordExpirationDays: 90
     }
   })
 
@@ -195,32 +215,50 @@ function CreateOrganization() {
     }
   })
 
-  // Check organization name
-  const checkOrganizationName = async (name: string) => {
-    if (name.length < 2) return
+  // Check location manually when user clicks button
+  const handleCheckLocation = async () => {
+    const currentName = form.getValues('name')
+    const latitude = form.getValues('latitude')
+    const longitude = form.getValues('longitude')
 
-    setIsCheckingName(true)
-    try {
-      const result = await userApi.checkOrganizationExists(name)
-      if (result?.data?.exists) {
-        setExistingOrganization(result.data.organization)
-        setShowConflictDialog(true)
-        form.setError('name', { message: 'Tên tổ chức đã tồn tại - Vui lòng chọn hành động' })
-      } else {
-        form.clearErrors('name')
-        setExistingOrganization(null)
-        setShowConflictDialog(false)
-      }
-    } catch (error) {
-      console.error('Error checking organization name:', error)
-    } finally {
-      setIsCheckingName(false)
+    if (!currentName || currentName.length < 2) {
+      toast.error('Vui lòng nhập tên tổ chức trước khi kiểm tra vị trí')
+      return
     }
+
+    if (!latitude || !longitude) {
+      toast.error('Vui lòng nhập tọa độ hoặc chọn vị trí trên bản đồ')
+      return
+    }
+
+    setIsCheckingLocation(true)
+
+    const body = {
+      name: currentName,
+      latitude,
+      longitude
+    }
+    checkExitsLocationMutation.mutateAsync(body, {
+      onSuccess: (data) => {
+        setExistingOrganization('' as any)
+        setShowConflictDialog(Boolean(data.data))
+        form.setError('latitude', { message: 'Tổ chức đã tồn tại tại vị trí này' })
+        form.setError('longitude', { message: 'Tổ chức đã tồn tại tại vị trí này' })
+        setIsLocationChecked(false)
+        setIsCheckingLocation(false)
+      },
+      onError: () => {
+        form.clearErrors(['latitude', 'longitude'])
+        setExistingOrganization(null as any)
+        setShowConflictDialog(false)
+        setIsLocationChecked(true)
+        setIsCheckingLocation(false)
+        toast.success('Vị trí hợp lệ! Bạn có thể tiếp tục.')
+      }
+    })
   }
 
-  // Handle conflict resolution
   const handleConflictResolution = (type: 'request_admin' | 'request_user' | 'dispute') => {
-    // Generate a unique group chat ID for this conflict
     const groupChatId = `conflict_${existingOrganization?.id}_${userProfile?.id}_${Date.now()}`
 
     setChatConfig({
@@ -235,6 +273,9 @@ function CreateOrganization() {
   const closeChatSystem = () => {
     setShowChatSystem(false)
     setChatConfig(null)
+    // Reset location check status if conflict was resolved
+    setIsLocationChecked(false)
+    setIsCheckingLocation(false)
   }
 
   // Handle logo upload
@@ -255,6 +296,11 @@ function CreateOrganization() {
     setMapCenter({ lat, lng })
     form.setValue('latitude', lat.toString())
     form.setValue('longitude', lng.toString())
+
+    // Reset location check status when coordinates change
+    setIsLocationChecked(false)
+    setIsCheckingLocation(false)
+    form.clearErrors(['latitude', 'longitude'])
   }
 
   // Go to next step
@@ -262,8 +308,20 @@ function CreateOrganization() {
     const fieldsToValidate = getFieldsForStep(currentStep)
     const isValid = await form.trigger(fieldsToValidate)
 
+    // Check if we need to validate location on step 2
+    if (currentStep === 2) {
+      const latitude = form.getValues('latitude')
+      const longitude = form.getValues('longitude')
+
+      // If coordinates are provided, require location check
+      if ((latitude || longitude) && !isLocationChecked) {
+        toast.error('Vui lòng kiểm tra vị trí trước khi tiếp tục')
+        return
+      }
+    }
+
     if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, 4))
+      setCurrentStep((prev) => Math.min(prev + 1, 6))
     }
   }
 
@@ -282,6 +340,8 @@ function CreateOrganization() {
       case 3:
         return ['website']
       case 4:
+        return []
+      case 5:
         return ['plan']
       default:
         return []
@@ -293,15 +353,22 @@ function CreateOrganization() {
       let logoUrl = ''
 
       if (logoFile) {
-        const uploadResult = await uploadLogoMutation.mutateAsync(logoFile)
-        logoUrl = (uploadResult?.data as any) || ('' as string)
+        await uploadLogoMutation.mutateAsync(logoFile, {
+          onSuccess: (data) => {
+            logoUrl = (data?.data as any) || ('' as string)
+            toast.success('Cập nhật ảnh tổ chức thành công')
+          },
+          onError: () => {
+            toast.error('Cập nhật ảnh tổ chức thất bại')
+          }
+        })
       }
 
       const organizationData = {
         name: data.name,
         description: data.description,
         industry: data.industry,
-        size: data.size,
+        size: Number(data.size),
         website: data.website,
         logo: logoUrl,
         address: {
@@ -324,11 +391,31 @@ function CreateOrganization() {
           linkedin: data.linkedin,
           instagram: data.instagram
         },
-        subscription: {
+        subDescription: {
           plan: data.plan,
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          status: 'active' as const
+          status: SubDescriptionStatus.Active
+        },
+        settings: {
+          branding: {
+            colors: {
+              primary: data.primaryColor,
+              secondary: data.secondaryColor,
+              accent: data.accentColor
+            },
+            customDomain: data.customDomain
+          },
+          security: {
+            ssoEnabled: data.ssoEnabled,
+            passwordPolicy: {
+              minLength: data.minPasswordLength,
+              requireSpecialChar: data.requireSpecialChar,
+              requireNumber: data.requireNumber,
+              requireUppercase: data.requireUppercase,
+              expirationDays: data.passwordExpirationDays
+            }
+          }
         }
       }
 
@@ -338,7 +425,6 @@ function CreateOrganization() {
     }
   }
 
-  // Steps configuration
   const steps = [
     {
       title: 'Thông tin cơ bản',
@@ -354,6 +440,11 @@ function CreateOrganization() {
       title: 'Mạng xã hội',
       description: 'Website và các kênh truyền thông',
       icon: Globe
+    },
+    {
+      title: 'Cài đặt tổ chức',
+      description: 'Thương hiệu và bảo mật',
+      icon: Settings
     },
     {
       title: 'Hoàn tất',
@@ -537,12 +628,6 @@ function CreateOrganization() {
                                   {...field}
                                   placeholder='VD: Công ty TNHH ABC'
                                   className='h-12 bg-white border-slate-200 focus:border-cyan-400 focus:ring-cyan-200'
-                                  onChange={(e) => {
-                                    field.onChange(e)
-                                    if (e.target.value.length >= 2) {
-                                      checkOrganizationName(e.target.value)
-                                    }
-                                  }}
                                 />
                                 {isCheckingName && (
                                   <Loader2 className='absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-cyan-600' />
@@ -801,24 +886,128 @@ function CreateOrganization() {
                         <label className='text-sm font-medium text-slate-700 mb-3 block'>
                           Chọn vị trí trên bản đồ (tùy chọn)
                         </label>
-                        <div className='h-[300px] rounded-lg overflow-hidden border border-slate-200 shadow-sm'>
-                          <GoogleMapReact
-                            bootstrapURLKeys={{ key: 'YOUR_GOOGLE_MAPS_API_KEY' }} // Thay bằng API key thực
-                            defaultCenter={mapCenter}
-                            center={mapCenter}
-                            defaultZoom={mapZoom}
-                            onClick={handleMapClick}
-                          >
-                            {form.watch('latitude') && form.watch('longitude') && (
-                              <MapMarker
-                                lat={parseFloat(form.watch('latitude') || '0')}
-                                lng={parseFloat(form.watch('longitude') || '0')}
-                              />
+
+                        {/* Coordinate Inputs */}
+                        <div className='grid md:grid-cols-2 gap-4 mb-4'>
+                          <FormField
+                            control={form.control}
+                            name='latitude'
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className='text-slate-700 font-medium'>Vĩ độ (Latitude)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder='21.0285'
+                                    className='h-12 bg-white border-slate-200 focus:border-cyan-400 focus:ring-cyan-200'
+                                    onChange={(e) => {
+                                      field.onChange(e)
+                                      const lat = parseFloat(e.target.value)
+                                      const lng = parseFloat(form.getValues('longitude') || '0')
+                                      if (!isNaN(lat) && !isNaN(lng)) {
+                                        setMapCenter({ lat, lng })
+                                      }
+                                      // Reset location check status when coordinates change
+                                      setIsLocationChecked(false)
+                                      setIsCheckingLocation(false)
+                                      form.clearErrors(['latitude', 'longitude'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                          </GoogleMapReact>
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name='longitude'
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className='text-slate-700 font-medium'>Kinh độ (Longitude)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder='105.8542'
+                                    className='h-12 bg-white border-slate-200 focus:border-cyan-400 focus:ring-cyan-200'
+                                    onChange={(e) => {
+                                      field.onChange(e)
+                                      const lng = parseFloat(e.target.value)
+                                      const lat = parseFloat(form.getValues('latitude') || '0')
+                                      if (!isNaN(lat) && !isNaN(lng)) {
+                                        setMapCenter({ lat, lng })
+                                      }
+                                      // Reset location check status when coordinates change
+                                      setIsLocationChecked(false)
+                                      setIsCheckingLocation(false)
+                                      form.clearErrors(['latitude', 'longitude'])
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {/* Location Check Button */}
+                        <div className='flex items-center gap-4 mb-4'>
+                          <Button
+                            type='button'
+                            onClick={handleCheckLocation}
+                            disabled={isCheckingLocation}
+                            variant={isLocationChecked ? 'default' : 'outline'}
+                            className={cn(
+                              'flex items-center gap-2',
+                              isLocationChecked
+                                ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                                : 'border-cyan-400 text-cyan-600 hover:bg-cyan-50'
+                            )}
+                          >
+                            {isCheckingLocation ? (
+                              <>
+                                <Loader2 className='w-4 h-4 animate-spin' />
+                                Đang kiểm tra...
+                              </>
+                            ) : isLocationChecked ? (
+                              <>
+                                <Check className='w-4 h-4' />
+                                Vị trí đã được kiểm tra
+                              </>
+                            ) : (
+                              <>
+                                <MapPin className='w-4 h-4' />
+                                Kiểm tra vị trí
+                              </>
+                            )}
+                          </Button>
+
+                          {isLocationChecked && (
+                            <div className='text-sm text-green-600 flex items-center gap-2'>
+                              <Check className='w-4 h-4' />
+                              Vị trí hợp lệ, bạn có thể tiếp tục
+                            </div>
+                          )}
+                        </div>
+
+                        <div className='h-[300px] rounded-lg overflow-hidden border border-slate-200 shadow-sm'>
+                          <LeafletMap
+                            center={mapCenter}
+                            zoom={mapZoom}
+                            onMapClick={handleMapClick}
+                            markerPosition={
+                              form.watch('latitude') && form.watch('longitude')
+                                ? {
+                                    lat: parseFloat(form.watch('latitude') || '0'),
+                                    lng: parseFloat(form.watch('longitude') || '0')
+                                  }
+                                : undefined
+                            }
+                          />
                         </div>
                         <p className='text-sm text-slate-500 mt-2'>
-                          Nhấp vào bản đồ để chọn vị trí chính xác của tổ chức
+                          Nhấp vào bản đồ để chọn vị trí chính xác của tổ chức hoặc nhập tọa độ trực tiếp. Sau khi nhập
+                          tọa độ, vui lòng bấm "Kiểm tra vị trí" để xác nhận.
                         </p>
                       </div>
                     </div>
@@ -1033,15 +1222,14 @@ function CreateOrganization() {
                     Quay lại
                   </Button>
 
-                  {currentStep < 4 ? (
-                    <Button
-                      type='button'
+                  {currentStep < 5 ? (
+                    <div
                       onClick={nextStep}
-                      className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
+                      className='bg-gradient-to-r px-3 rounded-xl text-center from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
                     >
                       Tiếp theo
                       <ChevronRight className='w-4 h-4' />
-                    </Button>
+                    </div>
                   ) : (
                     <Button
                       type='submit'
@@ -1069,7 +1257,7 @@ function CreateOrganization() {
 
         {/* Conflict Resolution Dialog */}
         <AlertDialog open={showConflictDialog} onOpenChange={setShowConflictDialog}>
-          <AlertDialogContent className='max-w-2xl'>
+          <AlertDialogContent style={{ width: '700px', maxWidth: '700px' }} className=''>
             <AlertDialogHeader>
               <AlertDialogTitle className='flex items-center gap-2'>
                 <Building className='w-5 h-5 text-orange-500' />
@@ -1078,26 +1266,26 @@ function CreateOrganization() {
               <AlertDialogDescription asChild>
                 <div className='space-y-4'>
                   <p>
-                    Tổ chức "<strong>{existingOrganization?.name}</strong>" đã tồn tại trong hệ thống. Vui lòng chọn một
-                    trong các hành động sau:
+                    Tổ chức "<strong>{existingOrganization?.data.name}</strong>" đã tồn tại trong hệ thống. Vui lòng
+                    chọn một trong các hành động sau:
                   </p>
 
                   {existingOrganization && (
                     <div className='p-4 bg-slate-50 rounded-lg border'>
                       <div className='flex items-center gap-3 mb-2'>
                         <Avatar className='w-10 h-10'>
-                          <AvatarImage src={existingOrganization.logo} />
+                          <AvatarImage src={existingOrganization.data.logo} />
                           <AvatarFallback>
                             <Building className='w-5 h-5' />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className='font-semibold text-slate-800'>{existingOrganization.name}</h4>
-                          <p className='text-sm text-slate-600'>{existingOrganization.industry}</p>
+                          <h4 className='font-semibold text-slate-800'>{existingOrganization.data.name}</h4>
+                          <p className='text-sm text-slate-600'>{existingOrganization.data.industry}</p>
                         </div>
                       </div>
                       <p className='text-sm text-slate-500'>
-                        Địa chỉ: {existingOrganization.address?.street}, {existingOrganization.address?.city}
+                        Địa chỉ: {existingOrganization.data.address?.street}, {existingOrganization.data.address?.city}
                       </p>
                     </div>
                   )}
@@ -1137,7 +1325,7 @@ function CreateOrganization() {
                   onClick={() => {
                     form.setValue('name', '')
                     setShowConflictDialog(false)
-                    setExistingOrganization(null)
+                    setExistingOrganization(null as any)
                   }}
                   className='flex-1'
                 >

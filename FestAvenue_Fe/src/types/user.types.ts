@@ -90,7 +90,7 @@ export interface OrganizationSubscription {
   plan: string
   startDate: Date
   endDate: Date
-  status: 'active' | 'inactive' | 'suspended' | 'trial'
+  status: SubDescriptionStatus
 }
 
 export interface OrganizationBranding {
@@ -124,16 +124,19 @@ export interface CreateOrganizationBody {
   name: string
   description?: string
   industry?: string
-  size?: string
+  size?: number
   website?: string
   logo?: string
   address?: OrganizationAddress
   contact: OrganizationContact
   socialMedia?: OrganizationSocialMedia
-  subscription: OrganizationSubscription
+  subDescription: OrganizationSubscription
   settings?: OrganizationSettings
 }
-
+export interface OrganizationType {
+  id: string
+  data: CreateOrganizationBody
+}
 export interface OrganizationResponse {
   id: string
   name: string
@@ -173,4 +176,18 @@ export interface ChatSystemProps {
   isVisible: boolean
   onClose: () => void
   requestType: 'request_admin' | 'request_user' | 'dispute'
+}
+
+export const SubDescriptionStatus = {
+  Active: 1,
+  Inactive: 0,
+  Paymented: 2
+} as const
+
+export type SubDescriptionStatus = (typeof SubDescriptionStatus)[keyof typeof SubDescriptionStatus]
+
+export interface bodyCheckExits {
+  name: string
+  latitude: string
+  longitude: string
 }
