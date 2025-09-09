@@ -321,7 +321,7 @@ function CreateOrganization() {
     }
 
     if (isValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, 6))
+      setCurrentStep((prev) => Math.min(prev + 1, 4))
     }
   }
 
@@ -1222,14 +1222,15 @@ function CreateOrganization() {
                     Quay lại
                   </Button>
 
-                  {currentStep < 5 ? (
-                    <div
+                  {currentStep < 4 ? (
+                    <Button
+                      type='button'
                       onClick={nextStep}
-                      className='bg-gradient-to-r px-3 rounded-xl text-center from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
+                      className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
                     >
                       Tiếp theo
                       <ChevronRight className='w-4 h-4' />
-                    </div>
+                    </Button>
                   ) : (
                     <Button
                       type='submit'
