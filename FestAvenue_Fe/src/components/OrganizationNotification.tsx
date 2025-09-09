@@ -55,7 +55,7 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
             </div>
 
             <p className='text-xs text-gray-600 leading-relaxed mb-3'>
-              {profile?.organizationId.length === 0
+              {!(profile?.organizationIds?.length > 0)
                 ? 'Bạn chưa có tổ chức nào. Tạo tổ chức để quản lý sự kiện một cách chuyên nghiệp!'
                 : 'Bạn đã có tổ chức nhưng muốn tạo thêm?'}
             </p>

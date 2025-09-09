@@ -114,16 +114,17 @@ export default function ChatSystem({
           .build()
 
         // Handle incoming messages
-        newConnection.on('ReceiveMessage', (response: any) => {
+        newConnection.on('ReceiveGroupMessage', (response: any) => {
+          console.log(response)
+
           const newMessage: Message = {
-            id: response.id,
-            groupId: response.GroupId,
-            userId: response.UserId,
-            message: response.Message,
-            senderName: response.SenderName || 'Unknown',
-            avatar: response.Avatar,
-            sentAt: new Date(response.SentAt),
-            isCurrentUser: response.UserId === userProfile?.id
+            groupId: response.groupChatId,
+            userId: response.senderId,
+            message: response.message,
+            senderName: response.senderName || 'Unknown',
+            avatar: response.avatar,
+            sentAt: new Date(),
+            isCurrentUser: response.senderId === userProfile?.id
           }
 
           setMessages((prev) => [...prev, newMessage])
@@ -149,9 +150,6 @@ export default function ChatSystem({
         await newConnection.start()
         setIsConnected(true)
         setConnection(newConnection)
-
-        // Join group chat
-        await newConnection.invoke('JoinGroup', groupChatId)
 
         // Send initial message
         const initialMessage = getInitialMessage()

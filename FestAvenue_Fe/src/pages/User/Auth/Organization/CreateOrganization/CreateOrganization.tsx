@@ -130,7 +130,7 @@ function CreateOrganization() {
   const [logoPreview, setLogoPreview] = useState<string>('')
 
   const [isCheckingName] = useState(false)
-  const [existingOrganization, setExistingOrganization] = useState<OrganizationType>(null as any)
+  const [existingOrganization, setExistingOrganization] = useState<OrganizationType>()
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [showChatSystem, setShowChatSystem] = useState(false)
   const [chatConfig, setChatConfig] = useState<{
@@ -240,8 +240,9 @@ function CreateOrganization() {
     }
     checkExitsLocationMutation.mutateAsync(body, {
       onSuccess: (data) => {
-        setExistingOrganization('' as any)
-        setShowConflictDialog(Boolean(data.data))
+        setExistingOrganization(data as any)
+
+        setShowConflictDialog(data?.data ? true : false)
         form.setError('latitude', { message: 'Tổ chức đã tồn tại tại vị trí này' })
         form.setError('longitude', { message: 'Tổ chức đã tồn tại tại vị trí này' })
         setIsLocationChecked(false)
@@ -1267,7 +1268,7 @@ function CreateOrganization() {
               <AlertDialogDescription asChild>
                 <div className='space-y-4'>
                   <p>
-                    Tổ chức "<strong>{existingOrganization?.data.name}</strong>" đã tồn tại trong hệ thống. Vui lòng
+                    Tổ chức "<strong>{existingOrganization?.data?.name}</strong>" đã tồn tại trong hệ thống. Vui lòng
                     chọn một trong các hành động sau:
                   </p>
 
@@ -1275,18 +1276,19 @@ function CreateOrganization() {
                     <div className='p-4 bg-slate-50 rounded-lg border'>
                       <div className='flex items-center gap-3 mb-2'>
                         <Avatar className='w-10 h-10'>
-                          <AvatarImage src={existingOrganization.data.logo} />
+                          <AvatarImage src={existingOrganization.data?.logo} />
                           <AvatarFallback>
                             <Building className='w-5 h-5' />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className='font-semibold text-slate-800'>{existingOrganization.data.name}</h4>
-                          <p className='text-sm text-slate-600'>{existingOrganization.data.industry}</p>
+                          <h4 className='font-semibold text-slate-800'>{existingOrganization.data?.name}</h4>
+                          <p className='text-sm text-slate-600'>{existingOrganization.data?.industry}</p>
                         </div>
                       </div>
                       <p className='text-sm text-slate-500'>
-                        Địa chỉ: {existingOrganization.data.address?.street}, {existingOrganization.data.address?.city}
+                        Địa chỉ: {existingOrganization.data?.address?.street},{' '}
+                        {existingOrganization.data?.address?.city}
                       </p>
                     </div>
                   )}

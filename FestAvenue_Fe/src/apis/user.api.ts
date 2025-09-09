@@ -81,10 +81,7 @@ const userApi = {
     return data?.data
   },
   checkOrganizationExists: async (body: bodyCheckExits) => {
-    const data = await http.post<APIResponse<{ exists: boolean; organization?: OrganizationResponse }>>(
-      `/organization/exist-organization`,
-      body
-    )
+    const data = await http.post<APIResponse<OrganizationResponse>>(`/organization/exist-organization`, body)
     return data?.data
   },
   getOrganizationById: async (id: string) => {

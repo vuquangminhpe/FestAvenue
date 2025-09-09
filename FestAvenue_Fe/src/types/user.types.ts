@@ -48,7 +48,7 @@ export interface userRes {
   status: number
   lastLogin: string
   twoFactorEnabled: boolean
-  organizationId: string[]
+  organizationIds: string[]
   preferences: {
     language: string
     timezone: string
