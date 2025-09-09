@@ -182,14 +182,12 @@ function CreateOrganization() {
     }
   })
 
-  // Animation on mount
   useEffect(() => {
     if (cardRef.current) {
       gsap.fromTo(cardRef.current, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' })
     }
   }, [])
 
-  // Step animation
   useEffect(() => {
     const currentStepElement = stepRefs.current[currentStep - 1]
     if (currentStepElement) {
@@ -197,12 +195,12 @@ function CreateOrganization() {
     }
   }, [currentStep])
 
-  // Upload logo mutation
   const uploadLogoMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file)
   })
-
-  // Create organization mutation
+  const createdGroupChatOrganizationMutation = useMutation({
+    mutationFn: userApi.createdGroupChatOrganization
+  })
   const createOrganizationMutation = useMutation({
     mutationFn: userApi.createOrganization,
     onSuccess: () => {
@@ -215,7 +213,6 @@ function CreateOrganization() {
     }
   })
 
-  // Check location manually when user clicks button
   const handleCheckLocation = async () => {
     const currentName = form.getValues('name')
     const latitude = form.getValues('latitude')
@@ -240,7 +237,7 @@ function CreateOrganization() {
     }
     checkExitsLocationMutation.mutateAsync(body, {
       onSuccess: (data) => {
-        setExistingOrganization(data as any)
+        setExistingOrganization(data?.data as any)
 
         setShowConflictDialog(data?.data ? true : false)
         form.setError('latitude', { message: 'Tổ chức đã tồn tại tại vị trí này' })
@@ -260,14 +257,31 @@ function CreateOrganization() {
   }
 
   const handleConflictResolution = (type: 'request_admin' | 'request_user' | 'dispute') => {
-    const groupChatId = `conflict_${existingOrganization?.id}_${userProfile?.id}_${Date.now()}`
+    const groupChatName = `${type}_${existingOrganization?.name}_${Date.now()}`
 
-    setChatConfig({
-      groupChatId,
-      requestType: type
+    const groupChatData = {
+      organizationId: existingOrganization?.id || '',
+      groupChatName,
+      userIds: [userProfile?.id || '', existingOrganization?.id || ''],
+      avatar: existingOrganization?.logo || ''
+    }
+
+    createdGroupChatOrganizationMutation.mutate(groupChatData, {
+      onSuccess: (response) => {
+        const groupChatId = response.data as any
+
+        setChatConfig({
+          groupChatId,
+          requestType: type
+        })
+        setShowChatSystem(true)
+        setShowConflictDialog(false)
+        toast.success('Tạo group chat thành công!')
+      },
+      onError: (error: any) => {
+        toast.error(error?.data?.message || 'Không thể tạo group chat')
+      }
     })
-    setShowChatSystem(true)
-    setShowConflictDialog(false)
   }
 
   // Close chat system
@@ -1268,27 +1282,26 @@ function CreateOrganization() {
               <AlertDialogDescription asChild>
                 <div className='space-y-4'>
                   <p>
-                    Tổ chức "<strong>{existingOrganization?.data?.name}</strong>" đã tồn tại trong hệ thống. Vui lòng
-                    chọn một trong các hành động sau:
+                    Tổ chức "<strong>{existingOrganization?.name}</strong>" đã tồn tại trong hệ thống. Vui lòng chọn một
+                    trong các hành động sau:
                   </p>
 
                   {existingOrganization && (
                     <div className='p-4 bg-slate-50 rounded-lg border'>
                       <div className='flex items-center gap-3 mb-2'>
                         <Avatar className='w-10 h-10'>
-                          <AvatarImage src={existingOrganization.data?.logo} />
+                          <AvatarImage src={existingOrganization?.logo} />
                           <AvatarFallback>
                             <Building className='w-5 h-5' />
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className='font-semibold text-slate-800'>{existingOrganization.data?.name}</h4>
-                          <p className='text-sm text-slate-600'>{existingOrganization.data?.industry}</p>
+                          <h4 className='font-semibold text-slate-800'>{existingOrganization?.name}</h4>
+                          <p className='text-sm text-slate-600'>{existingOrganization?.industry}</p>
                         </div>
                       </div>
                       <p className='text-sm text-slate-500'>
-                        Địa chỉ: {existingOrganization.data?.address?.street},{' '}
-                        {existingOrganization.data?.address?.city}
+                        Địa chỉ: {existingOrganization?.address?.street}, {existingOrganization?.address?.city}
                       </p>
                     </div>
                   )}

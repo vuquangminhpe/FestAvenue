@@ -174,20 +174,18 @@ export default function ChatSystem({
 
     initConnection()
 
-    // Cleanup on unmount
     return () => {
       if (connection) {
+        connection.off('ReceiveGroupMessage')
         connection.stop()
       }
     }
   }, [isVisible, groupChatId, userProfile?.id])
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Send message
   const sendMessage = async () => {
     if (!connection || !messageInput.trim() || !isConnected) return
 
@@ -200,6 +198,7 @@ export default function ChatSystem({
         groupChatId: groupChatId
       }
 
+      // Chỉ gửi qua server, server sẽ broadcast về qua ReceiveGroupMessage
       await connection.invoke('SendMessage', messageData)
       setMessageInput('')
     } catch (error) {
@@ -289,7 +288,12 @@ export default function ChatSystem({
                     </Avatar>
 
                     <div className={cn('max-w-[80%] space-y-1', message.isCurrentUser ? 'items-end' : 'items-start')}>
-                      <div className='flex items-center space-x-2 text-xs text-slate-500'>
+                      <div
+                        className={cn(
+                          'flex items-center space-x-2 text-xs text-slate-500',
+                          message.isCurrentUser ? 'justify-end' : 'justify-start'
+                        )}
+                      >
                         {!message.isCurrentUser && <span className='font-medium'>{message.senderName}</span>}
                         <span>{formatTime(message.sentAt)}</span>
                       </div>

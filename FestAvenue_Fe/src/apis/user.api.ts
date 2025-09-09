@@ -1,4 +1,5 @@
 import type { APIResponse } from '@/types/API.types'
+import type { bodyCreatedGroupChatOrganization } from '@/types/organization.types'
 import type {
   bodyLoginType,
   loginResponse,
@@ -94,6 +95,10 @@ const userApi = {
   },
   deleteOrganization: async (id: string) => {
     const data = await http.delete<APIResponse<{ message: string }>>(`/organization/${id}`)
+    return data?.data
+  },
+  createdGroupChatOrganization: async (body: bodyCreatedGroupChatOrganization) => {
+    const data = await http.post<APIResponse<{ data: string }>>('/group-chat-organization/create', body)
     return data?.data
   }
 }

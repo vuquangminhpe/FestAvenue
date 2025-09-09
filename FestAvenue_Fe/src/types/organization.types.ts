@@ -91,3 +91,9 @@ export interface CreateOrganizationResponse {
   organization: OrganizationResponse
   message: string
 }
+export interface bodyCreatedGroupChatOrganization {
+  organizationId: string
+  groupChatName: string
+  userIds: string[]
+  avatar: string
+}

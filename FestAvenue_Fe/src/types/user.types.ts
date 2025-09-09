@@ -135,7 +135,17 @@ export interface CreateOrganizationBody {
 }
 export interface OrganizationType {
   id: string
-  data: CreateOrganizationBody
+  name: string
+  description?: string
+  industry?: string
+  size?: number
+  website?: string
+  logo?: string
+  address?: OrganizationAddress
+  contact: OrganizationContact
+  socialMedia?: OrganizationSocialMedia
+  subDescription: OrganizationSubscription
+  settings?: OrganizationSettings
 }
 export interface OrganizationResponse {
   id: string
