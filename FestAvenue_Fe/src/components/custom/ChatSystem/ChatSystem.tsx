@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react'
 import * as signalR from '@microsoft/signalr'
-import { Send, MessageCircle, X, User } from 'lucide-react'
+import { Send, MessageCircle, X, User, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +12,8 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { useMutation } from '@tanstack/react-query'
+import userApi from '@/apis/user.api'
 
 interface Message {
   id?: string
@@ -47,8 +49,21 @@ export default function ChatSystem({
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const userProfile = useUsersStore((state) => state.isProfile)
+  const deletedGroupChatOrganizationMutation = useMutation({
+    mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId)
+  })
 
-  // Get chat title based on request type
+  const handleDeleteGroupChat = () => {
+    deletedGroupChatOrganizationMutation.mutate(groupChatId, {
+      onSuccess: () => {
+        toast.success('Xóa group chat thành công!')
+        onClose()
+      },
+      onError: (error: any) => {
+        toast.error(error?.data?.message || 'Không thể xóa group chat')
+      }
+    })
+  }
   const getChatTitle = () => {
     switch (requestType) {
       case 'request_admin':
@@ -245,6 +260,19 @@ export default function ChatSystem({
               <Badge variant={isConnected ? 'default' : 'destructive'} className='text-xs'>
                 {isConnected ? 'Đã kết nối' : 'Mất kết nối'}
               </Badge>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={handleDeleteGroupChat}
+                disabled={deletedGroupChatOrganizationMutation.isPending}
+                className='hover:bg-red-50 hover:text-red-600'
+              >
+                {deletedGroupChatOrganizationMutation.isPending ? (
+                  <div className='w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin' />
+                ) : (
+                  <Trash2 className='w-4 h-4' />
+                )}
+              </Button>
               <Button variant='ghost' size='sm' onClick={onClose} className='hover:bg-red-50 hover:text-red-600'>
                 <X className='w-4 h-4' />
               </Button>

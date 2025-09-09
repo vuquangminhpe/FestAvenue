@@ -100,6 +100,12 @@ const userApi = {
   createdGroupChatOrganization: async (body: bodyCreatedGroupChatOrganization) => {
     const data = await http.post<APIResponse<{ data: string }>>('/group-chat-organization/create', body)
     return data?.data
+  },
+  deletedGroupChatOrganization: async (groupChatId: string) => {
+    const data = await http.post<APIResponse<{ messages: string }>>(
+      `/group-chat-organization/delete?groupChatId=${groupChatId}`
+    )
+    return data?.data
   }
 }
 export default userApi
