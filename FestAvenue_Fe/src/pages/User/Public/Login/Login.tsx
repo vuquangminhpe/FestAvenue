@@ -10,6 +10,7 @@ import userApi from '@/apis/user.api'
 import { toast } from 'sonner'
 import { saveAccessTokenToLS } from '@/utils/auth'
 import LOGO_IMG from '../../../../../public/Images/Fest.png'
+import { useUsersStore } from '@/contexts/app.context'
 
 interface FormData {
   email: string
@@ -28,11 +29,13 @@ const Login = () => {
   })
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState<boolean>(false)
+  const setIsAuth = useUsersStore((data)=> data.setIsAuth)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const loginMutation = useMutation({
     mutationFn: () => userApi.login_normal({ email: formData.email, password: formData.password }),
     onSuccess: (data) => {
+      setIsAuth(true)
       saveAccessTokenToLS(data?.data?.accessToken)
       navigate(path.home)
       toast.success(`${data?.message}` || 'Đăng nhập thành công')

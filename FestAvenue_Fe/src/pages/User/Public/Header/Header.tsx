@@ -140,7 +140,7 @@ export default function Header() {
                   </Link>
 
                   {/* Organization trigger button - Only show if no organization and notification is hidden */}
-                  {!profile?.organization && !showOrgNotification && (
+                  {!showOrgNotification && (
                     <button
                       onClick={() => setShowOrgNotification(true)}
                       className='px-3 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-cyan-50 transition-all duration-200 flex items-center space-x-1 border border-cyan-200 hover:border-cyan-300'
@@ -315,7 +315,7 @@ export default function Header() {
                   </Link>
 
                   {/* Mobile Organization trigger button */}
-                  {!profile?.organization && !showOrgNotification && (
+                  {!showOrgNotification && (
                     <button
                       onClick={() => {
                         setShowOrgNotification(true)

@@ -19,7 +19,7 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
     }
   }, [isVisible])
 
-  if (!profile || profile.organization || !isVisible || !internalVisible) {
+  if (!profile || !isVisible || !internalVisible) {
     return null
   }
 
@@ -55,7 +55,9 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
             </div>
 
             <p className='text-xs text-gray-600 leading-relaxed mb-3'>
-              Bạn chưa có tổ chức nào. Tạo tổ chức để quản lý sự kiện một cách chuyên nghiệp!
+              {profile?.organizationId.length === 0
+                ? 'Bạn chưa có tổ chức nào. Tạo tổ chức để quản lý sự kiện một cách chuyên nghiệp!'
+                : 'Bạn đã có tổ chức nhưng muốn tạo thêm?'}
             </p>
 
             {/* Action buttons */}
@@ -75,16 +77,6 @@ export default function OrganizationNotification({ isVisible = true, onClose }: 
                 Để sau
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Progress indicator */}
-        <div className='mt-3 pt-2 border-t border-cyan-100'>
-          <div className='flex items-center space-x-1 text-xs text-gray-500'>
-            <div className='w-1 h-1 bg-cyan-400 rounded-full'></div>
-            <div className='w-1 h-1 bg-gray-300 rounded-full'></div>
-            <div className='w-1 h-1 bg-gray-300 rounded-full'></div>
-            <span className='ml-1'>Bước 1/3: Thiết lập tổ chức</span>
           </div>
         </div>
       </div>

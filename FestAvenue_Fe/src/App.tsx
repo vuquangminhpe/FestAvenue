@@ -11,6 +11,7 @@ function App() {
   const location = useLocation()
   const check_accessToken = location.search.includes('accessToken')
   const userStore = useUsersStore((set) => set.setIsProfile)
+  const setIsAuth = useUsersStore((set) => set.setIsAuth)
   const { data } = useQuery({
     queryKey: ['getMyProfile'],
     queryFn: () => userApi.getMyProfile(),
@@ -21,6 +22,7 @@ function App() {
     if (check_accessToken) {
       const accessToken = location.search.split('=')[1]
       saveAccessTokenToLS(accessToken)
+      setIsAuth(true)
     }
   }, [check_accessToken, location.search])
 
