@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useMutation } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
+import { formatTime } from '@/utils/utils'
 
 interface Message {
   id?: string
@@ -47,7 +48,6 @@ export default function ChatSystem({
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-
   const userProfile = useUsersStore((state) => state.isProfile)
   const deletedGroupChatOrganizationMutation = useMutation({
     mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId)
@@ -128,10 +128,7 @@ export default function ChatSystem({
           .configureLogging(signalR.LogLevel.Information)
           .build()
 
-        // Handle incoming messages
         newConnection.on('ReceiveGroupMessage', (response: any) => {
-          console.log(response)
-
           const newMessage: Message = {
             groupId: response.groupChatId,
             userId: response.senderId,
@@ -213,7 +210,6 @@ export default function ChatSystem({
         groupChatId: groupChatId
       }
 
-      // Chỉ gửi qua server, server sẽ broadcast về qua ReceiveGroupMessage
       await connection.invoke('SendMessage', messageData)
       setMessageInput('')
     } catch (error) {
@@ -228,14 +224,6 @@ export default function ChatSystem({
       e.preventDefault()
       sendMessage()
     }
-  }
-
-  // Format time
-  const formatTime = (date: Date) => {
-    return new Intl.DateTimeFormat('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date)
   }
 
   if (!isVisible) return null

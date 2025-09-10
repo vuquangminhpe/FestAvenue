@@ -201,3 +201,23 @@ export interface bodyCheckExits {
   latitude: string
   longitude: string
 }
+export interface GroupChatResponse {
+  groupChatId: string
+  groupChatName: string
+  organizationId: string
+  staffId: string
+  avatarGroupUrl: string
+  chatMessage: {
+    chatMessageId: string
+    content: string
+    senderId: string
+    senderName: string
+    avatarUrl: string
+    sentAt: string
+  }
+}
+export interface bodyGetChatMessagesWithPagging {
+  groupChatId: string
+  pageSize: number
+  page: number
+}

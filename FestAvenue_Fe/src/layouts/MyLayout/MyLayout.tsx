@@ -29,7 +29,12 @@ const items = [
     icon: <CustomIcon name='UserOutline' className='h-[14px] w-[14px]' />,
     preloadKey: 'user-profile'
   },
-
+  {
+    title: 'Tin nhắn',
+    url: path.user.my.messages,
+    icon: <CustomIcon name='Message' className='w-4 h-3' />,
+    preloadKey: 'messages-page'
+  },
   {
     title: 'Tín dụng',
     url: path.user.my.credit,

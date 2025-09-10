@@ -2,7 +2,7 @@ const removeSpecialCharacter = (str: string) => {
   // eslint-disable-next-line no-useless-escape
   return str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, '')
 }
-export const generateNameId = ({ name, id }: { name: string; id: number }) => {
+export const generateNameId = ({ name, id }: { name: string; id: string }) => {
   const formattedName = removeSpecialCharacter(name).replace(/\s/g, '-')
   return `${id}-${formattedName}`
 }
@@ -22,4 +22,10 @@ export function formatNumberToSocialStyle(value: number) {
   })
     .format(value)
     .replace('.', ',')
+}
+export function formatTime(date: Date) {
+  return new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
 }

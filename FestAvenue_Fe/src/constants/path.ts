@@ -31,6 +31,7 @@ const path = {
     my: {
       root: '/user/my',
       profile: '/user/my/profile',
+      messages: '/user/my/messages',
       credit: '/user/my/credit'
     },
     credit: {

@@ -7,6 +7,7 @@ import { Search, Heart, HelpCircle, LogOut, Menu, X, Building } from 'lucide-rea
 import { useUsersStore } from '@/contexts/app.context'
 import OrganizationNotification from '@/components/OrganizationNotification'
 import LOGO_DEFAULT from '../../../../../public/Images/default-avatar.png'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export default function Header() {
   const isAuthenticated = useUsersStore((data) => data.isAuth)
   const profile = useUsersStore((data) => data.isProfile)
@@ -160,7 +161,10 @@ export default function Header() {
                       className='flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-all duration-200'
                     >
                       <div className='size-10  rounded-full flex items-center justify-center'>
-                        <img src={profile?.avatar || LOGO_DEFAULT} className='rounded-full' />
+                        <Avatar className='w-12 h-12 rounded-full object-cover'>
+                          <AvatarImage src={profile?.avatar || LOGO_DEFAULT} />
+                          <AvatarFallback>{profile?.firstName.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
                       </div>
                       <span className='font-medium text-gray-700 hidden xl:inline'>
                         {profile?.firstName} {profile?.lastName}
@@ -280,7 +284,10 @@ export default function Header() {
                   {/* User Info */}
                   <div className='flex items-center space-x-3 px-4 py-3 bg-gray-50 rounded-lg mb-2'>
                     <div className='w-10 h-10  rounded-full flex items-center justify-center'>
-                      <img src={profile?.avatar || LOGO_DEFAULT} className='rounded-full' />
+                      <Avatar className='w-12 h-12 rounded-full object-cover'>
+                        <AvatarImage src={profile?.avatar || LOGO_DEFAULT} />
+                        <AvatarFallback>{profile?.firstName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
                     </div>
                     <div>
                       <p className='font-medium text-gray-900'>

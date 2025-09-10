@@ -13,7 +13,9 @@ import type {
   CreateOrganizationBody,
   CreateOrganizationResponse,
   OrganizationResponse,
-  bodyCheckExits
+  bodyCheckExits,
+  GroupChatResponse,
+  bodyGetChatMessagesWithPagging
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -104,6 +106,17 @@ const userApi = {
   deletedGroupChatOrganization: async (groupChatId: string) => {
     const data = await http.post<APIResponse<{ messages: string }>>(
       `/group-chat-organization/delete?groupChatId=${groupChatId}`
+    )
+    return data?.data
+  },
+  getGroupChats: async () => {
+    const data = await http.get<APIResponse<GroupChatResponse[]>>('/group-chat-organization/list-group-chat-by-userId')
+    return data?.data
+  },
+  getChatMessagesWithPagging: async (body: bodyGetChatMessagesWithPagging) => {
+    const data = await http.post<APIResponse<{ data: string }>>(
+      '/chat-message-organization/get-chat-message-with-pagging',
+      body
     )
     return data?.data
   }
