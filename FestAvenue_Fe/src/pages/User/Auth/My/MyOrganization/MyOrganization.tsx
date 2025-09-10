@@ -42,11 +42,12 @@ import {
   Plus
 } from 'lucide-react'
 import type { OrganizationResponse } from '@/types/organization.types'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import path from '@/constants/path'
 import type { updateOrganizationBody } from '@/types/user.types'
 
 export default function MyOrganization() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -418,7 +419,10 @@ export default function MyOrganization() {
             <Building2 className='h-24 w-24 text-gray-300 mx-auto mb-4' />
             <h3 className='text-2xl font-semibold text-gray-600 mb-2'>Chưa có tổ chức nào</h3>
             <p className='text-gray-500 mb-6'>Bạn chưa tham gia hoặc tạo tổ chức nào</p>
-            <Button className='bg-gradient-to-r from-cyan-400 to-blue-300 text-white'>
+            <Button
+              onClick={() => navigate(path.user.organization.created_organization)}
+              className='bg-gradient-to-r from-cyan-400 to-blue-300 text-white'
+            >
               <Building2 className='mr-2 h-4 w-4' />
               Tạo tổ chức đầu tiên
             </Button>
