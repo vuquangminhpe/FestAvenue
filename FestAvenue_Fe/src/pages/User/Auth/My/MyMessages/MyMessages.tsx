@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useInfiniteQuery, useQuery, useMutation } from '@tanstack/react-query'
-import { Send, MessageCircle, Smile, Search, Users, Wifi, WifiOff } from 'lucide-react'
+import { Send, MessageCircle, Smile, Search, Wifi, WifiOff } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
 import { useUsersStore } from '@/contexts/app.context'
