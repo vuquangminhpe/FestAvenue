@@ -221,3 +221,19 @@ export interface bodyGetChatMessagesWithPagging {
   pageSize: number
   page: number
 }
+
+export interface updateOrganizationBody {
+  id: string
+  name: string
+  description?: string
+  industry?: string
+  size?: string
+  website?: string
+  logo?: string
+  address?: OrganizationAddress
+  contact: OrganizationContact
+  socialMedia?: OrganizationSocialMedia
+  subscription: OrganizationSubscription
+  settings?: OrganizationSettings
+  packageId?: string
+}

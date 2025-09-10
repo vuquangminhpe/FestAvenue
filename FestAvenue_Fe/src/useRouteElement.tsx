@@ -18,6 +18,7 @@ import ForgotPassword from './pages/User/Public/ForgotPassword'
 import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
 import CreateOrganization from './pages/User/Auth/Organization/CreateOrganization'
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
+import MyOrganization from './pages/User/Auth/My/MyOrganization'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -273,6 +274,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <MyLayout>
                     <ChatMyMessagesSystem />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.my.organization,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <MyOrganization />
                   </MyLayout>
                 </SuspenseWrapper>
               )

@@ -34,7 +34,8 @@ const Icons = {
   Pen: lazy(() => import('./Pen')),
   Trash: lazy(() => import('./Trash')),
   NotDisturb: lazy(() => import('./NotDisturb')),
-  CardPlusWhite: lazy(() => import('./CardPlusWhite'))
+  CardPlusWhite: lazy(() => import('./CardPlusWhite')),
+  Organization: lazy(() => import('./Organization'))
 }
 
 const CustomIcon = ({ name, ...props }: { name: keyof typeof Icons; [key: string]: any }) => {

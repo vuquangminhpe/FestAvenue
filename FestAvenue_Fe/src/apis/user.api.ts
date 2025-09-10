@@ -15,7 +15,8 @@ import type {
   OrganizationResponse,
   bodyCheckExits,
   GroupChatResponse,
-  bodyGetChatMessagesWithPagging
+  bodyGetChatMessagesWithPagging,
+  updateOrganizationBody
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -118,6 +119,14 @@ const userApi = {
       '/chat-message-organization/get-chat-message-with-pagging',
       body
     )
+    return data?.data
+  },
+  getCurrentOrganization: async () => {
+    const data = await http.get<APIResponse<OrganizationResponse[]>>('/organization/get-current-organizations')
+    return data?.data
+  },
+  updateOrganizationById: async (id: string, body: updateOrganizationBody) => {
+    const data = await http.put<APIResponse<{ messages: string }>>(`organization/update-organization/${id}`, body)
     return data?.data
   }
 }

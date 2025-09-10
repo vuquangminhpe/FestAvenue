@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { useState, useEffect, useRef, Fragment, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useBulkPreloader } from '@/hooks/useBulkPreloader'
-import SmartLink from '@/components/custom'
+import SmartLink from '@/components/custom/SmartLink/index'
 
 interface MyLayoutProps {
   children?: React.ReactNode
@@ -32,7 +32,13 @@ const items = [
   {
     title: 'Tin nhắn',
     url: path.user.my.messages,
-    icon: <CustomIcon name='Message' className='w-4 h-3' />,
+    icon: <CustomIcon name='Message' className='size-4' />,
+    preloadKey: 'messages-page'
+  },
+  {
+    title: 'Tổ chức',
+    url: path.user.my.organization,
+    icon: <CustomIcon name='Organization' className='size-5' />,
     preloadKey: 'messages-page'
   },
   {
