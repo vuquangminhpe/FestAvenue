@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -51,6 +51,7 @@ import { useUsersStore } from '@/contexts/app.context'
 import ChatSystem from '@/components/custom/ChatSystem'
 import LeafletMap from '@/components/custom/MapLeaflet'
 import { SubDescriptionStatus, type OrganizationType } from '@/types/user.types'
+import packageApis from '@/apis/package.api'
 
 // Schema validation
 const organizationSchema = z.object({
@@ -116,12 +117,6 @@ const industries = [
 
 const companySizes = ['10', '50', '200', '500', '1000']
 
-const subscriptionPlans = [
-  { value: 'basic', label: 'Cơ bản', price: 'Miễn phí' },
-  { value: 'pro', label: 'Chuyên nghiệp', price: '299,000 VNĐ/tháng' },
-  { value: 'enterprise', label: 'Doanh nghiệp', price: '999,000 VNĐ/tháng' }
-]
-
 function CreateOrganization() {
   const [currentStep, setCurrentStep] = useState(1)
   const [mapCenter, setMapCenter] = useState({ lat: 21.0285, lng: 105.8542 })
@@ -147,6 +142,10 @@ function CreateOrganization() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userProfile = useUsersStore((state) => state.isProfile)
+  const { data: dataPackage } = useQuery({
+    queryKey: ['dataPackage'],
+    queryFn: () => packageApis.getPackageByStatus()
+  })
 
   const form = useForm<FormData>({
     resolver: zodResolver(organizationSchema),
@@ -168,7 +167,7 @@ function CreateOrganization() {
       twitter: '',
       linkedin: '',
       instagram: '',
-      plan: 'basic',
+      plan: '',
       primaryColor: '#06b6d4',
       secondaryColor: '#3b82f6',
       accentColor: '#8b5cf6',
@@ -319,10 +318,13 @@ function CreateOrganization() {
   }
 
   // Go to next step
-  const nextStep = async () => {
+  const nextStep = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
     const fieldsToValidate = getFieldsForStep(currentStep)
-    const isValid = await form.trigger(fieldsToValidate)
-
+    const isValid = fieldsToValidate.length > 0 ? await form.trigger(fieldsToValidate) : true
     // Check if we need to validate location on step 2
     if (currentStep === 2) {
       const latitude = form.getValues('latitude')
@@ -1531,52 +1533,41 @@ function CreateOrganization() {
                     </div>
 
                     <div className='grid md:grid-cols-3 gap-6'>
-                      {subscriptionPlans.map((plan) => (
+                      {(dataPackage as any)?.map((packageItem: any) => (
                         <div
-                          key={plan.value}
+                          key={packageItem.id}
                           className={cn(
                             'relative p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 hover:shadow-lg',
-                            form.watch('plan') === plan.value
+                            form.watch('plan') === packageItem.id
                               ? 'border-cyan-400 bg-gradient-to-br from-cyan-50 to-blue-50 shadow-lg scale-105'
                               : 'border-slate-200 bg-white hover:border-cyan-300'
                           )}
-                          onClick={() => form.setValue('plan', plan.value)}
+                          onClick={() => form.setValue('plan', packageItem.id)}
                         >
-                          {plan.value === 'pro' && (
+                          {packageItem.type === 'Phổ biến' && (
                             <Badge className='absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-cyan-400 to-blue-300 text-white'>
-                              Phổ biến
+                              {packageItem.type}
                             </Badge>
                           )}
 
                           <div className='text-center'>
-                            <h4 className='text-lg font-semibold text-slate-800 mb-2'>{plan.label}</h4>
-                            <div className='text-2xl font-bold text-cyan-600 mb-4'>{plan.price}</div>
+                            <h4 className='text-lg font-semibold text-slate-800 mb-2'>{packageItem.name}</h4>
+                            <div className='text-2xl font-bold text-cyan-600 mb-4'>
+                              {packageItem.price === 0
+                                ? 'Miễn phí'
+                                : `${packageItem.price.toLocaleString('vi-VN')} VNĐ/${packageItem.durationMonth} tháng`}
+                            </div>
 
                             <div className='text-sm text-slate-600 space-y-2'>
-                              {plan.value === 'basic' && (
-                                <div className='space-y-1'>
-                                  <div>✓ Tối đa 5 sự kiện/tháng</div>
-                                  <div>✓ Hỗ trợ cơ bản</div>
-                                </div>
-                              )}
-                              {plan.value === 'pro' && (
-                                <div className='space-y-1'>
-                                  <div>✓ Không giới hạn sự kiện</div>
-                                  <div>✓ Báo cáo chi tiết</div>
-                                  <div>✓ Hỗ trợ ưu tiên</div>
-                                </div>
-                              )}
-                              {plan.value === 'enterprise' && (
-                                <div className='space-y-1'>
-                                  <div>✓ Tất cả tính năng Pro</div>
-                                  <div>✓ Không giới hạn người tham gia</div>
-                                  <div>✓ Hỗ trợ 24/7</div>
-                                </div>
-                              )}
+                              <div className='space-y-1'>
+                                {packageItem.features.map((feature: any, index: any) => (
+                                  <div key={index}>✓ {feature}</div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      ))}
+                      )) || <div className='col-span-3 text-center text-slate-500'>Đang tải gói dịch vụ...</div>}
                     </div>
 
                     <FormField control={form.control} name='plan' render={() => <FormMessage />} />
@@ -1600,7 +1591,7 @@ function CreateOrganization() {
                         <div>
                           <span className='font-medium text-slate-700'>Gói dịch vụ:</span>
                           <span className='ml-2 text-slate-600'>
-                            {subscriptionPlans.find((p) => p.value === form.watch('plan'))?.label || 'Chưa chọn'}
+                            {(dataPackage as any)?.find((p: any) => p.id === form.watch('plan'))?.name || 'Chưa chọn'}
                           </span>
                         </div>
                       </div>
@@ -1623,7 +1614,7 @@ function CreateOrganization() {
                   {currentStep < 6 ? (
                     <Button
                       type='button'
-                      onClick={nextStep}
+                      onClick={(e) => nextStep(e)}
                       className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
                     >
                       Tiếp theo
