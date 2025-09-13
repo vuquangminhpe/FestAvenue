@@ -1,3 +1,1 @@
-import CreateOrganization from './CreateOrganization'
-
-export default CreateOrganization
+export { default } from './CreateOrganization'

@@ -39,6 +39,11 @@ const path = {
       root: '/user/credit',
       recharge: '/user/credit/recharge',
       history: '/user/credit/history'
+    },
+    payment: {
+      root: '/user/payment',
+      payment_organization: '/user/payment/payment_organization',
+      payment_event: '/user/payment/payment_event'
     }
   },
   admin: {

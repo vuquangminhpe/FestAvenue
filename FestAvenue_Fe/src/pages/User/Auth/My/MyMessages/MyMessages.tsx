@@ -8,86 +8,8 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import userApi from '@/apis/user.api'
 import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-
-interface ChatMessage {
-  message: string
-  senderId: string
-  senderName: string
-  avatar: string
-  groupChatId: string
-  id: string
-  createdAt: string
-  createAtNumbers: number
-  updatedAt: string | null
-  updateAtNumbers: number | null
-}
-
-interface ChatMessagesResponse {
-  chatMessages: ChatMessage[]
-  currentPage: number
-  totalPages: number
-  pageSize: number
-}
-
-interface SignalRMessage {
-  id?: string
-  groupChatId: string
-  senderId: string
-  senderName: string
-  avatar?: string
-  message: string
-  sentAt: Date
-  isCurrentUser?: boolean
-}
-
-const EmojiPicker = ({
-  onEmojiSelect,
-  isVisible,
-  onClose
-}: {
-  onEmojiSelect: (emoji: string) => void
-  isVisible: boolean
-  onClose: () => void
-}) => {
-  const emojis = ['😊', '😂', '❤️', '👍', '👎', '😢', '😮', '😡', '🎉', '👋', '🔥', '💯']
-  const pickerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (pickerRef.current) {
-      if (isVisible) {
-        gsap.fromTo(
-          pickerRef.current,
-          { opacity: 0, scale: 0.9, y: 10 },
-          { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: 'back.out(1.7)' }
-        )
-      }
-    }
-  }, [isVisible])
-
-  if (!isVisible) return null
-
-  return (
-    <div
-      ref={pickerRef}
-      className='absolute w-52 h-28 bottom-full right-0 mb-2 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50'
-    >
-      <div className='grid grid-cols-6 gap-2'>
-        {emojis.map((emoji, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              onEmojiSelect(emoji)
-              onClose()
-            }}
-            className='size-8 rounded hover:bg-gray-100 flex items-center justify-center transition-colors'
-          >
-            {emoji}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
+import type { ChatMessage, ChatMessagesResponse, SignalRMessage } from '@/types/chat.types'
+import { EmojiPicker } from '@/utils/helper'
 
 export default function ChatMyMessagesSystem() {
   const userProfile = useUsersStore().isProfile
