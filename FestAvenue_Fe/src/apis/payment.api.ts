@@ -1,4 +1,5 @@
 import type { APIResponse } from '@/types/API.types'
+import type { Organization } from '@/types/organization.types'
 import type {
   bodyCreatePaymentWithOrganization,
   createPaymentWithOrganizationRes,
@@ -15,9 +16,7 @@ const paymentApis = {
     return data?.data
   },
   getPaymentStatusByOrganization: async (organizationId: string) => {
-    const data = await http_v2.get<APIResponse<getPaymentStatusByOrganizationRes>>(
-      `payment/get-payments-by-organization/${organizationId}`
-    )
+    const data = await http_v2.get<APIResponse<Organization>>(`/organization/get-organization/${organizationId}`)
     return data?.data
   },
   getStatusByPaymentId: async (paymentId: string) => {

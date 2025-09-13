@@ -100,7 +100,7 @@ export default function CreatePaymentWithOrganization() {
   const checkStatusMutation = useMutation({
     mutationFn: (paymentId: string) => paymentApis.getPaymentStatusByOrganization(paymentId),
     onSuccess: (data) => {
-      if (data?.data?.status === SubDescriptionStatus.Paymented) {
+      if (data?.data?.subDescription.status === SubDescriptionStatus.Paymented) {
         setCurrentStep('success')
         if (step2Ref.current && successRef.current) {
           gsap.to(step2Ref.current, {
