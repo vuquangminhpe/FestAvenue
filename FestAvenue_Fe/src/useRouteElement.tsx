@@ -19,6 +19,7 @@ import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
 import CreateOrganization from './pages/User/Auth/Organization/CreateOrganization'
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
+import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -293,6 +294,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <CreateOrganization />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.payment.payment_organization,
+              element: (
+                <SuspenseWrapper>
+                  <CreatePaymentWithOrganization />
                 </SuspenseWrapper>
               )
             }

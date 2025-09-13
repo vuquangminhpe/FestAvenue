@@ -1,0 +1,104 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import axios, { AxiosError, type AxiosInstance, HttpStatusCode } from 'axios'
+import configBase from '../constants/config'
+import { clearLocalStorage, getAccessTokenFromLS, saveAccessTokenToLS } from './auth'
+import path from '@/constants/path'
+
+const ADMIN_URL_PREFIX = '/admin'
+class Http {
+  instance: AxiosInstance
+  private accessToken: string
+
+  constructor() {
+    this.accessToken = getAccessTokenFromLS() ? `Bearer ${getAccessTokenFromLS()}` : ''
+
+    this.instance = axios.create({
+      baseURL: configBase.baseURL_v2,
+      timeout: 1000000,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      maxRedirects: 5,
+      validateStatus: (status) => {
+        return status <= 200 || status > 500
+      }
+    })
+
+    this.instance.interceptors.request.use(
+      (config) => {
+        const location = window.location
+        const currPathname = location.pathname
+
+        const userToken = localStorage.getItem('access_token')
+        if (userToken && currPathname && !currPathname.startsWith(ADMIN_URL_PREFIX)) {
+          config.headers.Authorization = `Bearer ${userToken}`
+        }
+
+        const adminToken = localStorage.getItem('admin_token')
+        if (adminToken && currPathname && currPathname.startsWith(ADMIN_URL_PREFIX)) {
+          config.headers.Authorization = `Bearer ${adminToken}`
+        }
+
+        return config
+      },
+      (error) => {
+        console.error('Request Error:', error)
+        return Promise.reject(error)
+      }
+    )
+
+    this.instance.interceptors.response.use(
+      (response) => {
+        if (response.status === HttpStatusCode.Unauthorized) {
+          this.accessToken = ''
+          clearLocalStorage()
+          const url = location.pathname
+          if (url && url.startsWith(ADMIN_URL_PREFIX)) {
+            window.location.href = path.admin.login
+          } else {
+            window.location.href = path.auth.login
+          }
+        }
+        const { url } = response.config
+
+        if (url === path.auth.signup || url === path.auth.login || url === path.auth.signup) {
+          try {
+            const data = response.data
+            if (data?.data?.token) {
+              this.accessToken = data.data.token
+              saveAccessTokenToLS(this.accessToken)
+            }
+          } catch (error) {
+            console.error('Error processing auth response:', error)
+          }
+        } else if (url === '/logout') {
+          this.accessToken = ''
+          clearLocalStorage()
+        }
+        return response
+      },
+      (error: AxiosError) => {
+        if (error.response) {
+          if (error.response.status === 401) {
+            this.accessToken = ''
+            clearLocalStorage()
+            const url = error.config?.url
+            if (url && url.startsWith(ADMIN_URL_PREFIX)) {
+              window.location.href = path.admin.login
+            } else {
+              window.location.href = path.auth.login
+            }
+          }
+          return Promise.reject(error)
+        }
+
+        return Promise.reject(error)
+      }
+    )
+  }
+}
+
+const http_v2 = new Http().instance
+export default http_v2

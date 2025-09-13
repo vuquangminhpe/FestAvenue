@@ -45,6 +45,8 @@ import type { OrganizationResponse } from '@/types/organization.types'
 import { Link, useNavigate } from 'react-router-dom'
 import path from '@/constants/path'
 import type { updateOrganizationBody } from '@/types/user.types'
+import { SubDescriptionStatus } from '@/constants/enum'
+import { generateNameId } from '@/utils/utils'
 
 export default function MyOrganization() {
   const navigate = useNavigate()
@@ -109,6 +111,7 @@ export default function MyOrganization() {
   const organizations = dataGetAllCurrentOrganization?.data || []
   const selectedOrg = organizations[selectedOrgIndex] as any
   const isOwner = selectedOrg?.isOwner || false
+  console.log(selectedOrg?.organization?.subDescription?.status)
 
   useEffect(() => {
     if (containerRef.current && !isLoading) {
@@ -846,6 +849,29 @@ export default function MyOrganization() {
                                           </div>
                                         )}
                                       </div>
+                                    </div>
+                                  )}
+                                  {selectedOrg.organization.subDescription.status !==
+                                    SubDescriptionStatus.Paymented && (
+                                    <div className='bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200'>
+                                      <h4 className='font-semibold text-blue-800 mb-3 flex items-center'>
+                                        <Shield className='h-4 w-4 mr-2' />
+                                        Thanh toán gói dịch vụ
+                                      </h4>
+                                      <p className='text-blue-700 text-sm mb-4'>
+                                        Gói dịch vụ của bạn chưa được thanh toán. Vui lòng hoàn tất thanh toán để tiếp
+                                        tục sử dụng đầy đủ tính năng.
+                                      </p>
+                                      <Link
+                                        to={`${path.user.payment.payment_organization}?${generateNameId({
+                                          id: `${selectedOrg.organization.id}_${selectedOrg.organization.subDescription.plan}` as any,
+                                          name: selectedOrg.organization.name
+                                        })}`}
+                                        className='inline-flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold'
+                                      >
+                                        <Shield className='h-4 w-4 mr-2' />
+                                        Thanh toán ngay
+                                      </Link>
                                     </div>
                                   )}
                                 </div>

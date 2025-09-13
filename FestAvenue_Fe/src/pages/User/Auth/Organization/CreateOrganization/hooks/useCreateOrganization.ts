@@ -6,6 +6,7 @@ import userApi from '@/apis/user.api'
 import path from '@/constants/path'
 import { SubDescriptionStatus } from '@/types/user.types'
 import type { FormData } from '../types'
+import { generateNameId } from '@/utils/utils'
 
 export const useCreateOrganization = () => {
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -21,10 +22,14 @@ export const useCreateOrganization = () => {
   const createOrganizationMutation = useMutation({
     mutationFn: userApi.createOrganization,
     onSuccess: (data) => {
-      console.log(data)
       queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
       toast.success('Tạo tổ chức thành công!')
-      navigate(path.user.payment.payment_organization)
+      navigate(
+        `${path.user.payment.payment_organization}?${generateNameId({
+          id: `${(data?.data as any)?.id}_${(data?.data as any)?.subscription.plan}` as any,
+          name: data?.data?.organization?.name
+        })}`
+      )
     },
     onError: (error: any) => {
       toast.error(error?.data?.message || 'Có lỗi xảy ra khi tạo tổ chức')
