@@ -126,28 +126,126 @@ export default function CreatePaymentWithOrganization() {
             }
           )
 
-          // Success confetti animation
-          const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b']
-          for (let i = 0; i < 20; i++) {
-            const confetti = document.createElement('div')
-            confetti.style.position = 'absolute'
-            confetti.style.width = '10px'
-            confetti.style.height = '10px'
-            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
-            confetti.style.borderRadius = '50%'
-            confetti.style.left = Math.random() * window.innerWidth + 'px'
-            confetti.style.top = '-10px'
-            confetti.style.pointerEvents = 'none'
-            document.body.appendChild(confetti)
+          // Enhanced fireworks animation
+          const createFireworks = () => {
+            const colors = ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#f97316', '#ec4899']
+            const shapes = ['circle', 'star', 'diamond', 'square']
 
-            gsap.to(confetti, {
-              y: window.innerHeight + 10,
-              rotation: 720,
-              duration: 3,
-              ease: 'power2.out',
-              onComplete: () => confetti.remove()
-            })
+            // Create multiple firework bursts
+            for (let burst = 0; burst < 5; burst++) {
+              const burstX = Math.random() * window.innerWidth
+              const burstY = Math.random() * (window.innerHeight * 0.4) + 100
+
+              setTimeout(() => {
+                // Create explosion effect
+                for (let i = 0; i < 15; i++) {
+                  const particle = document.createElement('div')
+                  const color = colors[Math.floor(Math.random() * colors.length)]
+                  const shape = shapes[Math.floor(Math.random() * shapes.length)]
+                  const size = Math.random() * 8 + 6
+
+                  particle.style.position = 'fixed'
+                  particle.style.left = burstX + 'px'
+                  particle.style.top = burstY + 'px'
+                  particle.style.width = size + 'px'
+                  particle.style.height = size + 'px'
+                  particle.style.backgroundColor = color
+                  particle.style.pointerEvents = 'none'
+                  particle.style.zIndex = '9999'
+                  particle.style.boxShadow = `0 0 ${size}px ${color}`
+
+                  // Different shapes
+                  if (shape === 'circle') {
+                    particle.style.borderRadius = '50%'
+                  } else if (shape === 'star') {
+                    particle.style.borderRadius = '50% 0'
+                    particle.style.transform = 'rotate(45deg)'
+                  } else if (shape === 'diamond') {
+                    particle.style.borderRadius = '0'
+                    particle.style.transform = 'rotate(45deg)'
+                  } else {
+                    particle.style.borderRadius = '2px'
+                  }
+
+                  document.body.appendChild(particle)
+
+                  // Random explosion direction
+                  const angle = (i / 15) * Math.PI * 2 + (Math.random() - 0.5) * 0.5
+                  const velocity = Math.random() * 200 + 100
+                  const gravity = Math.random() * 500 + 300
+
+                  gsap.to(particle, {
+                    x: Math.cos(angle) * velocity,
+                    y: Math.sin(angle) * velocity + gravity,
+                    rotation: Math.random() * 720,
+                    scale: 0,
+                    opacity: 0,
+                    duration: 2 + Math.random(),
+                    ease: 'power2.out',
+                    onComplete: () => particle.remove()
+                  })
+                }
+
+                // Add sparkle trail effect
+                for (let j = 0; j < 8; j++) {
+                  setTimeout(() => {
+                    const sparkle = document.createElement('div')
+                    sparkle.style.position = 'fixed'
+                    sparkle.style.left = burstX + (Math.random() - 0.5) * 100 + 'px'
+                    sparkle.style.top = burstY + (Math.random() - 0.5) * 100 + 'px'
+                    sparkle.style.width = '4px'
+                    sparkle.style.height = '4px'
+                    sparkle.style.backgroundColor = '#ffffff'
+                    sparkle.style.borderRadius = '50%'
+                    sparkle.style.pointerEvents = 'none'
+                    sparkle.style.zIndex = '9999'
+                    sparkle.style.boxShadow = '0 0 10px #ffffff'
+
+                    document.body.appendChild(sparkle)
+
+                    gsap.to(sparkle, {
+                      scale: 0,
+                      opacity: 0,
+                      duration: 0.5,
+                      ease: 'power2.out',
+                      onComplete: () => sparkle.remove()
+                    })
+                  }, j * 100)
+                }
+              }, burst * 300)
+            }
+
+            // Add falling golden confetti
+            setTimeout(() => {
+              for (let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div')
+                confetti.style.position = 'fixed'
+                confetti.style.left = Math.random() * window.innerWidth + 'px'
+                confetti.style.top = '-20px'
+                confetti.style.width = Math.random() * 6 + 4 + 'px'
+                confetti.style.height = Math.random() * 6 + 4 + 'px'
+                confetti.style.backgroundColor = ['#ffd700', '#ffed4e', '#f59e0b', '#eab308'][
+                  Math.floor(Math.random() * 4)
+                ]
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px'
+                confetti.style.pointerEvents = 'none'
+                confetti.style.zIndex = '9998'
+
+                document.body.appendChild(confetti)
+
+                gsap.to(confetti, {
+                  y: window.innerHeight + 50,
+                  x: (Math.random() - 0.5) * 200,
+                  rotation: Math.random() * 720,
+                  duration: Math.random() * 3 + 2,
+                  ease: 'power1.out',
+                  onComplete: () => confetti.remove()
+                })
+              }
+            }, 1000)
           }
+
+          createFireworks()
         }
       }
     }
@@ -323,19 +421,17 @@ export default function CreatePaymentWithOrganization() {
               </div>
               <div
                 className={`w-16 h-1 ${
-                  currentStep === 'success' ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gray-200'
+                  currentStep === 'success' ? 'bg-gradient-to-r from-cyan-400 to-blue-300' : 'bg-gray-200'
                 }`}
               ></div>
               <div
                 className={`flex items-center space-x-3 ${
-                  currentStep === 'success' ? 'text-green-600' : 'text-gray-400'
+                  currentStep === 'success' ? 'text-cyan-500' : 'text-gray-400'
                 }`}
               >
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                    currentStep === 'success'
-                      ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                      : 'bg-gray-200'
+                    currentStep === 'success' ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white' : 'bg-gray-200'
                   }`}
                 >
                   <CheckCircle2 className='h-5 w-5' />
@@ -508,7 +604,7 @@ export default function CreatePaymentWithOrganization() {
                     <CheckCircle2 className='h-16 w-16 text-white' />
                   </div>
                   <div>
-                    <h2 className='text-4xl font-bold text-gray-800 mb-4'>Thanh toán thành công! 🎉</h2>
+                    <h2 className='text-4xl font-bold text-gray-800 mb-4'>Thanh toán thành công! </h2>
                     <p className='text-xl text-gray-600 mb-8'>
                       Gói dịch vụ của bạn đã được kích hoạt thành công. Bạn có thể sử dụng đầy đủ tính năng ngay bây
                       giờ.
