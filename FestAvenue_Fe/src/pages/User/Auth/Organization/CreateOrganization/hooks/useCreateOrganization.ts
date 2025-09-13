@@ -26,7 +26,7 @@ export const useCreateOrganization = () => {
       toast.success('Tạo tổ chức thành công!')
       navigate(
         `${path.user.payment.payment_organization}?${generateNameId({
-          id: `${(data?.data as any)?.id}_${(data?.data as any)?.subscription.plan}` as any,
+          id: `${(data?.data as any)?.id}_${(data?.data as any)?.subDescription.plan}` as any,
           name: data?.data?.organization?.name
         })}`
       )
