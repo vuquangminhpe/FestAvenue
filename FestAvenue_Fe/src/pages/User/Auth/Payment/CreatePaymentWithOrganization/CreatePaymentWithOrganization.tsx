@@ -98,7 +98,7 @@ export default function CreatePaymentWithOrganization() {
   })
 
   const checkStatusMutation = useMutation({
-    mutationFn: (paymentId: string) => paymentApis.getPaymentStatusByOrganization(paymentId),
+    mutationFn: () => paymentApis.getPaymentStatusByOrganization(organizationInfo?.organizationId as string),
     onSuccess: (data) => {
       if (data?.data?.subDescription.status === SubDescriptionStatus.Paymented) {
         setCurrentStep('success')
