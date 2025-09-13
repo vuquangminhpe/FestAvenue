@@ -21,10 +21,10 @@ export const useCreateOrganization = () => {
   const createOrganizationMutation = useMutation({
     mutationFn: userApi.createOrganization,
     onSuccess: (data) => {
-      console.log(data?.data)
+      console.log(data)
       queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
       toast.success('Tạo tổ chức thành công!')
-      // navigate(path.home)
+      navigate(path.user.payment.payment_organization)
     },
     onError: (error: any) => {
       toast.error(error?.data?.message || 'Có lỗi xảy ra khi tạo tổ chức')

@@ -1,4 +1,3 @@
-import React from 'react'
 import type { UseFormReturn } from 'react-hook-form'
 import { Building, Users, MessageCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'

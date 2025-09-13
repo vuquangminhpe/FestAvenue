@@ -1,4 +1,3 @@
-import React from 'react'
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { steps } from '../../constants'
@@ -11,10 +10,7 @@ export function ProgressSteps({ currentStep }: ProgressStepsProps) {
   return (
     <div className='mb-8'>
       <div className='relative'>
-        {/* Progress Line Background */}
         <div className='absolute top-6 left-0 right-0 h-0.5 bg-slate-200 hidden md:block' />
-
-        {/* Progress Line Active */}
         <div
           className='absolute top-6 left-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-300 transition-all duration-500 ease-out hidden md:block'
           style={{
