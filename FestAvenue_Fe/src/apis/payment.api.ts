@@ -5,6 +5,7 @@ import type {
   createPaymentWithOrganizationRes,
   getPaymentStatusByOrganizationRes
 } from '@/types/payment.types'
+import http from '@/utils/http'
 import http_v2 from '@/utils/http_v2'
 
 const paymentApis = {
@@ -16,7 +17,7 @@ const paymentApis = {
     return data?.data
   },
   getPaymentStatusByOrganization: async (organizationId: string) => {
-    const data = await http_v2.get<APIResponse<Organization>>(`/organization/get-organization/${organizationId}`)
+    const data = await http.get<APIResponse<Organization>>(`/organization/get-organization/${organizationId}`)
     return data?.data
   },
   getStatusByPaymentId: async (paymentId: string) => {
