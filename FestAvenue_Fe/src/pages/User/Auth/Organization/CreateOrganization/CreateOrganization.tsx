@@ -67,7 +67,17 @@ function CreateOrganization() {
     setExistingOrganization
   } = useLocationCheck(form)
 
-  const { showChatSystem, chatConfig, handleConflictResolution, closeChatSystem } = useChat()
+  const {
+    showChatSystem,
+    chatConfig,
+    avatarPreview,
+    isUploadingAvatar,
+    handleAvatarSelect,
+    handleRemoveAvatar,
+    handleConflictResolution,
+    handleAcceptRequest,
+    closeChatSystem
+  } = useChat()
 
   useEffect(() => {
     if (cardRef.current) {
@@ -293,6 +303,11 @@ function CreateOrganization() {
           onConflictResolution={handleConflictResolutionWithOrg}
           form={form}
           onResetOrganization={() => setExistingOrganization(null as any)}
+          avatarPreview={avatarPreview}
+          isUploadingAvatar={isUploadingAvatar}
+          onAvatarSelect={handleAvatarSelect}
+          onRemoveAvatar={handleRemoveAvatar}
+          onAcceptRequest={handleAcceptRequest}
         />
 
         {showChatSystem && chatConfig && (

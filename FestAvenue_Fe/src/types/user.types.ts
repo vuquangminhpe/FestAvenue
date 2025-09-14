@@ -146,6 +146,7 @@ export interface OrganizationType {
   socialMedia?: OrganizationSocialMedia
   subDescription: OrganizationSubscription
   settings?: OrganizationSettings
+  createdBy?: string
 }
 export interface OrganizationResponse {
   id: string

@@ -4,6 +4,16 @@ const path = {
   notfound: '*',
   termOfService: '/term-of-service',
   privacyPolicy: '/privacy-policy',
+  staff: {
+    auth: {
+      root: '/auth/staff',
+      login: '/auth/staff/login'
+    },
+    root: '/staff',
+    messages: '/staff/messages',
+    users: '/staff/users',
+    settings: '/staff/settings'
+  },
   auth: {
     root: '/auth',
     login: '/auth/login',

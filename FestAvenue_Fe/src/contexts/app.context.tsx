@@ -7,6 +7,11 @@ interface AdminState {
   isLogin: boolean
   setIsLogin: (value: boolean) => void
 }
+
+interface StaffState {
+  isLogin: boolean
+  setIsLogin: (value: boolean) => void
+}
 interface UsersState {
   isAuth: boolean
   setIsAuth: (value: boolean) => void
@@ -17,6 +22,11 @@ interface UsersState {
 }
 export const useAdminStore = create<AdminState>()((set) => ({
   isLogin: getAdminTokenFromLS() !== null ? true : false,
+  setIsLogin: (value) => set({ isLogin: value })
+}))
+
+export const useStaffStore = create<StaffState>()((set) => ({
+  isLogin: false, // Tạm thời false, sẽ cập nhật sau khi có getStaffTokenFromLS
   setIsLogin: (value) => set({ isLogin: value })
 }))
 

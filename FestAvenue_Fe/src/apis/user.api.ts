@@ -105,9 +105,7 @@ const userApi = {
     return data?.data
   },
   deletedGroupChatOrganization: async (groupChatId: string) => {
-    const data = await http.post<APIResponse<{ messages: string }>>(
-      `/group-chat-organization/delete?groupChatId=${groupChatId}`
-    )
+    const data = await http.delete<APIResponse<{ messages: string }>>(`/group-chat-organization/delete/${groupChatId}`)
     return data?.data
   },
   getGroupChats: async () => {

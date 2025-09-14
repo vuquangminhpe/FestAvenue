@@ -99,9 +99,7 @@ export default function MyOrganization() {
   const updateOrganizationMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: updateOrganizationBody }) =>
       userApi.updateOrganizationById(id, body),
-    onSuccess: (data) => {
-      console.log('Organization updated successfully:', data)
-      // Invalidate và refetch organizations data
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dataGetAllCurrentOrganization'] })
     },
     onError: (error) => {
@@ -111,7 +109,6 @@ export default function MyOrganization() {
   const organizations = dataGetAllCurrentOrganization?.data || []
   const selectedOrg = organizations[selectedOrgIndex] as any
   const isOwner = selectedOrg?.isOwner || false
-  console.log(selectedOrg?.organization?.subDescription?.status)
 
   useEffect(() => {
     if (containerRef.current && !isLoading) {

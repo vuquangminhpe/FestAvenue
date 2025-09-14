@@ -91,11 +91,26 @@ export interface CreateOrganizationResponse {
   organization: OrganizationResponse
   message: string
 }
+export interface MemberInput {
+  userId: string
+  isRequest: boolean
+}
+
+export const GroupChatStatus = {
+  Normal: 0,
+  CombatPending: 1,
+  CombatRejected: 2,
+  CombatAccepted: 3
+} as const
+
+export type GroupChatStatus = (typeof GroupChatStatus)[keyof typeof GroupChatStatus]
+
 export interface bodyCreatedGroupChatOrganization {
   organizationId: string
   groupChatName: string
-  userIds: string[]
+  members: MemberInput[]
   avatar: string
+  statusId: GroupChatStatus
 }
 
 export interface Organization {

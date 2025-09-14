@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react'
 import * as signalR from '@microsoft/signalr'
-import { Send, MessageCircle, X, User, Trash2 } from 'lucide-react'
+import { Send, MessageCircle, X, User, Trash2, ImagePlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,10 +47,25 @@ export default function ChatSystem({
   const [messageInput, setMessageInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const userProfile = useUsersStore((state) => state.isProfile)
   const deletedGroupChatOrganizationMutation = useMutation({
     mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId)
+  })
+
+  const uploadsImagesMutation = useMutation({
+    mutationFn: (file: File) => userApi.uploadsStorage(file),
+    onSuccess: (data) => {
+      return data
+    },
+    onError: (error) => {
+      console.error('Upload error:', error)
+      toast.error('Upload ảnh thất bại')
+      setIsUploadingImage(false)
+    }
   })
 
   const handleDeleteGroupChat = () => {
@@ -130,16 +145,40 @@ export default function ChatSystem({
 
         newConnection.on('ReceiveGroupMessage', (response: any) => {
           const newMessage: Message = {
+            id: response.id || `signalr-${Date.now()}-${Math.random()}`,
             groupId: response.groupChatId,
             userId: response.senderId,
             message: response.message,
             senderName: response.senderName || 'Unknown',
             avatar: response.avatar,
-            sentAt: new Date(),
+            sentAt: new Date(response.sentAt || new Date()),
             isCurrentUser: response.senderId === userProfile?.id
           }
 
-          setMessages((prev) => [...prev, newMessage])
+          // Only add if not already exists (prevent duplicates)
+          setMessages((prev) => {
+            const isImageMessage =
+              newMessage.message.startsWith('http') &&
+              (newMessage.message.includes('.jpg') ||
+                newMessage.message.includes('.png') ||
+                newMessage.message.includes('.jpeg') ||
+                newMessage.message.includes('.gif') ||
+                newMessage.message.includes('.webp'))
+
+            const exists = prev.some((msg) => {
+              const isSameUser = msg.userId === newMessage.userId
+              const isSameMessage = msg.message === newMessage.message
+
+              // For image messages, use larger time tolerance due to upload delay
+              const timeLimit = isImageMessage ? 15000 : 5000 // 15s for images, 5s for text
+              const isSameTime = Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < timeLimit
+
+              return isSameMessage && isSameUser && isSameTime
+            })
+
+            if (exists) return prev
+            return [...prev, newMessage]
+          })
         })
 
         // Handle connection events
@@ -198,23 +237,58 @@ export default function ChatSystem({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+  }
+
   const sendMessage = async () => {
-    if (!connection || !messageInput.trim() || !isConnected) return
+    if (!connection || (!messageInput.trim() && !selectedImage) || !isConnected) return
 
     try {
+      let imageUrl = null
+      let currentAvatar = userProfile?.avatar
+
+      if (selectedImage) {
+        setIsUploadingImage(true)
+        const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
+        imageUrl = uploadResult.data || uploadResult
+
+        if (imageUrl && !userProfile?.avatar) {
+          currentAvatar = imageUrl as any
+        }
+      }
+
       const messageData = {
-        message: messageInput.trim(),
+        message: selectedImage ? imageUrl || 'Image' : messageInput.trim(),
         senderId: userProfile?.id || '',
         senderName: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim() || 'Anonymous',
-        avatar: userProfile?.avatar || null,
-        groupChatId: groupChatId
+        avatar: currentAvatar || null,
+        groupChatId: groupChatId,
+        isImage: !!selectedImage
       }
 
       await connection.invoke('SendMessage', messageData)
       setMessageInput('')
+      setSelectedImage(null)
+      setImagePreview(null)
+      setIsUploadingImage(false)
     } catch (error) {
       console.error('Error sending message:', error)
-      toast.error('Không thể gửi tin nhắn')
+      toast.error('Gửi tin nhắn thất bại')
+      setIsUploadingImage(false)
     }
   }
 
@@ -322,7 +396,21 @@ export default function ChatSystem({
                             : 'bg-slate-100 text-slate-800 rounded-bl-md'
                         )}
                       >
-                        <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                        {message.message.startsWith('http') &&
+                        (message.message.includes('.jpg') ||
+                          message.message.includes('.png') ||
+                          message.message.includes('.jpeg') ||
+                          message.message.includes('.gif') ||
+                          message.message.includes('.webp')) ? (
+                          <img
+                            src={message.message}
+                            alt='Shared image'
+                            className='max-w-full h-auto rounded-lg'
+                            style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -335,27 +423,78 @@ export default function ChatSystem({
 
         {/* Input Area */}
         <div className='flex-shrink-0 border-t bg-white p-4'>
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className='mb-4 relative inline-block'>
+              <img
+                src={imagePreview}
+                alt='Preview'
+                className='max-w-xs h-auto rounded-lg border border-gray-300'
+                style={{ maxHeight: '200px', objectFit: 'cover' }}
+              />
+              <button
+                onClick={handleRemoveImage}
+                className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors'
+              >
+                <X className='w-4 h-4' />
+              </button>
+              {isUploadingImage && (
+                <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg'>
+                  <div className='animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full'></div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className='flex items-center space-x-3'>
             <Input
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isConnected ? 'Nhập tin nhắn...' : 'Đang kết nối...'}
-              disabled={!isConnected || isLoading}
+              placeholder={
+                imagePreview ? 'Thêm mô tả cho ảnh (tùy chọn)...' : isConnected ? 'Nhập tin nhắn...' : 'Đang kết nối...'
+              }
+              disabled={!isConnected || isLoading || isUploadingImage}
               className='flex-1 h-12 bg-slate-50 border-slate-200 focus:border-cyan-400 focus:ring-cyan-200'
             />
+
+            {/* Image Upload Button */}
+            <div className='relative'>
+              <input
+                type='file'
+                accept='image/*'
+                onChange={handleImageSelect}
+                className='hidden'
+                id='chat-image-upload'
+              />
+              <label
+                htmlFor='chat-image-upload'
+                className='flex items-center justify-center w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors border border-slate-200'
+              >
+                <ImagePlus className='w-5 h-5 text-slate-600' />
+              </label>
+            </div>
+
             <Button
               onClick={sendMessage}
-              disabled={!messageInput.trim() || !isConnected || isLoading}
+              disabled={(!messageInput.trim() && !selectedImage) || !isConnected || isLoading || isUploadingImage}
               className='h-12 px-6 bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
             >
-              <Send className='w-4 h-4' />
+              {isUploadingImage ? (
+                <div className='animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full'></div>
+              ) : (
+                <Send className='w-4 h-4' />
+              )}
             </Button>
           </div>
 
           <div className='flex items-center justify-center mt-2'>
             <p className='text-xs text-slate-500'>
-              {isConnected ? 'Nhấn Enter để gửi tin nhắn' : 'Đang kết nối lại...'}
+              {isUploadingImage
+                ? 'Đang tải ảnh...'
+                : isConnected
+                ? 'Nhấn Enter để gửi tin nhắn hoặc chọn ảnh'
+                : 'Đang kết nối lại...'}
             </p>
           </div>
         </div>

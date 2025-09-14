@@ -3,7 +3,7 @@
 import { Navigate, Outlet, useLocation, useRoutes } from 'react-router'
 import { Suspense } from 'react'
 import path from './constants/path'
-import { useAdminStore, useUsersStore } from './contexts/app.context'
+import { useAdminStore, useUsersStore, useStaffStore } from './contexts/app.context'
 import MainLayout from './layouts/MainLayout'
 import Home from './pages/User/Public/Home'
 import MyLayout from './layouts/MyLayout'
@@ -20,6 +20,11 @@ import CreateOrganization from './pages/User/Auth/Organization/CreateOrganizatio
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
+import StaffLogin from './pages/Staff/Login'
+import AdminLogin from './pages/Admin/Login'
+import StaffLayout from './layouts/StaffLayout'
+import AdminLayout from './layouts/AdminLayout'
+import StaffMessages from './pages/Staff/Messages'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -155,19 +160,27 @@ function RejectedRoute() {
 
 function ProtectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
-
   let location = useLocation()
-  return isLogin ? (
-    <Suspense fallback={<Loader />}></Suspense>
-  ) : (
-    <Navigate to={path.admin.login} state={{ from: location }} />
-  )
+  return isLogin ? <Outlet /> : <Navigate to='/admin/login' state={{ from: location }} />
 }
 
 function RejectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
   const location = useLocation()
-  const from = location.state?.from || path.admin.users
+  const from = location.state?.from || '/admin/dashboard'
+  return !isLogin ? <Outlet /> : <Navigate to={from} />
+}
+
+function ProtectedStaffRoute() {
+  const isLogin = useStaffStore((state) => state.isLogin)
+  let location = useLocation()
+  return isLogin ? <Outlet /> : <Navigate to='/staff/login' state={{ from: location }} />
+}
+
+function RejectedStaffRoute() {
+  const isLogin = useStaffStore((state) => state.isLogin)
+  const location = useLocation()
+  const from = location.state?.from || path.staff.messages
   return !isLogin ? <Outlet /> : <Navigate to={from} />
 }
 
@@ -309,29 +322,78 @@ export default function useRouteElement() {
         }
       ]
     },
+    // Staff Routes
     {
-      path: path.admin.dashboard,
-      element: <ProtectedAdminRoute />,
+      path: path.staff.root,
+      element: <ProtectedStaffRoute />,
       children: [
         {
-          path: path.admin.users,
+          path: '',
           element: (
             <SuspenseWrapper>
-              <Outlet />
+              <StaffLayout>
+                <Outlet />
+              </StaffLayout>
+            </SuspenseWrapper>
+          ),
+          children: [
+            {
+              path: path.staff.messages,
+              element: (
+                <SuspenseWrapper>
+                  <StaffMessages />
+                </SuspenseWrapper>
+              )
+            }
+          ]
+        }
+      ]
+    },
+    {
+      path: path.staff.auth.root,
+      element: <RejectedStaffRoute />,
+      children: [
+        {
+          path: path.staff.auth.login,
+          element: (
+            <SuspenseWrapper>
+              <StaffLogin />
             </SuspenseWrapper>
           )
         }
       ]
     },
     {
-      path: path.admin.login,
+      path: '/admin',
+      element: <ProtectedAdminRoute />,
+      children: [
+        {
+          path: '',
+          element: (
+            <SuspenseWrapper>
+              <AdminLayout>
+                <Outlet />
+              </AdminLayout>
+            </SuspenseWrapper>
+          ),
+          children: [
+            {
+              index: true,
+              element: <Navigate to='/admin/dashboard' />
+            }
+          ]
+        }
+      ]
+    },
+    {
+      path: '/admin/login',
       element: <RejectedAdminRoute />,
       children: [
         {
           index: true,
           element: (
             <SuspenseWrapper>
-              <Outlet />
+              <AdminLogin />
             </SuspenseWrapper>
           )
         }

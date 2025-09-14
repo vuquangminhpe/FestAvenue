@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useInfiniteQuery, useQuery, useMutation } from '@tanstack/react-query'
-import { Send, MessageCircle, Smile, Search, Wifi, WifiOff } from 'lucide-react'
+import { Send, MessageCircle, Smile, Search, Wifi, WifiOff, ImagePlus, X } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
 import { useUsersStore } from '@/contexts/app.context'
@@ -10,6 +10,7 @@ import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { ChatMessage, ChatMessagesResponse, SignalRMessage } from '@/types/chat.types'
 import { EmojiPicker } from '@/utils/helper'
+import { toast } from 'sonner'
 
 export default function ChatMyMessagesSystem() {
   const userProfile = useUsersStore().isProfile
@@ -26,7 +27,20 @@ export default function ChatMyMessagesSystem() {
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [totalPages, setTotalPages] = useState<number | undefined>()
   const [click, setClick] = useState<boolean>(false)
-
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const uploadsImagesMutation = useMutation({
+    mutationFn: (file: File) => userApi.uploadsStorage(file),
+    onSuccess: (data) => {
+      return data
+    },
+    onError: (error) => {
+      console.error('Upload error:', error)
+      toast.error('Upload ảnh thất bại')
+      setIsUploadingImage(false)
+    }
+  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const loadPreviousRef = useRef<HTMLDivElement>(null)
@@ -95,12 +109,25 @@ export default function ChatMyMessagesSystem() {
 
           // Only add if not already exists (prevent duplicates)
           setRealtimeMessages((prev) => {
-            const exists = prev.some(
-              (msg) =>
-                msg.message === newMessage.message &&
-                msg.senderId === newMessage.senderId &&
-                Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < 5000
-            )
+            const isImageMessage =
+              newMessage.message.startsWith('http') &&
+              (newMessage.message.includes('.jpg') ||
+                newMessage.message.includes('.png') ||
+                newMessage.message.includes('.jpeg') ||
+                newMessage.message.includes('.gif') ||
+                newMessage.message.includes('.webp'))
+
+            const exists = prev.some((msg) => {
+              const isSameUser = msg.senderId === newMessage.senderId
+              const isSameMessage = msg.message === newMessage.message
+
+              // For image messages, use larger time tolerance due to upload delay
+              const timeLimit = isImageMessage ? 15000 : 5000 // 15s for images, 5s for text
+              const isSameTime = Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < timeLimit
+
+              return isSameMessage && isSameUser && isSameTime
+            })
+
             if (exists) return prev
             return [...prev, newMessage]
           })
@@ -215,6 +242,7 @@ export default function ChatMyMessagesSystem() {
       senderName: string
       avatar: string | null
       groupChatId: string
+      isImage?: boolean
     }) => {
       if (!connection || !isConnected) {
         throw new Error('SignalR connection not established')
@@ -224,10 +252,13 @@ export default function ChatMyMessagesSystem() {
     },
     onSuccess: () => {
       setMessageInput('')
-      // Don't clear realtime messages - let the deduplication logic handle it
+      setSelectedImage(null)
+      setImagePreview(null)
+      setIsUploadingImage(false)
     },
     onError: (error) => {
       console.error('Error sending message:', error)
+      setIsUploadingImage(false)
     }
   })
 
@@ -351,18 +382,55 @@ export default function ChatMyMessagesSystem() {
     }
   }
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !selectedChatId || !userProfile) return
-
-    const messageData = {
-      message: messageInput.trim(),
-      senderId: userProfile.id,
-      senderName: `${userProfile.firstName} ${userProfile.lastName}`.trim(),
-      avatar: userProfile.avatar || null,
-      groupChatId: selectedChatId
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
     }
+  }
 
-    sendMessageMutation.mutate(messageData)
+  const handleRemoveImage = () => {
+    setSelectedImage(null)
+    setImagePreview(null)
+  }
+
+  const handleSendMessage = async () => {
+    if ((!messageInput.trim() && !selectedImage) || !selectedChatId || !userProfile) return
+
+    try {
+      let imageUrl = null
+      let currentAvatar = userProfile.avatar
+
+      if (selectedImage) {
+        setIsUploadingImage(true)
+        const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
+        imageUrl = uploadResult.data || uploadResult
+
+        if (imageUrl && !userProfile.avatar) {
+          currentAvatar = imageUrl as any
+        }
+      }
+
+      const messageData = {
+        message: selectedImage ? imageUrl || 'Image' : messageInput.trim(),
+        senderId: userProfile.id,
+        senderName: `${userProfile.firstName} ${userProfile.lastName}`.trim(),
+        avatar: currentAvatar,
+        groupChatId: selectedChatId,
+        isImage: !!selectedImage
+      }
+
+      sendMessageMutation.mutate(messageData as any)
+    } catch (error) {
+      console.error('Error handling message send:', error)
+      setIsUploadingImage(false)
+      toast.error('Gửi tin nhắn thất bại')
+    }
   }
 
   const handleEmojiSelect = (emoji: string) => {
@@ -559,7 +627,6 @@ export default function ChatMyMessagesSystem() {
                 <div className='flex justify-center py-4 relative z-10'>
                   <button
                     onClick={() => {
-                      console.log('Button clicked!')
                       setClick(true)
                     }}
                     className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer'
@@ -632,7 +699,21 @@ export default function ChatMyMessagesSystem() {
                               : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
                           }`}
                         >
-                          <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                          {message.message.startsWith('http') &&
+                          (message.message.includes('.jpg') ||
+                            message.message.includes('.png') ||
+                            message.message.includes('.jpeg') ||
+                            message.message.includes('.gif') ||
+                            message.message.includes('.webp')) ? (
+                            <img
+                              src={message.message}
+                              alt='Shared image'
+                              className='max-w-full h-auto rounded-lg'
+                              style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -645,6 +726,29 @@ export default function ChatMyMessagesSystem() {
 
             {/* Message Input */}
             <div className='bg-white border-t border-gray-200 p-4'>
+              {/* Image Preview */}
+              {imagePreview && (
+                <div className='mb-4 relative inline-block'>
+                  <img
+                    src={imagePreview}
+                    alt='Preview'
+                    className='max-w-xs h-auto rounded-lg border border-gray-300'
+                    style={{ maxHeight: '200px', objectFit: 'cover' }}
+                  />
+                  <button
+                    onClick={handleRemoveImage}
+                    className='absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors'
+                  >
+                    <X className='w-4 h-4' />
+                  </button>
+                  {isUploadingImage && (
+                    <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg'>
+                      <div className='animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full'></div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className='flex items-center space-x-3'>
                 <div className='flex-1 relative'>
                   <input
@@ -653,13 +757,36 @@ export default function ChatMyMessagesSystem() {
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder={isConnected ? 'Type a message...' : 'Connecting...'}
-                    disabled={!isConnected || sendMessageMutation.isPending}
+                    placeholder={
+                      imagePreview
+                        ? 'Thêm mô tả cho ảnh (tùy chọn)...'
+                        : isConnected
+                        ? 'Nhập tin nhắn...'
+                        : 'Connecting...'
+                    }
+                    disabled={!isConnected || sendMessageMutation.isPending || isUploadingImage}
                     className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all'
                   />
                 </div>
 
                 <div className='flex items-center space-x-2'>
+                  {/* Image Upload */}
+                  <div className='relative'>
+                    <input
+                      type='file'
+                      accept='image/*'
+                      onChange={handleImageSelect}
+                      className='hidden'
+                      id='image-upload'
+                    />
+                    <label
+                      htmlFor='image-upload'
+                      className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'
+                    >
+                      <ImagePlus className='w-5 h-5' />
+                    </label>
+                  </div>
+
                   {/* Emoji Picker */}
                   <div className='relative'>
                     <button
@@ -681,15 +808,20 @@ export default function ChatMyMessagesSystem() {
                   {/* Send Button */}
                   <button
                     onClick={handleSendMessage}
-                    disabled={!messageInput.trim() || !isConnected || sendMessageMutation.isPending}
+                    disabled={
+                      (!messageInput.trim() && !selectedImage) ||
+                      !isConnected ||
+                      sendMessageMutation.isPending ||
+                      isUploadingImage
+                    }
                     className='px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-lg hover:from-cyan-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2'
                   >
-                    {sendMessageMutation.isPending ? (
+                    {sendMessageMutation.isPending || isUploadingImage ? (
                       <div className='animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full'></div>
                     ) : (
                       <Send className='w-4 h-4' />
                     )}
-                    <span>Send</span>
+                    <span>{isUploadingImage ? 'Đang tải...' : 'Gửi'}</span>
                   </button>
                 </div>
               </div>
@@ -700,8 +832,8 @@ export default function ChatMyMessagesSystem() {
           <div className='flex-1 flex items-center justify-center bg-gray-50'>
             <div className='text-center'>
               <MessageCircle className='w-16 h-16 text-gray-300 mx-auto mb-4' />
-              <h3 className='text-lg font-semibold text-gray-600 mb-2'>Select a chat to start messaging</h3>
-              <p className='text-gray-500'>Choose a conversation from the sidebar to begin</p>
+              <h3 className='text-lg font-semibold text-gray-600 mb-2'>Chọn một cuộc trò chuyện để bắt đầu nhắn tin</h3>
+              <p className='text-gray-500'>Chọn một cuộc trò chuyện từ thanh bên để bắt đầu</p>
             </div>
           </div>
         )}
