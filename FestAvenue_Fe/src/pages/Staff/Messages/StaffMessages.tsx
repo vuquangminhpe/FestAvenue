@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { useQuery, useMutation, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, MessageCircle, Search, Wifi, WifiOff, ImagePlus, X, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 
 export default function StaffMessages() {
   const userProfile = useUsersStore().isProfile
-
+  const queryClient = useQueryClient()
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [realtimeMessages, setRealtimeMessages] = useState<SignalRMessage[]>([])
@@ -79,6 +79,7 @@ export default function StaffMessages() {
   const deletedGroupChatOrganizationMutation = useMutation({
     mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['group-chats'] })
       toast.success('Đã xóa group chat thành công!')
       setSelectedChatId(null)
     },
@@ -316,7 +317,7 @@ export default function StaffMessages() {
 
   const handleDeleteGroupChat = (groupChatId: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa group chat này?')) {
-      deletedGroupChatOrganizationMutation.mutate(groupChatId)
+      deletedGroupChatOrganizationMutation.mutateAsync(groupChatId)
     }
   }
 
@@ -683,7 +684,6 @@ export default function StaffMessages() {
                 <div className='flex justify-center py-4 relative z-10'>
                   <button
                     onClick={() => {
-                   
                       setClick(true)
                     }}
                     className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer'

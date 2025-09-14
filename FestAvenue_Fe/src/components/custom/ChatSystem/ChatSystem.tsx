@@ -12,7 +12,7 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import { formatTime } from '@/utils/utils'
 
@@ -43,6 +43,7 @@ export default function ChatSystem({
   requestType
 }: ChatSystemProps) {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
+  const queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [isConnected, setIsConnected] = useState(false)
@@ -69,8 +70,9 @@ export default function ChatSystem({
   })
 
   const handleDeleteGroupChat = () => {
-    deletedGroupChatOrganizationMutation.mutate(groupChatId, {
+    deletedGroupChatOrganizationMutation.mutateAsync(groupChatId, {
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['group-chats'] })
         toast.success('Xóa group chat thành công!')
         onClose()
       },
