@@ -11,6 +11,7 @@ import userApi from '@/apis/user.api'
 import { useStaffStore } from '@/contexts/app.context'
 import type { bodyLoginType } from '@/types/user.types'
 import path from '@/constants/path'
+import { saveAccessTokenToLS } from '@/utils/auth'
 
 const StaffLogin = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,7 +27,7 @@ const StaffLogin = () => {
   const loginMutation = useMutation({
     mutationFn: userApi.login_normal,
     onSuccess: (data) => {
-      localStorage.setItem('staff_token', data?.data?.accessToken)
+      saveAccessTokenToLS(data?.data?.accessToken)
       setIsLogin(true)
       toast.success('Đăng nhập Staff thành công!')
       navigate(path.staff.messages)
