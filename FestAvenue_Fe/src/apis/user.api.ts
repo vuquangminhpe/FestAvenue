@@ -16,7 +16,8 @@ import type {
   bodyCheckExits,
   GroupChatResponse,
   bodyGetChatMessagesWithPagging,
-  updateOrganizationBody
+  updateOrganizationBody,
+  bodyForgotPassword
 } from '@/types/user.types'
 import http from '@/utils/http'
 
@@ -56,8 +57,8 @@ const userApi = {
     })
     return data?.data
   },
-  ForgotPassword: async (email: string) => {
-    const data = await http.post<APIResponse<{ messages: string }>>('/reset-password/forgot-password', email)
+  ForgotPassword: async (body: bodyForgotPassword) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/reset-password/forgot-password', body)
     return data?.data
   },
   resetPassword: async (body: bodyResetPassword) => {

@@ -17,13 +17,13 @@ interface FormErrors {
 }
 
 const ResetPassword = () => {
-  const [email, setEmail] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const location = useLocation()
   const token = location?.search.split('=')[1]
-  const [data, setData] = useState<FormErrors>({ token, newPassword: '' })
+  const [errors, setErrors] = useState<FormErrors>({ token: '', newPassword: '' })
 
   const resetPasswordMutation = useMutation({
-    mutationFn: () => userApi.resetPassword(data),
+    mutationFn: () => userApi.resetPassword({ token, newPassword }),
     onSuccess: (data) => {
       toast.success(data?.message || 'Đổi mật khẩu thành công')
     },
@@ -33,22 +33,32 @@ const ResetPassword = () => {
   })
 
   const validateForm = (): boolean => {
-    const newData: FormErrors = {
+    const newErrors: FormErrors = {
       token: '',
       newPassword: ''
     }
 
-    if (!email) {
-      newData.token = 'Token là bắt buộc'
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newData.newPassword = 'Mật khẩu mới không hợp lệ'
+    if (!token) {
+      newErrors.token = 'Token là bắt buộc'
     }
 
-    setData(newData)
-    return Object.keys(newData).length === 0
+    if (!newPassword) {
+      newErrors.newPassword = 'Mật khẩu mới là bắt buộc'
+    } else if (newPassword.length < 6) {
+      newErrors.newPassword = 'Mật khẩu phải có ít nhất 6 ký tự'
+    } else if (!/(?=.*[a-z])/.test(newPassword)) {
+      newErrors.newPassword = 'Mật khẩu phải có ít nhất 1 chữ thường'
+    } else if (!/(?=.*[A-Z])/.test(newPassword)) {
+      newErrors.newPassword = 'Mật khẩu phải có ít nhất 1 chữ hoa'
+    } else if (!/(?=.*[!@#$%^&*(),.?":{}|<>])/.test(newPassword)) {
+      newErrors.newPassword = 'Mật khẩu phải có ít nhất 1 ký tự đặc biệt'
+    }
+
+    setErrors(newErrors)
+    return !newErrors.token && !newErrors.newPassword
   }
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validateForm()) {
       resetPasswordMutation.mutate()
@@ -63,28 +73,30 @@ const ResetPassword = () => {
         </div>
 
         <div className='p-8 pt-0'>
-          <form onSubmit={handleEmailSubmit} className='space-y-6'>
+          <form onSubmit={handlePasswordSubmit} className='space-y-6'>
             <div className='space-y-2'>
-              <Label htmlFor='email' className='text-sm font-medium text-gray-700'>
+              <Label htmlFor='newPassword' className='text-sm font-medium text-gray-700'>
                 Mật khẩu mới
               </Label>
               <div className='relative'>
                 <Input
-                  id='email'
-                  type='email'
-                  placeholder='Nhập mật khẩu của bạn'
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id='newPassword'
+                  type='password'
+                  placeholder='Nhập mật khẩu mới của bạn'
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                   className={`pl-11 h-12 border-2 transition-all duration-200 ${
-                    data.newPassword ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-cyan-400 '
+                    errors.newPassword
+                      ? 'border-red-300 focus:border-red-500'
+                      : 'border-gray-200 focus:border-cyan-400 '
                   }`}
                 />
                 <KeyIcon className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400' size={20} />
               </div>
-              {data.newPassword && (
+              {errors.newPassword && (
                 <p className='text-sm text-red-600 flex items-center mt-1'>
                   <span className='w-1 h-1 bg-red-600 rounded-full mr-2'></span>
-                  {data.newPassword}
+                  {errors.newPassword}
                 </p>
               )}
             </div>

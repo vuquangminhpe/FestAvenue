@@ -37,6 +37,9 @@ export interface bodyResetPassword {
   token: string
   newPassword: string
 }
+export interface bodyForgotPassword {
+  email: string
+}
 export interface userRes {
   id: string
   email: string

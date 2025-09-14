@@ -21,7 +21,7 @@ const ForgotPassword = () => {
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   const forgotPasswordMutation = useMutation({
-    mutationFn: () => userApi.ForgotPassword(email),
+    mutationFn: () => userApi.ForgotPassword({ email }),
     onSuccess: (data) => {
       setIsSubmitted(true)
       toast.success(data?.message || 'Đã gửi email khôi phục mật khẩu thành công')
