@@ -174,7 +174,7 @@ function RejectedAdminRoute() {
 function ProtectedStaffRoute() {
   const isLogin = useStaffStore((state) => state.isLogin)
   let location = useLocation()
-  return isLogin ? <Outlet /> : <Navigate to='/staff/login' state={{ from: location }} />
+  return isLogin ? <Outlet /> : <Navigate to={path.staff.auth.login} state={{ from: location }} />
 }
 
 function RejectedStaffRoute() {
