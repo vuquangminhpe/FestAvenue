@@ -39,7 +39,8 @@ import {
   ChevronRight,
   Save,
   X,
-  Plus
+  Plus,
+  UserPlus
 } from 'lucide-react'
 import type { OrganizationResponse } from '@/types/organization.types'
 import { Link, useNavigate } from 'react-router-dom'
@@ -47,6 +48,8 @@ import path from '@/constants/path'
 import type { updateOrganizationBody } from '@/types/user.types'
 import { SubDescriptionStatus } from '@/constants/enum'
 import { generateNameId } from '@/utils/utils'
+import InviteUsersModal from './components/InviteUsersModal'
+import { useInviteUsers } from './hooks/useInviteUsers'
 
 export default function MyOrganization() {
   const navigate = useNavigate()
@@ -59,6 +62,7 @@ export default function MyOrganization() {
   const [selectedOrgForDelete, setSelectedOrgForDelete] = useState<OrganizationResponse['organization'] | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState<string>('')
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
   const [editFormData, setEditFormData] = useState<any>({
     name: '',
     description: '',
@@ -109,6 +113,8 @@ export default function MyOrganization() {
   const organizations = dataGetAllCurrentOrganization?.data || []
   const selectedOrg = organizations[selectedOrgIndex] as any
   const isOwner = selectedOrg?.isOwner || false
+
+  const { inviteUsers, isLoading: isInviteLoading } = useInviteUsers()
 
   useEffect(() => {
     if (containerRef.current && !isLoading) {
@@ -309,6 +315,20 @@ export default function MyOrganization() {
       setIsEditing(false)
     } catch (error) {
       console.error('Error updating organization:', error)
+    }
+  }
+
+  const handleInviteUsers = async (emails: string[]) => {
+    if (!selectedOrg) return
+
+    try {
+      await inviteUsers({
+        emails,
+        organizationId: selectedOrg.organization.id
+      })
+      setInviteModalOpen(false)
+    } catch (error) {
+      console.error('Error inviting users:', error)
     }
   }
 
@@ -559,7 +579,15 @@ export default function MyOrganization() {
                         </div>
                       </div>
                       {isOwner && (
-                        <div className='flex gap-3'>
+                        <div className='flex flex-col gap-3'>
+                          <Button
+                            size='default'
+                            onClick={() => setInviteModalOpen(true)}
+                            className='bg-green-500/20 backdrop-blur-sm text-white border border-green-300/30 hover:bg-cyan-500 hover:border-cyan-500 transition-all duration-300 rounded-xl px-6 py-3 font-semibold shadow-lg hover:shadow-xl'
+                          >
+                            <UserPlus className='h-4 w-4 mr-2' />
+                            Mời thành viên
+                          </Button>
                           <Button
                             size='default'
                             onClick={() => handleEditOrganization(selectedOrg.organization)}
@@ -848,29 +876,6 @@ export default function MyOrganization() {
                                       </div>
                                     </div>
                                   )}
-                                  {selectedOrg.organization.subDescription.status !==
-                                    SubDescriptionStatus.Paymented && (
-                                    <div className='bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200'>
-                                      <h4 className='font-semibold text-blue-800 mb-3 flex items-center'>
-                                        <Shield className='h-4 w-4 mr-2' />
-                                        Thanh toán gói dịch vụ
-                                      </h4>
-                                      <p className='text-blue-700 text-sm mb-4'>
-                                        Gói dịch vụ của bạn chưa được thanh toán. Vui lòng hoàn tất thanh toán để tiếp
-                                        tục sử dụng đầy đủ tính năng.
-                                      </p>
-                                      <Link
-                                        to={`${path.user.payment.payment_organization}?${generateNameId({
-                                          id: `${selectedOrg.organization.id}_${selectedOrg.organization.subDescription.plan}` as any,
-                                          name: selectedOrg.organization.name
-                                        })}`}
-                                        className='inline-flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold'
-                                      >
-                                        <Shield className='h-4 w-4 mr-2' />
-                                        Thanh toán ngay
-                                      </Link>
-                                    </div>
-                                  )}
                                 </div>
                               </div>
                             )}
@@ -1157,12 +1162,42 @@ export default function MyOrganization() {
                         </div>
                       )}
                     </div>
+                    {selectedOrg.organization.subDescription.status !== SubDescriptionStatus.Paymented && (
+                      <div className='bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200'>
+                        <h4 className='font-semibold text-blue-800 mb-3 flex items-center'>
+                          <Shield className='h-4 w-4 mr-2' />
+                          Thanh toán gói dịch vụ
+                        </h4>
+                        <p className='text-blue-700 text-sm mb-4'>
+                          Gói dịch vụ của bạn chưa được thanh toán. Vui lòng hoàn tất thanh toán để tiếp tục sử dụng đầy
+                          đủ tính năng.
+                        </p>
+                        <Link
+                          to={`${path.user.payment.payment_organization}?${generateNameId({
+                            id: `${selectedOrg.organization.id}_${selectedOrg.organization.subDescription.plan}` as any,
+                            name: selectedOrg.organization.name
+                          })}`}
+                          className='inline-flex items-center bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold'
+                        >
+                          <Shield className='h-4 w-4 mr-2' />
+                          Thanh toán ngay
+                        </Link>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
         )}
+
+        <InviteUsersModal
+          isOpen={inviteModalOpen}
+          onClose={() => setInviteModalOpen(false)}
+          onInvite={handleInviteUsers}
+          organizationName={selectedOrg?.organization?.name || ''}
+          isLoading={isInviteLoading}
+        />
       </div>
     </div>
   )

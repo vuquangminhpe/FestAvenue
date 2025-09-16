@@ -1,4 +1,5 @@
 import type { APIResponse } from '@/types/API.types'
+import type { bodyManagerOrganization } from '@/types/organization.types'
 import http from '@/utils/http'
 
 const organizationApi = {
@@ -12,6 +13,10 @@ const organizationApi = {
     const data = await http.put<APIResponse<{ messages: string }>>(
       `/group-chat-organization/update-group-chat-status-rejected/${groupChatId}`
     )
+    return data?.data
+  },
+  managerOrganization: async (body: bodyManagerOrganization) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/manager-organization/create-accounts', body)
     return data?.data
   }
 }

@@ -196,3 +196,7 @@ export interface OrganizationResponse {
   organization: Organization
   isOwner: boolean
 }
+export interface bodyManagerOrganization {
+  emails: string[]
+  organizationId: string
+}

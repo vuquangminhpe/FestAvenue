@@ -51,7 +51,7 @@ export default function Header() {
 
   return (
     <>
-      <header className='w-full z-[55] bg-white shadow-lg border-b border-gray-200 sticky top-0'>
+      <header className='w-full z-[50] bg-white shadow-lg border-b border-gray-200 sticky top-0'>
         <div className=' mx-auto px-4 sm:px-6 lg:px-8'>
           {/* Main Header */}
           <div className='flex items-center justify-between h-16 lg:h-20'>
