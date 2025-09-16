@@ -28,6 +28,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       description: 'Quản lý người dùng'
     },
     {
+      label: 'Category',
+      icon: BarChart3,
+      path: path.admin.process.category,
+      description: 'Tổng quan hệ thống'
+    },
+    {
       label: 'Settings',
       icon: Settings,
       path: path.admin.process.settings,

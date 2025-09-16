@@ -25,6 +25,8 @@ import AdminLogin from './pages/Admin/Auth/Login'
 import StaffLayout from './layouts/StaffLayout'
 import AdminLayout from './layouts/AdminLayout'
 import StaffMessages from './pages/Staff/Process/Messages'
+import Dashboard from './pages/Admin/Process/Dashboard'
+import Category from './pages/Admin/Process/Category'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -378,8 +380,12 @@ export default function useRouteElement() {
           ),
           children: [
             {
-              index: true,
-              element: <Navigate to={path.admin.process.dashboard} />
+              path: path.admin.process.dashboard,
+              element: <Dashboard />
+            },
+            {
+              path: path.admin.process.category,
+              element: <Category />
             }
           ]
         }

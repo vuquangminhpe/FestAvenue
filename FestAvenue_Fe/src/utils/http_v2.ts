@@ -56,7 +56,7 @@ class Http {
           clearLocalStorage()
           const url = location.pathname
           if (url && url.startsWith(ADMIN_URL_PREFIX)) {
-            window.location.href = path.admin.login
+            window.location.href = path.admin.auth.login
           } else {
             window.location.href = path.auth.login
           }
@@ -86,7 +86,7 @@ class Http {
             clearLocalStorage()
             const url = error.config?.url
             if (url && url.startsWith(ADMIN_URL_PREFIX)) {
-              window.location.href = path.admin.login
+              window.location.href = path.admin.auth.login
             } else {
               window.location.href = path.auth.login
             }
