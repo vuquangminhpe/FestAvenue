@@ -58,7 +58,7 @@ export default function Header() {
             {/* Logo */}
             <div className='flex items-center'>
               <div className='flex items-center'>
-                <Link to='/' className='flex items-center hover:opacity-80 transition-opacity'>
+                <Link to={path.home} className='flex items-center hover:opacity-80 transition-opacity'>
                   <img src={LOGO_IMG} className='w-[160px] h-full object-contain' alt='Fest Avenue Logo' />
                 </Link>
               </div>
@@ -163,7 +163,7 @@ export default function Header() {
                       <div className='size-10  rounded-full flex items-center justify-center'>
                         <Avatar className='w-12 h-12 rounded-full object-cover'>
                           <AvatarImage src={profile?.avatar || LOGO_DEFAULT} />
-                          <AvatarFallback>{profile?.firstName.slice(0, 1)}</AvatarFallback>
+                          <AvatarFallback>{profile?.firstName?.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                       </div>
                       <span className='font-medium text-gray-700 hidden xl:inline'>
@@ -286,7 +286,7 @@ export default function Header() {
                     <div className='w-10 h-10  rounded-full flex items-center justify-center'>
                       <Avatar className='w-12 h-12 rounded-full object-cover'>
                         <AvatarImage src={profile?.avatar || LOGO_DEFAULT} />
-                        <AvatarFallback>{profile?.firstName.slice(0, 1)}</AvatarFallback>
+                        <AvatarFallback>{profile?.firstName?.slice(0, 1)}</AvatarFallback>
                       </Avatar>
                     </div>
                     <div>
