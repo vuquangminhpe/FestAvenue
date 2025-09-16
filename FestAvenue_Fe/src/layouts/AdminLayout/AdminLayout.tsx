@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router'
 import { Shield, Menu, X, Users, Settings, BarChart3, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAdminStore } from '@/contexts/app.context'
+import path from '@/constants/path'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -17,19 +18,19 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     {
       label: 'Dashboard',
       icon: BarChart3,
-      path: '/admin/dashboard',
+      path: path.admin.process.dashboard,
       description: 'Tổng quan hệ thống'
     },
     {
       label: 'Users',
       icon: Users,
-      path: '/admin/users',
+      path: path.admin.process.users,
       description: 'Quản lý người dùng'
     },
     {
       label: 'Settings',
       icon: Settings,
-      path: '/admin/settings',
+      path: path.admin.process.settings,
       description: 'Cài đặt hệ thống'
     }
   ]

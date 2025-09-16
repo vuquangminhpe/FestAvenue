@@ -20,11 +20,11 @@ import CreateOrganization from './pages/User/Auth/Organization/CreateOrganizatio
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
-import StaffLogin from './pages/Staff/Login'
-import AdminLogin from './pages/Admin/Login'
+import StaffLogin from './pages/Staff/Auth/Login'
+import AdminLogin from './pages/Admin/Auth/Login'
 import StaffLayout from './layouts/StaffLayout'
 import AdminLayout from './layouts/AdminLayout'
-import StaffMessages from './pages/Staff/Messages'
+import StaffMessages from './pages/Staff/Process/Messages'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -161,13 +161,13 @@ function RejectedRoute() {
 function ProtectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
   let location = useLocation()
-  return isLogin ? <Outlet /> : <Navigate to='/admin/login' state={{ from: location }} />
+  return isLogin ? <Outlet /> : <Navigate to={path.admin.auth.login} state={{ from: location }} />
 }
 
 function RejectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
   const location = useLocation()
-  const from = location.state?.from || '/admin/dashboard'
+  const from = location.state?.from || path.admin.process.dashboard
   return !isLogin ? <Outlet /> : <Navigate to={from} />
 }
 
@@ -364,7 +364,7 @@ export default function useRouteElement() {
       ]
     },
     {
-      path: '/admin',
+      path: path.admin.process.root,
       element: <ProtectedAdminRoute />,
       children: [
         {
@@ -379,14 +379,14 @@ export default function useRouteElement() {
           children: [
             {
               index: true,
-              element: <Navigate to='/admin/dashboard' />
+              element: <Navigate to={path.admin.process.dashboard} />
             }
           ]
         }
       ]
     },
     {
-      path: '/admin/login',
+      path: path.admin.auth.login,
       element: <RejectedAdminRoute />,
       children: [
         {

@@ -57,9 +57,16 @@ const path = {
     }
   },
   admin: {
-    dashboard: '/admin',
-    users: '/admin/users',
-    login: '/login'
+    auth: {
+      root: '/auth/admin',
+      login: '/auth/admin/login'
+    },
+    process: {
+      root: '/process/admin',
+      dashboard: '/process/admin/dashboard',
+      users: '/process/admin/users',
+      settings: '/process/admin/settings'
+    }
   }
 } as const
 export default path
