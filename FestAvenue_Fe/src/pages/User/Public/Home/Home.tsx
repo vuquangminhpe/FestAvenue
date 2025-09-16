@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Heart, MapPin, Calendar, Clock, Star, X, ArrowRight, Loader2, Filter } from 'lucide-react'
 import MouseAnimate from '@/components/custom/MouseAnimate'
 import { Helmet } from 'react-helmet-async'
+import { useQuery } from '@tanstack/react-query'
+import categoryApis from '@/apis/categories.api'
 
 // Animation hook for scroll-triggered animations
 const useIntersectionObserver = (threshold = 0.1) => {
@@ -134,29 +136,10 @@ const Home = () => {
   const [eventsRef, eventsVisible] = useIntersectionObserver(0.2)
   const [destinationsRef, destinationsVisible] = useIntersectionObserver(0.2)
   const [testimonialsRef, testimonialsVisible] = useIntersectionObserver(0.2)
-
-  const categories = [
-    { name: 'Music', icon: '', image: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300' },
-    { name: 'Business', icon: '', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300' },
-    {
-      name: 'Nightlife',
-      icon: '',
-      image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300'
-    },
-    { name: 'Holidays', icon: '', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=300' },
-    {
-      name: 'Food & Drink',
-      icon: '',
-      image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300'
-    },
-    {
-      name: 'Education',
-      icon: '',
-      image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=300'
-    },
-    { name: 'Gaming', icon: '', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&h=300' },
-    { name: 'Health', icon: '', image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=300' }
-  ]
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: () => categoryApis.getCategoryActive()
+  })
 
   const events = [
     {
@@ -601,7 +584,7 @@ const Home = () => {
             <div className='max-w-7xl mx-auto'>
               <h2 className='text-3xl font-bold text-center mb-12 text-gray-900 animate-fade-in-up'>Categories</h2>
               <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-6'>
-                {categories.map((category, index) => (
+                {categories?.data?.map((category, index) => (
                   <div
                     key={category.name}
                     className={`group cursor-pointer transition-transform duration-1000 ease-out hover:scale-105 hover-lift ${
@@ -610,14 +593,13 @@ const Home = () => {
                   >
                     <div className='relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300'>
                       <ImageWithLoading
-                        src={category.image}
+                        src={category.imageUrl}
                         alt={category.name}
                         className='h-32 w-full'
                         aspectRatio=''
                       />
                       <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent'></div>
                       <div className='absolute bottom-0 left-0 right-0 p-4 text-center'>
-                        <div className='text-2xl mb-1 animate-float'>{category.icon}</div>
                         <p className='text-white font-medium text-sm'>{category.name}</p>
                       </div>
                     </div>
