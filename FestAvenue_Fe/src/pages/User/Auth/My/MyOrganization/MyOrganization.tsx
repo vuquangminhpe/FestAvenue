@@ -59,7 +59,6 @@ export default function MyOrganization() {
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const detailsRef = useRef<HTMLDivElement>(null)
-  const [namePackage, setNamePackage] = useState<string>('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedOrgIndex, setSelectedOrgIndex] = useState<number>(0)
   const [selectedOrgForDelete, setSelectedOrgForDelete] = useState<OrganizationResponse['organization'] | null>(null)

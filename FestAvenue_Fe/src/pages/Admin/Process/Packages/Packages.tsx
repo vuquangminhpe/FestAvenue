@@ -53,6 +53,7 @@ export default function Packages() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingPackage, setEditingPackage] = useState<getPackageByStatusRes | null>(null)
   const [featureInput, setFeatureInput] = useState('')
+  const [isPublicFilter, setIsPublicFilter] = useState<boolean>(true)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const queryClient = useQueryClient()
@@ -69,13 +70,11 @@ export default function Packages() {
     }
   })
 
-  // Queries
   const packagesQuery = useQuery({
-    queryKey: ['packages'],
-    queryFn: () => packageApis.getPackageByStatus({ isPublic: 'all' })
+    queryKey: ['packages', isPublicFilter],
+    queryFn: () => packageApis.getPackageByStatus({ isPublic: isPublicFilter })
   })
 
-  // Mutations
   const createPackageMutation = useMutation({
     mutationFn: packageApis.createPackageForAdmin,
     onSuccess: () => {
@@ -205,6 +204,28 @@ export default function Packages() {
         </Button>
       </div>
 
+      {/* Filter Toggle */}
+      <div className='flex justify-center mb-6'>
+        <div className='flex items-center space-x-2 bg-gray-100 p-1 rounded-lg'>
+          <Button
+            variant={isPublicFilter ? 'default' : 'ghost'}
+            size='sm'
+            onClick={() => setIsPublicFilter(true)}
+            className='transition-all duration-200'
+          >
+            Gói công khai
+          </Button>
+          <Button
+            variant={!isPublicFilter ? 'default' : 'ghost'}
+            size='sm'
+            onClick={() => setIsPublicFilter(false)}
+            className='transition-all duration-200'
+          >
+            Gói riêng tư
+          </Button>
+        </div>
+      </div>
+
       {/* Package List */}
       {packagesQuery.isLoading ? (
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
@@ -322,7 +343,7 @@ export default function Packages() {
       )}
 
       {/* Empty State */}
-      {!packagesQuery.isLoading && !(packagesQuery?.data as any)?.length && (
+      {!packagesQuery.isLoading && !(packagesQuery?.data as any)?.data?.length && (
         <div className='text-center py-12'>
           <div className='text-gray-400 mb-4'>
             <Package className='h-16 w-16 mx-auto' />
