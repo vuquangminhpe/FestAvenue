@@ -43,7 +43,8 @@ const path = {
       profile: '/user/my/profile',
       messages: '/user/my/messages',
       organization: '/user/my/organization',
-      credit: '/user/my/credit'
+      credit: '/user/my/credit',
+      payment: '/user/my/payment'
     },
     credit: {
       root: '/user/credit',

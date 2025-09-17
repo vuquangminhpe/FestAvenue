@@ -19,6 +19,7 @@ import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
 import CreateOrganization from './pages/User/Auth/Organization/CreateOrganization'
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
+import MyPayment from './pages/User/Auth/My/MyPayment'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
 import StaffLogin from './pages/Staff/Auth/Login'
 import AdminLogin from './pages/Admin/Auth/Login'
@@ -301,6 +302,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <MyLayout>
                     <MyOrganization />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.my.payment,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <MyPayment />
                   </MyLayout>
                 </SuspenseWrapper>
               )

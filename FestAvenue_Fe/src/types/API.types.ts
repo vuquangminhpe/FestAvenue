@@ -2,6 +2,7 @@ export interface IPagination {
   totalRecordCount: number
   totalPageCount: number
   startPage: number
+  total: number
   endPage: number
   limitStart: number
   existPrevPage: boolean

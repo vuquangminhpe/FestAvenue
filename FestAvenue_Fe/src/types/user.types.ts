@@ -241,3 +241,40 @@ export interface updateOrganizationBody {
   settings?: OrganizationSettings
   packageId?: string
 }
+export interface bodyGetPaymentForUser {
+  status: string
+  transactionFromDate: string
+  transactionToDate: string
+  createdFromDate: string
+  createdToDate: string
+  pagination: {
+    orderBy: string
+    pageIndex: number
+    isPaging: boolean
+    pageSize: number
+  }
+}
+export interface getPaymentForUserData {
+  userId: string
+  eventId?: string
+  moduleIds?: string[]
+  organizationId?: string
+  ticketId?: string
+  amount: number
+  status: number
+  ticketType?: string
+  transactionDate: string
+  transactionId?: string
+  discount: number
+  refundAmount: number
+  refundDate?: string
+  refundReason?: string
+  packageId?: string
+  id: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface getPaymentForUserRes {
+  result: getPaymentForUserData[]
+}

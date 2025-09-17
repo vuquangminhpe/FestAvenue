@@ -29,7 +29,7 @@ const organizationApi = {
     return data?.data
   },
   getOrganizationById: async (id: string) => {
-    const data = await http.get<APIResponse<OrganizationResponse>>(`/organization/${id}`)
+    const data = await http.get<APIResponse<OrganizationResponse>>(`/organization/get-organization/${id}`)
     return data?.data
   }
 }

@@ -46,6 +46,12 @@ const items = [
     url: path.user.my.credit,
     icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
     preloadKey: 'credit-page'
+  },
+  {
+    title: 'Thanh toán',
+    url: path.user.my.payment,
+    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
+    preloadKey: 'payment-page'
   }
 ]
 
