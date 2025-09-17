@@ -50,6 +50,8 @@ import { SubDescriptionStatus } from '@/constants/enum'
 import { generateNameId } from '@/utils/utils'
 import InviteUsersModal from './components/InviteUsersModal'
 import { useInviteUsers } from './hooks/useInviteUsers'
+import packageApis from '@/apis/package.api'
+import type { getPackageByStatusRes } from '@/types/package.types'
 
 export default function MyOrganization() {
   const navigate = useNavigate()
@@ -57,6 +59,7 @@ export default function MyOrganization() {
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const detailsRef = useRef<HTMLDivElement>(null)
+  const [namePackage, setNamePackage] = useState<string>('')
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedOrgIndex, setSelectedOrgIndex] = useState<number>(0)
   const [selectedOrgForDelete, setSelectedOrgForDelete] = useState<OrganizationResponse['organization'] | null>(null)
@@ -83,7 +86,10 @@ export default function MyOrganization() {
     socialMediaLinkedin: '',
     socialMediaInstagram: ''
   })
-
+  const { data: getDataPackage } = useQuery({
+    queryKey: ['getDataPackage'],
+    queryFn: () => packageApis.getPackageByStatus({ isPublic: true })
+  })
   const { data: dataGetAllCurrentOrganization, isLoading } = useQuery({
     queryKey: ['dataGetAllCurrentOrganization'],
     queryFn: () => userApi.getCurrentOrganization()
@@ -331,6 +337,9 @@ export default function MyOrganization() {
       console.error('Error inviting users:', error)
     }
   }
+  const dataPackageInOrganization = (getDataPackage?.data as any)?.filter(
+    (data: getPackageByStatusRes) => data?.id === selectedOrg?.organization?.subDescription?.plan
+  )
 
   if (isLoading) {
     return (
@@ -738,8 +747,7 @@ export default function MyOrganization() {
                                   </div>
                                   <div className='text-gray-600'>
                                     <p>
-                                      <span className='font-medium'>Gói:</span>{' '}
-                                      {selectedOrg.organization.subDescription.plan}
+                                      <span className='font-medium'>Gói:</span> {dataPackageInOrganization?.[0]?.name}
                                     </p>
                                     <p>
                                       <span className='font-medium'>Bắt đầu:</span>{' '}

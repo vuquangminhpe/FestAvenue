@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { gsap } from 'gsap'
 import { Helmet } from 'react-helmet-async'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,8 @@ import type { bodyCreatePaymentWithOrganization } from '@/types/payment.types'
 import { SubDescriptionStatus } from '@/constants/enum'
 import { getIdFromNameId } from '@/utils/utils'
 import { toast } from 'sonner'
+import packageApis from '@/apis/package.api'
+import type { getPackageByStatusRes } from '@/types/package.types'
 
 export default function CreatePaymentWithOrganization() {
   const navigate = useNavigate()
@@ -31,7 +33,10 @@ export default function CreatePaymentWithOrganization() {
   } | null>(null)
   const [timeLeft, setTimeLeft] = useState<number>(0)
   const [isExpired, setIsExpired] = useState<boolean>(false)
-
+  const { data: getDataPackage } = useQuery({
+    queryKey: ['getDataPackage'],
+    queryFn: () => packageApis.getPackageByStatus({ isPublic: true })
+  })
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search)
     const encodedData = Array.from(searchParams.keys())[0]
@@ -52,6 +57,9 @@ export default function CreatePaymentWithOrganization() {
       }
     }
   }, [location])
+  const paymentPriceInDataPackage = (getDataPackage?.data as any)?.filter(
+    (data: getPackageByStatusRes) => data?.id === organizationInfo?.packageId
+  )
 
   const createPaymentMutation = useMutation({
     mutationFn: (body: bodyCreatePaymentWithOrganization) => paymentApis.createPaymentWithOrganization(body),
@@ -495,7 +503,7 @@ export default function CreatePaymentWithOrganization() {
                     <div className='inline-block'>
                       {paymentData && (
                         <VietQRBanking
-                          amount={100000}
+                          amount={paymentPriceInDataPackage?.[0].price}
                           content={`${paymentData.code}`}
                           accountNumber='0979781768'
                           bankCode='MB'
