@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
 import { gsap } from 'gsap'
-import { ChevronLeft, ChevronRight, Check, ArrowLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, ArrowLeft, Loader2, Save } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -42,7 +42,7 @@ function CreateOrganization() {
 
   const { data: dataPackage } = useQuery({
     queryKey: ['dataPackage'],
-    queryFn: () => packageApis.getPackageByStatus()
+    queryFn: () => packageApis.getPackageByStatus({ isPublic: true })
   })
 
   const form = useForm<FormData>({
@@ -51,8 +51,15 @@ function CreateOrganization() {
   })
 
   // Use extracted hooks
-  const { logoPreview, handleLogoUpload, onSubmit, createOrganizationMutation, uploadLogoMutation } =
-    useCreateOrganization()
+  const {
+    logoPreview,
+    handleLogoUpload,
+    onSubmit,
+    onSave,
+    createOrganizationMutation,
+    saveOrganizationMutation,
+    uploadLogoMutation
+  } = useCreateOrganization(form)
 
   const {
     mapCenter,
@@ -133,6 +140,12 @@ function CreateOrganization() {
       handleConflictResolution(type, existingOrganization)
       setShowConflictDialog(false)
     }
+  }
+
+  // Handle save functionality
+  const handleSave = async () => {
+    const formData = form.getValues()
+    await onSave(formData)
   }
 
   return (
@@ -261,34 +274,56 @@ function CreateOrganization() {
                     Quay lại
                   </Button>
 
-                  {currentStep < 6 ? (
+                  <div className='flex items-center gap-3'>
                     <Button
                       type='button'
-                      onClick={(e) => nextStep(e)}
-                      className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
+                      variant='outline'
+                      onClick={handleSave}
+                      disabled={saveOrganizationMutation.isPending}
+                      className='flex items-center gap-2 bg-slate-100 hover:bg-slate-200'
                     >
-                      Tiếp theo
-                      <ChevronRight className='w-4 h-4' />
-                    </Button>
-                  ) : (
-                    <Button
-                      type='submit'
-                      disabled={createOrganizationMutation.isPending || uploadLogoMutation.isPending}
-                      className='bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2'
-                    >
-                      {createOrganizationMutation.isPending || uploadLogoMutation.isPending ? (
+                      {saveOrganizationMutation.isPending ? (
                         <>
                           <Loader2 className='w-4 h-4 animate-spin' />
-                          Đang tạo...
+                          Đang lưu...
                         </>
                       ) : (
                         <>
-                          <Check className='w-4 h-4' />
-                          Tạo tổ chức
+                          <Save className='w-4 h-4' />
+                          Lưu nháp
                         </>
                       )}
                     </Button>
-                  )}
+
+                    {currentStep < 6 ? (
+                      <Button
+                        type='button'
+                        onClick={(e) => nextStep(e)}
+                        className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white flex items-center gap-2'
+                      >
+                        Tiếp theo
+                        <ChevronRight className='w-4 h-4' />
+                      </Button>
+                    ) : (
+                      <Button
+                        type='submit'
+                        disabled={createOrganizationMutation.isPending || uploadLogoMutation.isPending}
+                        className='bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2'
+                      >
+                        {createOrganizationMutation.isPending || uploadLogoMutation.isPending ? (
+                          <>
+                            <Loader2 className='w-4 h-4 animate-spin' />
+                            Đang tạo...
+                          </>
+                        ) : (
+                          <>
+                            <Check className='w-4 h-4' />
+                            Tạo tổ chức
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </form>
             </Form>

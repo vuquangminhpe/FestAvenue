@@ -8,11 +8,10 @@ export const saveRefreshTokenToLS = (refresh_token: string) => {
 
 export const clearLocalStorage = () => {
   localStorage.removeItem('access_token')
-  localStorage.removeItem('admin_token')
   const clearLSEvent = new Event('clearLocalStorage')
   localStorageEventTarget.dispatchEvent(clearLSEvent)
 }
 
 export const getAccessTokenFromLS = () => localStorage.getItem('access_token') || null
 export const getRefreshTokenFromLS = () => localStorage.getItem('refresh_token') || null
-export const getAdminTokenFromLS = () => localStorage.getItem('admin_token') || null
+export const getAdminTokenFromLS = () => localStorage.getItem('access_token') || null

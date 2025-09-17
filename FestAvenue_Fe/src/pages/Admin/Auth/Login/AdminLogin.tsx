@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import userApi from '@/apis/user.api'
 import { useAdminStore } from '@/contexts/app.context'
 import type { bodyLoginType } from '@/types/user.types'
+import path from '@/constants/path'
 
 const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -25,10 +26,10 @@ const AdminLogin = () => {
   const loginMutation = useMutation({
     mutationFn: userApi.login_normal,
     onSuccess: (data) => {
-      localStorage.setItem('admin_token', data?.data?.accessToken)
+      localStorage.setItem('access_token', data?.data?.accessToken)
       setIsLogin(true)
       toast.success('Đăng nhập Admin thành công!')
-      navigate('/admin/dashboard')
+      navigate(path.admin.process.dashboard)
     },
     onError: (error: any) => {
       toast.error(error?.data?.message || 'Đăng nhập thất bại')

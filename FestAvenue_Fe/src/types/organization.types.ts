@@ -54,7 +54,19 @@ export interface OrganizationSettings {
   branding?: OrganizationBranding
   security?: OrganizationSecurity
 }
-
+export interface saveOrganizationBody {
+  name: string
+  description?: string
+  industry?: string
+  size?: string
+  website?: string
+  logo?: string
+  address?: OrganizationAddress
+  contact: OrganizationContact
+  socialMedia?: OrganizationSocialMedia
+  subscription: OrganizationSubscription
+  settings?: OrganizationSettings
+}
 export interface CreateOrganizationBody {
   name: string
   description?: string
@@ -86,7 +98,23 @@ export interface OrganizationResponse {
   updatedAt: string
   status: 'active' | 'inactive' | 'pending'
 }
-
+export interface saveOrganizationResponse {
+  id: string
+  name: string
+  description?: string
+  industry?: string
+  size?: string
+  website?: string
+  logo?: string
+  address?: OrganizationAddress
+  contact: OrganizationContact
+  socialMedia?: OrganizationSocialMedia
+  subscription: OrganizationSubscription
+  settings?: OrganizationSettings
+  createdAt: string
+  updatedAt: string
+  status: 'active' | 'inactive' | 'pending'
+}
 export interface CreateOrganizationResponse {
   organization: OrganizationResponse
   message: string

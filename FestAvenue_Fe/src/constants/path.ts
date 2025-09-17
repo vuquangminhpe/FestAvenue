@@ -66,7 +66,8 @@ const path = {
       dashboard: '/process/admin/dashboard',
       users: '/process/admin/users',
       settings: '/process/admin/settings',
-      category: '/process/admin/category'
+      category: '/process/admin/category',
+      package: '/process/admin/package'
     }
   }
 } as const

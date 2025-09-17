@@ -36,7 +36,7 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
   ]
 
   const handleLogout = () => {
-    localStorage.removeItem('staff_token')
+    localStorage.removeItem('access_token')
     setIsLogin(false)
   }
 

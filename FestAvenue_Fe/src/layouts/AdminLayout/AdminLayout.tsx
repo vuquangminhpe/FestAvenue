@@ -31,7 +31,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       label: 'Category',
       icon: BarChart3,
       path: path.admin.process.category,
-      description: 'Tổng quan hệ thống'
+      description: 'Thể loại sự kiện'
+    },
+    {
+      label: 'Package',
+      icon: Settings,
+      path: path.admin.process.package,
+      description: 'Gói tiền sử dụng'
     },
     {
       label: 'Settings',
@@ -42,7 +48,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   ]
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token')
+    localStorage.removeItem('access_token')
     setIsLogin(false)
   }
 
