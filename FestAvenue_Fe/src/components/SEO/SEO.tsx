@@ -107,7 +107,7 @@ export function SEO({
           contactPoint: {
             '@type': 'ContactPoint',
             contactType: 'Customer Service',
-            email: 'support@festavenue.com'
+            email: 'support@festavenue.site'
           }
         })}
       </script>

@@ -102,7 +102,7 @@ export function BrandingSettings({ form }: BrandingSettingsProps) {
                 <FormControl>
                   <Input
                     {...field}
-                    placeholder='company.festavenue.com'
+                    placeholder='company.festavenue.site'
                     className='h-12 bg-white border-slate-200 focus:border-cyan-400 focus:ring-cyan-200 rounded-lg shadow-sm'
                   />
                 </FormControl>
