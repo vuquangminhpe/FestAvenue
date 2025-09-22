@@ -6,6 +6,7 @@ import MouseAnimate from '@/components/custom/MouseAnimate'
 import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import categoryApis from '@/apis/categories.api'
+import CarouselBanner from '@/components/custom/CarouselBanner'
 
 // Animation hook for scroll-triggered animations
 const useIntersectionObserver = (threshold = 0.1) => {
@@ -522,10 +523,7 @@ const Home = () => {
 
       <div className='min-h-screen bg-gray-50 relative overflow-hidden'>
         {/* Mouse Animation Background */}
-        <MouseAnimate
-          number_point={viewportWidth >= 800 ? 100 : 20}
-          className='pointer-events-none w-full max-h-[500px] z-50'
-        />
+        <MouseAnimate number_point={viewportWidth >= 800 ? 100 : 20} className='pointer-events-none w-full  z-50' />
 
         <div className='relative z-10'>
           {/* Hero Section with Banner */}
@@ -537,39 +535,8 @@ const Home = () => {
           >
             <div className='w-full'>
               {/* Main Banner */}
-              <div className='relative  overflow-hidden shadow-2xl mb-12 h-[500px] bg-gradient-to-r from-purple-200 via-blue-300 to-indigo-200'>
-                <div className='absolute inset-0 bg-black/30'></div>
-                <div className='relative z-10 flex items-center justify-between h-full px-8 lg:px-16'>
-                  <div className='text-white max-w-2xl'>
-                    <div className='inline-block glass-dark rounded-full px-4 py-2 mb-6'>
-                      <span className='text-sm font-medium'>Featured Event</span>
-                    </div>
-                    <h1 className='text-4xl lg:text-6xl font-bold mb-4 leading-tight animate-fade-in-up'>YUVAN</h1>
-                    <p className='text-xl lg:text-2xl mb-2 opacity-90 animate-fade-in-up stagger-1'>
-                      LIVE IN SINGAPORE 2025
-                    </p>
-                    <p className='text-lg mb-2 opacity-80 animate-fade-in-up stagger-2'>SINGAPORE INDOOR STADIUM</p>
-                    <p className='text-2xl lg:text-3xl font-bold mb-6 animate-fade-in-up stagger-3'>14 OCTOBER</p>
-                    <div className='flex items-center gap-4 animate-fade-in-up stagger-4'>
-                      <SoftButton size='lg' className='shadow-xl animate-glow'>
-                        Book Now
-                      </SoftButton>
-                      <p className='text-sm opacity-80'>
-                        TICKETS AT
-                        <br />
-                        <span className='text-lg font-bold'>SISTIC</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className='hidden lg:block animate-float'>
-                    <ImageWithLoading
-                      src='https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=400'
-                      alt='YUVAN Concert'
-                      className='w-64 h-64 rounded-2xl shadow-2xl'
-                      aspectRatio='aspect-square'
-                    />
-                  </div>
-                </div>
+              <div className='relative  overflow-hidden shadow-2xl mb-12 h-auto bg-gradient-to-r from-purple-200 via-blue-300 to-indigo-200'>
+                <CarouselBanner />
               </div>
             </div>
           </section>

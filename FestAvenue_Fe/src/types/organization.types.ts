@@ -55,6 +55,7 @@ export interface OrganizationSettings {
   security?: OrganizationSecurity
 }
 export interface saveOrganizationBody {
+  id: string
   name: string
   description?: string
   industry?: string
@@ -156,6 +157,7 @@ export interface Organization {
   createdBy: string
   packageId: string | null
   id: string
+  status: string
   createdAt: string // ISO date
   updatedAt: string | null
 }

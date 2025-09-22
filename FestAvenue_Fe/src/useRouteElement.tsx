@@ -29,6 +29,8 @@ import StaffMessages from './pages/Staff/Process/Messages'
 import Dashboard from './pages/Admin/Process/Dashboard'
 import Category from './pages/Admin/Process/Category'
 import Packages from './pages/Admin/Process/Packages'
+import SeatMapEditor from './components/custom/EditorSeat'
+import CinemaTemplate from './components/custom/Template/CinemaExperience'
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -204,6 +206,26 @@ export default function useRouteElement() {
         <SuspenseWrapper>
           <MainLayout>
             <Home />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: '/seat/editor',
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <SeatMapEditor />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: '/map1',
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <CinemaTemplate />
           </MainLayout>
         </SuspenseWrapper>
       )

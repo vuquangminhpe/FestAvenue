@@ -136,6 +136,20 @@ export interface CreateOrganizationBody {
   subDescription: OrganizationSubscription
   settings?: OrganizationSettings
 }
+export interface UpdateOrganizationBody {
+  id: string
+  name: string
+  description?: string
+  industry?: string
+  size?: number
+  website?: string
+  logo?: string
+  address?: OrganizationAddress
+  contact: OrganizationContact
+  socialMedia?: OrganizationSocialMedia
+  subDescription: OrganizationSubscription
+  settings?: OrganizationSettings
+}
 export interface OrganizationType {
   id: string
   name: string

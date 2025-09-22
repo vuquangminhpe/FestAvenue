@@ -9,7 +9,11 @@ import { SubDescriptionStatus } from '@/types/user.types'
 import type { FormData } from '../types'
 import { generateNameId, getIdFromNameId } from '@/utils/utils'
 
-export const useCreateOrganization = (form: any) => {
+export const useCreateOrganization = (
+  form: any,
+  isUpdateMode: boolean = false,
+  organizationId: string | null = null
+) => {
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
   const [savedOrganizationId, setSavedOrganizationId] = useState<string | null>(null)
@@ -42,112 +46,199 @@ export const useCreateOrganization = (form: any) => {
   })
 
   const createOrganizationMutation = useMutation({
-    mutationFn: userApi.createOrganization,
-    onSuccess: (data) => {
+    mutationFn: (data: any) => {
+      if (isUpdateMode && organizationId) {
+        return userApi.updateOrganizationById(organizationId, data)
+      }
+      return userApi.createOrganization(data)
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
-      toast.success('Tạo tổ chức thành công!')
-      navigate(
-        `${path.user.payment.payment_organization}?${generateNameId({
-          id: `${(data?.data as any)?.id}_${(data?.data as any)?.subDescription.plan}` as any,
-          name: data?.data?.organization?.name
-        })}`
-      )
+      if (isUpdateMode) {
+        toast.success('Cập nhật tổ chức thành công!')
+        navigate(path.user.my.organization)
+      } else {
+        toast.success('Tạo tổ chức thành công!')
+        navigate(
+          `${path.user.payment.payment_organization}?${generateNameId({
+            id: `${(data?.data as any)?.id}_${(data?.data as any)?.subDescription.plan}` as any,
+            name: data?.data?.name
+          })}`
+        )
+      }
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi tạo tổ chức')
+      toast.error(error?.data?.message || `Có lỗi xảy ra khi ${isUpdateMode ? 'cập nhật' : 'tạo'} tổ chức`)
     }
   })
 
-  // Restore data from URL on page load
   useEffect(() => {
-    const idParam = searchParams.get('id')
-    if (idParam) {
-      const organizationId = getIdFromNameId(idParam)
-      if (organizationId && organizationId !== savedOrganizationId) {
-        setSavedOrganizationId(organizationId)
-        // Fetch organization data and populate form
-        organizationApi
-          .getOrganizationById(organizationId)
-          .then((response) => {
-            if (response?.data) {
-              const org = response.data
-              // Populate form with organization data
-              form.setValue('name', org.name || '')
-              form.setValue('description', org.description || '')
-              form.setValue('industry', org.industry || '')
-              form.setValue('size', org.size?.toString() || '')
-              form.setValue('website', org.website || '')
+    if (isUpdateMode && organizationId) {
+      userApi
+        .getOrganizationById(organizationId)
+        .then((response) => {
+          if (response?.data) {
+            const org = response.data
+            form.setValue('name', org.name || '')
+            form.setValue('description', org.description || '')
+            form.setValue('industry', org.industry || '')
+            form.setValue('size', org.size?.toString() || '')
+            form.setValue('website', org.website || '')
 
-              // Address
-              if (org.address) {
-                form.setValue('street', org.address.street || '')
-                form.setValue('city', org.address.city || '')
-                form.setValue('state', org.address.state || '')
-                form.setValue('postalCode', org.address.postalCode || '')
-                form.setValue('country', org.address.country || '')
-                form.setValue('latitude', org.address.latitude || '')
-                form.setValue('longitude', org.address.longitude || '')
+            if (org.address) {
+              form.setValue('street', org.address.street || '')
+              form.setValue('city', org.address.city || '')
+              form.setValue('state', org.address.state || '')
+              form.setValue('postalCode', org.address.postalCode || '')
+              form.setValue('country', org.address.country || '')
+              form.setValue('latitude', org.address.latitude || '')
+              form.setValue('longitude', org.address.longitude || '')
+            }
+
+            // Contact
+            if (org.contact) {
+              form.setValue('email', org.contact.email || '')
+              form.setValue('phone', org.contact.phone || '')
+              form.setValue('fax', org.contact.fax || '')
+            }
+
+            // Social Media
+            if (org.socialMedia) {
+              form.setValue('facebook', org.socialMedia.facebook || '')
+              form.setValue('twitter', org.socialMedia.twitter || '')
+              form.setValue('linkedin', org.socialMedia.linkedin || '')
+              form.setValue('instagram', org.socialMedia.instagram || '')
+            }
+
+            // Settings
+            if (org.settings) {
+              if (org.settings.branding?.colors) {
+                form.setValue('primaryColor', org.settings.branding.colors.primary || '')
+                form.setValue('secondaryColor', org.settings.branding.colors.secondary || '')
+                form.setValue('accentColor', org.settings.branding.colors.accent || '')
               }
+              form.setValue('customDomain', org.settings.branding?.customDomain || '')
 
-              // Contact
-              if (org.contact) {
-                form.setValue('email', org.contact.email || '')
-                form.setValue('phone', org.contact.phone || '')
-                form.setValue('fax', org.contact.fax || '')
-              }
-
-              // Social Media
-              if (org.socialMedia) {
-                form.setValue('facebook', org.socialMedia.facebook || '')
-                form.setValue('twitter', org.socialMedia.twitter || '')
-                form.setValue('linkedin', org.socialMedia.linkedin || '')
-                form.setValue('instagram', org.socialMedia.instagram || '')
-              }
-
-              // Settings
-              if (org.settings) {
-                if (org.settings.branding?.colors) {
-                  form.setValue('primaryColor', org.settings.branding.colors.primary || '')
-                  form.setValue('secondaryColor', org.settings.branding.colors.secondary || '')
-                  form.setValue('accentColor', org.settings.branding.colors.accent || '')
+              if (org.settings.security) {
+                form.setValue('ssoEnabled', org.settings.security.ssoEnabled || false)
+                if (org.settings.security.passwordPolicy) {
+                  form.setValue('minPasswordLength', org.settings.security.passwordPolicy.minLength || 8)
+                  form.setValue('requireSpecialChar', org.settings.security.passwordPolicy.requireSpecialChar || false)
+                  form.setValue('requireNumber', org.settings.security.passwordPolicy.requireNumber || false)
+                  form.setValue('requireUppercase', org.settings.security.passwordPolicy.requireUppercase || false)
+                  form.setValue('passwordExpirationDays', org.settings.security.passwordPolicy.expirationDays || 90)
                 }
-                form.setValue('customDomain', org.settings.branding?.customDomain || '')
+              }
+            }
 
-                if (org.settings.security) {
-                  form.setValue('ssoEnabled', org.settings.security.ssoEnabled || false)
-                  if (org.settings.security.passwordPolicy) {
-                    form.setValue('minPasswordLength', org.settings.security.passwordPolicy.minLength || 8)
-                    form.setValue(
-                      'requireSpecialChar',
-                      org.settings.security.passwordPolicy.requireSpecialChar || false
-                    )
-                    form.setValue('requireNumber', org.settings.security.passwordPolicy.requireNumber || false)
-                    form.setValue('requireUppercase', org.settings.security.passwordPolicy.requireUppercase || false)
-                    form.setValue('passwordExpirationDays', org.settings.security.passwordPolicy.expirationDays || 90)
+            // Subscription
+            if (org.subscription) {
+              form.setValue('plan', org.subscription.plan || '')
+            }
+
+            // Logo
+            if (org.logo) {
+              setLogoPreview(org.logo)
+            }
+
+            toast.success('Đã tải dữ liệu tổ chức')
+          }
+        })
+        .catch((error) => {
+          console.error('Error fetching organization:', error)
+          toast.error('Không thể tải dữ liệu tổ chức')
+        })
+    } else {
+      // Restore draft data from URL for create mode
+      const idParam = searchParams.get('id')
+      if (idParam) {
+        const orgId = getIdFromNameId(idParam)
+        if (orgId && orgId !== savedOrganizationId) {
+          setSavedOrganizationId(orgId)
+          // Fetch organization data and populate form
+          organizationApi
+            .getOrganizationById(orgId)
+            .then((response) => {
+              if (response?.data) {
+                const org = response.data
+                // Populate form with organization data
+                form.setValue('name', org.name || '')
+                form.setValue('description', org.description || '')
+                form.setValue('industry', org.industry || '')
+                form.setValue('size', org.size?.toString() || '')
+                form.setValue('website', org.website || '')
+
+                // Address
+                if (org.address) {
+                  form.setValue('street', org.address.street || '')
+                  form.setValue('city', org.address.city || '')
+                  form.setValue('state', org.address.state || '')
+                  form.setValue('postalCode', org.address.postalCode || '')
+                  form.setValue('country', org.address.country || '')
+                  form.setValue('latitude', org.address.latitude || '')
+                  form.setValue('longitude', org.address.longitude || '')
+                }
+
+                // Contact
+                if (org.contact) {
+                  form.setValue('email', org.contact.email || '')
+                  form.setValue('phone', org.contact.phone || '')
+                  form.setValue('fax', org.contact.fax || '')
+                }
+
+                // Social Media
+                if (org.socialMedia) {
+                  form.setValue('facebook', org.socialMedia.facebook || '')
+                  form.setValue('twitter', org.socialMedia.twitter || '')
+                  form.setValue('linkedin', org.socialMedia.linkedin || '')
+                  form.setValue('instagram', org.socialMedia.instagram || '')
+                }
+
+                // Settings
+                if (org.settings) {
+                  if (org.settings.branding?.colors) {
+                    form.setValue('primaryColor', org.settings.branding.colors.primary || '')
+                    form.setValue('secondaryColor', org.settings.branding.colors.secondary || '')
+                    form.setValue('accentColor', org.settings.branding.colors.accent || '')
+                  }
+                  form.setValue('customDomain', org.settings.branding?.customDomain || '')
+
+                  if (org.settings.security) {
+                    form.setValue('ssoEnabled', org.settings.security.ssoEnabled || false)
+                    if (org.settings.security.passwordPolicy) {
+                      form.setValue('minPasswordLength', org.settings.security.passwordPolicy.minLength || 8)
+                      form.setValue(
+                        'requireSpecialChar',
+                        org.settings.security.passwordPolicy.requireSpecialChar || false
+                      )
+                      form.setValue('requireNumber', org.settings.security.passwordPolicy.requireNumber || false)
+                      form.setValue('requireUppercase', org.settings.security.passwordPolicy.requireUppercase || false)
+                      form.setValue('passwordExpirationDays', org.settings.security.passwordPolicy.expirationDays || 90)
+                    }
                   }
                 }
-              }
 
-              // Subscription
-              if (org.subscription) {
-                form.setValue('plan', org.subscription.plan || '')
-              }
+                // Subscription
+                if (org.subscription) {
+                  form.setValue('plan', org.subscription.plan || '')
+                }
 
-              // Logo
-              if (org.logo) {
-                setLogoPreview(org.logo)
-              }
+                // Logo
+                if (org.logo) {
+                  setLogoPreview(org.logo)
+                }
 
-              toast.success('Đã khôi phục dữ liệu tổ chức')
-            }
-          })
-          .catch((error) => {
-            console.error('Error fetching organization:', error)
-            toast.error('Không thể khôi phục dữ liệu tổ chức')
-          })
+                toast.success('Đã khôi phục dữ liệu tổ chức')
+              }
+            })
+            .catch((error) => {
+              console.error('Error fetching organization:', error)
+              toast.error('Không thể khôi phục dữ liệu tổ chức')
+            })
+        }
       }
     }
-  }, [searchParams, form, savedOrganizationId])
+  }, [searchParams, form, savedOrganizationId, isUpdateMode, organizationId])
 
   const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -176,7 +267,12 @@ export const useCreateOrganization = (form: any) => {
         })
       }
 
+      // Check if we have a saved organization ID from URL (for updating existing draft)
+      const idParam = searchParams.get('id')
+      const existingOrgId = idParam ? getIdFromNameId(idParam) : savedOrganizationId
+
       const organizationData = {
+        id: existingOrgId || '', // Include ID if updating existing draft
         name: data.name,
         description: data.description,
         industry: data.industry,

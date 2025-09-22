@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
 import { gsap } from 'gsap'
@@ -28,13 +28,17 @@ import {
   SecuritySettings,
   SubscriptionFinal,
   ProgressSteps,
-  ConflictDialog
+  ConflictDialog,
+  EditNameDialog
 } from './components'
 
 function CreateOrganization() {
   const [currentStep, setCurrentStep] = useState(1)
   const [mapZoom] = useState(11)
   const [isCheckingName] = useState(false)
+  const [searchParams] = useSearchParams()
+  const [isUpdateMode, setIsUpdateMode] = useState(false)
+  const [organizationId, setOrganizationId] = useState<string | null>(null)
 
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardRef = useRef<HTMLDivElement>(null)
@@ -59,7 +63,7 @@ function CreateOrganization() {
     createOrganizationMutation,
     saveOrganizationMutation,
     uploadLogoMutation
-  } = useCreateOrganization(form)
+  } = useCreateOrganization(form, isUpdateMode, organizationId)
 
   const {
     mapCenter,
@@ -85,6 +89,19 @@ function CreateOrganization() {
     handleAcceptRequest,
     closeChatSystem
   } = useChat()
+
+  // Check for update mode from URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const updateParam = Array.from(urlParams.keys()).find(key => key.startsWith('updateOrganization_'))
+
+    if (updateParam) {
+      const nameId = updateParam.replace('updateOrganization_', '')
+      const id = nameId.split('-')[0]
+      setIsUpdateMode(true)
+      setOrganizationId(id)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (cardRef.current) {
@@ -151,8 +168,8 @@ function CreateOrganization() {
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-8'>
       <Helmet>
-        <title>Tạo tổ chức - FestAvenue</title>
-        <meta name='description' content='Tạo tổ chức mới để quản lý sự kiện chuyên nghiệp' />
+        <title>{isUpdateMode ? 'Cập nhật tổ chức' : 'Tạo tổ chức'} - FestAvenue</title>
+        <meta name='description' content={isUpdateMode ? 'Cập nhật thông tin tổ chức' : 'Tạo tổ chức mới để quản lý sự kiện chuyên nghiệp'} />
       </Helmet>
 
       <div className='max-w-4xl mx-auto px-4'>
@@ -164,8 +181,18 @@ function CreateOrganization() {
           </Button>
 
           <div className='text-center'>
-            <h1 className='text-3xl font-bold text-slate-800 mb-2'>Tạo tổ chức của bạn</h1>
-            <p className='text-slate-600'>Thiết lập tổ chức để bắt đầu tạo và quản lý sự kiện</p>
+            <div className='flex items-center justify-center gap-4 mb-2'>
+              <h1 className='text-3xl font-bold text-slate-800'>{isUpdateMode ? 'Cập nhật tổ chức của bạn' : 'Tạo tổ chức của bạn'}</h1>
+              {form.watch('name') && (
+                <EditNameDialog form={form} onNameChange={handleNameChange} />
+              )}
+            </div>
+            <p className='text-slate-600'>{isUpdateMode ? 'Cập nhật thông tin tổ chức' : 'Thiết lập tổ chức để bắt đầu tạo và quản lý sự kiện'}</p>
+            {form.watch('name') && (
+              <p className='text-sm text-blue-600 mt-1 font-medium'>
+                Tổ chức: {form.watch('name')}
+              </p>
+            )}
           </div>
         </div>
 
@@ -275,25 +302,27 @@ function CreateOrganization() {
                   </Button>
 
                   <div className='flex items-center gap-3'>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      onClick={handleSave}
-                      disabled={saveOrganizationMutation.isPending}
-                      className='flex items-center gap-2 bg-slate-100 hover:bg-slate-200'
-                    >
-                      {saveOrganizationMutation.isPending ? (
-                        <>
-                          <Loader2 className='w-4 h-4 animate-spin' />
-                          Đang lưu...
-                        </>
-                      ) : (
-                        <>
-                          <Save className='w-4 h-4' />
-                          Lưu nháp
-                        </>
-                      )}
-                    </Button>
+                    {!isUpdateMode && (
+                      <Button
+                        type='button'
+                        variant='outline'
+                        onClick={handleSave}
+                        disabled={saveOrganizationMutation.isPending}
+                        className='flex items-center gap-2 bg-slate-100 hover:bg-slate-200'
+                      >
+                        {saveOrganizationMutation.isPending ? (
+                          <>
+                            <Loader2 className='w-4 h-4 animate-spin' />
+                            Đang lưu...
+                          </>
+                        ) : (
+                          <>
+                            <Save className='w-4 h-4' />
+                            Lưu nháp
+                          </>
+                        )}
+                      </Button>
+                    )}
 
                     {currentStep < 6 ? (
                       <Button
@@ -313,12 +342,12 @@ function CreateOrganization() {
                         {createOrganizationMutation.isPending || uploadLogoMutation.isPending ? (
                           <>
                             <Loader2 className='w-4 h-4 animate-spin' />
-                            Đang tạo...
+                            {isUpdateMode ? 'Đang cập nhật...' : 'Đang tạo...'}
                           </>
                         ) : (
                           <>
                             <Check className='w-4 h-4' />
-                            Tạo tổ chức
+                            {isUpdateMode ? 'Cập nhật tổ chức' : 'Tạo tổ chức'}
                           </>
                         )}
                       </Button>
