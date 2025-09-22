@@ -22,7 +22,7 @@ const defaultSEO = {
   description:
     'Discover, create, and manage amazing events with FestAvenue. The premier platform for event organizers and attendees to connect and create memorable experiences.',
   image: '/Images/Fest.png',
-  url: 'https://festavenue.com',
+  url: 'https://festavenue.site',
   type: 'website' as const,
   keywords: ['events', 'festival', 'event management', 'tickets', 'venue', 'organization'],
   author: 'FestAvenue Team'
@@ -122,14 +122,14 @@ export const pageSEO = {
     description:
       'Welcome to FestAvenue - Your Ultimate Event Management Platform. Discover amazing events, connect with organizers, and create unforgettable experiences.',
     keywords: ['events', 'festival', 'event management', 'home', 'discover events'],
-    url: 'https://festavenue.com/home'
+    url: 'https://festavenue.site/home'
   },
   login: {
     title: 'Login',
     description:
       'Sign in to your FestAvenue account to manage your events, connect with organizers, and access exclusive features.',
     keywords: ['login', 'sign in', 'account', 'authentication'],
-    url: 'https://festavenue.com/auth/login',
+    url: 'https://festavenue.site/auth/login',
     noindex: true
   },
   signup: {
@@ -137,20 +137,20 @@ export const pageSEO = {
     description:
       'Join FestAvenue today! Create your account to start organizing events, discover amazing festivals, and connect with the event community.',
     keywords: ['signup', 'register', 'join', 'create account'],
-    url: 'https://festavenue.com/auth/signup'
+    url: 'https://festavenue.site/auth/signup'
   },
   forgotPassword: {
     title: 'Forgot Password',
     description: 'Reset your FestAvenue password securely. Enter your email to receive password reset instructions.',
     keywords: ['forgot password', 'reset password', 'account recovery'],
-    url: 'https://festavenue.com/auth/forgot-password',
+    url: 'https://festavenue.site/auth/forgot-password',
     noindex: true
   },
   verifyEmail: {
     title: 'Verify Email',
     description: 'Verify your email address to complete your FestAvenue account setup and access all features.',
     keywords: ['verify email', 'email verification', 'account activation'],
-    url: 'https://festavenue.com/auth/verify-email',
+    url: 'https://festavenue.site/auth/verify-email',
     noindex: true
   }
 }

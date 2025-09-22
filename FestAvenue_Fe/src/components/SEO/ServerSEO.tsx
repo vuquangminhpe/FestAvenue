@@ -21,7 +21,7 @@ const defaultSEO = {
   description:
     'Discover, create, and manage amazing events with FestAvenue. The premier platform for event organizers and attendees to connect and create memorable experiences.',
   image: '/Images/Fest.png',
-  url: 'https://festavenue.com',
+  url: 'https://festavenue.site',
   type: 'website' as const,
   keywords: ['events', 'festival', 'event management', 'tickets', 'venue', 'organization'],
   author: 'FestAvenue Team'

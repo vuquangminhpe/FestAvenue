@@ -30,37 +30,37 @@ ${urlElements}
 // Default sitemap URLs for FestAvenue
 export const defaultSitemapUrls: SitemapUrl[] = [
   {
-    loc: 'https://festavenue.com/',
+    loc: 'https://festavenue.site/',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'daily',
     priority: 1.0
   },
   {
-    loc: 'https://festavenue.com/home',
+    loc: 'https://festavenue.site/home',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'daily',
     priority: 1.0
   },
   {
-    loc: 'https://festavenue.com/auth/login',
+    loc: 'https://festavenue.site/auth/login',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'monthly',
     priority: 0.8
   },
   {
-    loc: 'https://festavenue.com/auth/signup',
+    loc: 'https://festavenue.site/auth/signup',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'monthly',
     priority: 0.8
   },
   {
-    loc: 'https://festavenue.com/auth/verify-email',
+    loc: 'https://festavenue.site/auth/verify-email',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'monthly',
     priority: 0.5
   },
   {
-    loc: 'https://festavenue.com/auth/forgot-password',
+    loc: 'https://festavenue.site/auth/forgot-password',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'monthly',
     priority: 0.5

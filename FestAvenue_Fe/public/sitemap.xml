@@ -2,14 +2,14 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Main public pages -->
   <url>
-    <loc>https://festavenue.com/</loc>
+    <loc>https://festavenue.site/</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   
   <url>
-    <loc>https://festavenue.com/home</loc>
+    <loc>https://festavenue.site/home</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -17,35 +17,35 @@
   
   <!-- Authentication pages -->
   <url>
-    <loc>https://festavenue.com/auth/login</loc>
+    <loc>https://festavenue.site/auth/login</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>https://festavenue.com/auth/signup</loc>
+    <loc>https://festavenue.site/auth/signup</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
-    <loc>https://festavenue.com/auth/verify-email</loc>
+    <loc>https://festavenue.site/auth/verify-email</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://festavenue.com/auth/forgot-password</loc>
+    <loc>https://festavenue.site/auth/forgot-password</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   
   <url>
-    <loc>https://festavenue.com/auth/reset-password</loc>
+    <loc>https://festavenue.site/auth/reset-password</loc>
     <lastmod>2025-09-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

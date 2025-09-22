@@ -16,7 +16,7 @@ Disallow: /seat/editor
 Disallow: /map1
 
 # Allow sitemap
-Sitemap: https://festavenue.com/sitemap.xml
+Sitemap: https://festavenue.site/sitemap.xml
 
 # Crawl delay for polite crawling
 Crawl-delay: 1
