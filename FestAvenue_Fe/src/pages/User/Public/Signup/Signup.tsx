@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react'
+'use client'
+
+import { useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -11,6 +13,8 @@ import { useMutation } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import { toast } from 'sonner'
 import LOGO_IMG from '../../../../../public/Images/Fest.png'
+import SmartSEO from '@/components/SEO/SmartSEO'
+import { pageSEO } from '@/components/SEO/SEO'
 
 interface FormData {
   email: string
@@ -148,161 +152,164 @@ const SignUp = () => {
   }
 
   return (
-    <div className='flex flex-col justify-center'>
-      <div className='absolute inset-0 overflow-hidden'>
-        <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse'></div>
-        <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-300 to-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000'></div>
-      </div>
-
-      {/* Logo Section */}
-      <div className='text-center flex justify-center w-full'>
-        <img src={LOGO_IMG} alt='ITEM_LOGO' className='size-[240px] translate-y-[60px]' />
-      </div>
-
-      <div className='bg-white/80 backdrop-blur-md rounded-3xl shadow-md border border-white/20 px-8 py-2'>
-        {/* Welcome Section */}
-        <div className='text-center mb-8'>
-          <h2 className='text-3xl font-bold text-gray-900 mb-3'>Create an Account</h2>
-          <p className='text-gray-600 text-lg'>Join us to discover amazing events</p>
+    <>
+      <SmartSEO {...pageSEO.signup} />
+      <div className='flex flex-col justify-center'>
+        <div className='absolute inset-0 overflow-hidden'>
+          <div className='absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-300 to-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse'></div>
+          <div className='absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-300 to-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000'></div>
         </div>
 
-        {/* Form Section */}
-        <div className='w-full max-w-md mx-auto space-y-6'>
-          {/* Email Field */}
-          <FormField label='Email Address' error={errors.email} htmlFor='email'>
-            <Input
-              id='email'
-              type='email'
-              placeholder='Enter your email'
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-            />
-          </FormField>
+        {/* Logo Section */}
+        <div className='text-center flex justify-center w-full'>
+          <img src={LOGO_IMG} alt='ITEM_LOGO' className='size-[240px] translate-y-[60px]' />
+        </div>
 
-          {/* Name Fields Row */}
-          <div className='grid grid-cols-2 gap-4'>
-            <FormField label='First Name' error={errors.firstName} htmlFor='firstName'>
-              <Input
-                id='firstName'
-                type='text'
-                placeholder='First Name'
-                value={formData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className={errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-              />
-            </FormField>
-
-            <FormField label='Last Name' error={errors.lastName} htmlFor='lastName'>
-              <Input
-                id='lastName'
-                type='text'
-                placeholder='Last Name'
-                value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className={errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-              />
-            </FormField>
+        <div className='bg-white/80 backdrop-blur-md rounded-3xl shadow-md border border-white/20 px-8 py-2'>
+          {/* Welcome Section */}
+          <div className='text-center mb-8'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-3'>Create an Account</h2>
+            <p className='text-gray-600 text-lg'>Join us to discover amazing events</p>
           </div>
 
-          {/* Phone Field */}
-          <FormField label='Phone Number' error={errors.phone} htmlFor='phone'>
-            <Input
-              id='phone'
-              type='tel'
-              placeholder='Enter your phone number'
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              className={errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
-            />
-          </FormField>
-
-          {/* Password Field */}
-          <FormField label='Create Password' error={errors.password} htmlFor='password'>
-            <div className='relative'>
+          {/* Form Section */}
+          <div className='w-full max-w-md mx-auto space-y-6'>
+            {/* Email Field */}
+            <FormField label='Email Address' error={errors.email} htmlFor='email'>
               <Input
-                id='password'
-                type={showPassword ? 'text' : 'password'}
-                placeholder='Create your password'
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className={errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                id='email'
+                type='email'
+                placeholder='Enter your email'
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className={errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
               />
-              <button
-                type='button'
-                onClick={togglePasswordVisibility}
-                className='absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
-              >
-                {showPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
-              </button>
-            </div>
-          </FormField>
+            </FormField>
 
-          {/* Terms & Conditions */}
-          <div className='space-y-2'>
-            <div className='flex items-start space-x-3'>
-              <Checkbox
-                id='acceptTerms'
-                checked={formData.acceptTerms}
-                onCheckedChange={(v) => handleInputChange('acceptTerms', Boolean(v))}
-                className={errors.acceptTerms ? 'border-red-500' : ''}
+            {/* Name Fields Row */}
+            <div className='grid grid-cols-2 gap-4'>
+              <FormField label='First Name' error={errors.firstName} htmlFor='firstName'>
+                <Input
+                  id='firstName'
+                  type='text'
+                  placeholder='First Name'
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className={errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                />
+              </FormField>
+
+              <FormField label='Last Name' error={errors.lastName} htmlFor='lastName'>
+                <Input
+                  id='lastName'
+                  type='text'
+                  placeholder='Last Name'
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className={errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                />
+              </FormField>
+            </div>
+
+            {/* Phone Field */}
+            <FormField label='Phone Number' error={errors.phone} htmlFor='phone'>
+              <Input
+                id='phone'
+                type='tel'
+                placeholder='Enter your phone number'
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                className={errors.phone ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
               />
-              <label htmlFor='acceptTerms' className='text-sm text-gray-600 leading-relaxed'>
-                Tôi đồng ý{' '}
-                <button type='button' className='text-cyan-500 hover:text-cyan-400 font-medium transition-colors'>
-                  Điều khoản & Điều kiện
+            </FormField>
+
+            {/* Password Field */}
+            <FormField label='Create Password' error={errors.password} htmlFor='password'>
+              <div className='relative'>
+                <Input
+                  id='password'
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder='Create your password'
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className={errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
+                />
+                <button
+                  type='button'
+                  onClick={togglePasswordVisibility}
+                  className='absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors'
+                >
+                  {showPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
                 </button>
-              </label>
+              </div>
+            </FormField>
+
+            {/* Terms & Conditions */}
+            <div className='space-y-2'>
+              <div className='flex items-start space-x-3'>
+                <Checkbox
+                  id='acceptTerms'
+                  checked={formData.acceptTerms}
+                  onCheckedChange={(v) => handleInputChange('acceptTerms', Boolean(v))}
+                  className={errors.acceptTerms ? 'border-red-500' : ''}
+                />
+                <label htmlFor='acceptTerms' className='text-sm text-gray-600 leading-relaxed'>
+                  Tôi đồng ý{' '}
+                  <button type='button' className='text-cyan-500 hover:text-cyan-400 font-medium transition-colors'>
+                    Điều khoản & Điều kiện
+                  </button>
+                </label>
+              </div>
+              {errors.acceptTerms && (
+                <p className='text-sm text-red-600 flex items-center ml-7'>
+                  <span className='w-1 h-1 bg-red-600 rounded-full mr-2'></span>
+                  {errors.acceptTerms}
+                </p>
+              )}
             </div>
-            {errors.acceptTerms && (
-              <p className='text-sm text-red-600 flex items-center ml-7'>
-                <span className='w-1 h-1 bg-red-600 rounded-full mr-2'></span>
-                {errors.acceptTerms}
-              </p>
-            )}
+
+            {/* Submit Button */}
+            <Button onClick={handleSubmit} className='w-full' size='lg' disabled={registerMutation.isPending}>
+              {registerMutation.isPending ? (
+                <div className='flex items-center'>
+                  <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2'></div>
+                  Đang tạo tài khoản...
+                </div>
+              ) : (
+                'Tạo tài khoản'
+              )}
+            </Button>
           </div>
 
-          {/* Submit Button */}
-          <Button onClick={handleSubmit} className='w-full' size='lg' disabled={registerMutation.isPending}>
-            {registerMutation.isPending ? (
-              <div className='flex items-center'>
-                <div className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2'></div>
-                Đang tạo tài khoản...
-              </div>
-            ) : (
-              'Tạo tài khoản'
-            )}
-          </Button>
-        </div>
+          {/* Divider */}
+          <div className='my-8 flex items-center max-w-md mx-auto w-full'>
+            <div className='flex-1 border-t border-gray-300'></div>
+            <span className='px-4 text-gray-500 text-sm font-medium'>or</span>
+            <div className='flex-1 border-t border-gray-300'></div>
+          </div>
 
-        {/* Divider */}
-        <div className='my-8 flex items-center max-w-md mx-auto w-full'>
-          <div className='flex-1 border-t border-gray-300'></div>
-          <span className='px-4 text-gray-500 text-sm font-medium'>or</span>
-          <div className='flex-1 border-t border-gray-300'></div>
-        </div>
+          {/* Login Link */}
+          <div className='mt-8 text-center'>
+            <span className='text-gray-600'>Bạn đã có tài khoản? </span>
+            <Link
+              to={path.auth.login}
+              className='text-cyan-500 hover:text-cyan-400 cursor-pointer  font-semibold transition-colors'
+            >
+              Đăng nhập
+            </Link>
+          </div>
 
-        {/* Login Link */}
-        <div className='mt-8 text-center'>
-          <span className='text-gray-600'>Bạn đã có tài khoản? </span>
-          <Link
-            to={path.auth.login}
-            className='text-cyan-500 hover:text-cyan-400 cursor-pointer  font-semibold transition-colors'
-          >
-            Đăng nhập
-          </Link>
-        </div>
-
-        {/* Footer */}
-        <div className='mt-8 text-center w-full mx-auto'>
-          <p className='text-sm text-gray-500'>
-            Bằng cách tạo một tài khoản, bạn đồng ý với chúng tôi{' '}
-            <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Điều khoản dịch vụ</button> và{' '}
-            <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Chính sách bảo mật</button>
-          </p>
+          {/* Footer */}
+          <div className='mt-8 text-center w-full mx-auto'>
+            <p className='text-sm text-gray-500'>
+              Bằng cách tạo một tài khoản, bạn đồng ý với chúng tôi{' '}
+              <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Điều khoản dịch vụ</button> và{' '}
+              <button className='text-cyan-500 hover:text-cyan-400 transition-colors'>Chính sách bảo mật</button>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 

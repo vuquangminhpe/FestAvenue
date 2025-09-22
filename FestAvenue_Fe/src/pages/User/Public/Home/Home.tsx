@@ -1,12 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react'
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
 
 import { Heart, MapPin, Calendar, Clock, Star, X, ArrowRight, Loader2, Filter } from 'lucide-react'
 import MouseAnimate from '@/components/custom/MouseAnimate'
-import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import categoryApis from '@/apis/categories.api'
 import CarouselBanner from '@/components/custom/CarouselBanner'
+import SmartSEO from '@/components/SEO/SmartSEO'
+import { pageSEO } from '@/components/SEO/SEO'
 
 // Animation hook for scroll-triggered animations
 const useIntersectionObserver = (threshold = 0.1) => {
@@ -362,10 +364,7 @@ const Home = () => {
 
   return (
     <>
-      <Helmet>
-        <title>Trang chủ Fest Avenue</title>
-        <meta name='description' content='Trang chủ của chúng tôi' />
-      </Helmet>
+      <SmartSEO {...pageSEO.home} />
       <style>{`
         @keyframes shimmer {
           0% {

@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Main pages
+Allow: /home
+Allow: /auth/login
+Allow: /auth/signup
+
+# Admin and staff routes should not be indexed
+Disallow: /admin/
+Disallow: /staff/
+Disallow: /user/my/
+
+# Temporary pages
+Disallow: /seat/editor
+Disallow: /map1
+
+# Allow sitemap
+Sitemap: https://festavenue.com/sitemap.xml
+
+# Crawl delay for polite crawling
+Crawl-delay: 1
