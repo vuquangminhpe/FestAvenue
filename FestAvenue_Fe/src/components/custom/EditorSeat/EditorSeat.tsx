@@ -3,6 +3,8 @@ import * as d3 from 'd3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Download,
   Eye,
@@ -45,6 +47,7 @@ interface Seat {
 interface Section {
   id: string
   name: string
+  displayName?: string
   points: Point[]
   path?: string
   color: string
@@ -57,15 +60,9 @@ interface Section {
   seats?: Seat[]
   layer?: number
   category?: string
-}
-
-interface Zone {
-  id: string
-  name: string
-  bounds: { x: number; y: number; width: number; height: number }
-  template: 'grid' | 'staggeredGrid' | 'arc' | 'radial' | 'wedge' | 'theaterCurve'
-  priority: number
-  density: number
+  position?: { x: number; y: number }
+  angle?: number
+  labelPosition?: { x: number; y: number }
 }
 
 interface SeatMapData {
@@ -75,404 +72,667 @@ interface SeatMapData {
 }
 
 type ShapeType = 'polygon' | 'rectangle' | 'circle' | 'star' | 'crescent' | 'arc' | 'custom'
-type EditTool = 'select' | 'move' | 'draw' | 'shape'
-type LayoutStyle = 'theater' | 'smart-random'
+type EditTool = 'select' | 'move' | 'draw' | 'shape' | 'label'
+type LayoutStyle = 'theater' | 'arena' | 'banquet' | 'classroom' | 'u-shape' | 'wedding'
 
-// Advanced Layout Generator Class
-class AdvancedLayoutGenerator {
-  private colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e']
+// Professional Layout Templates
+class ProfessionalLayoutGenerator {
+  private colors = {
+    vip: '#ffd700',
+    premium: '#c0c0c0',
+    standard: '#3498db',
+    balcony: '#9b59b6',
+    box: '#e74c3c',
+    orchestra: '#2ecc71',
+    mezzanine: '#f39c12',
+    general: '#34495e'
+  }
 
   generateLayout(style: LayoutStyle, params: any): Section[] {
-    const { rows = 15, cols = 20, layers = 3, density = 'normal', aisles = 2, symmetry = true } = params
-
-    if (style === 'smart-random') {
-      return this.generateSmartRandomLayout(rows, cols, layers, density, aisles, symmetry)
+    switch (style) {
+      case 'theater':
+        return this.generateTheaterLayout(params)
+      case 'arena':
+        return this.generateArenaLayout(params)
+      case 'banquet':
+        return this.generateBanquetLayout(params)
+      case 'classroom':
+        return this.generateClassroomLayout(params)
+      case 'u-shape':
+        return this.generateUShapeLayout(params)
+      case 'wedding':
+        return this.generateWeddingLayout(params)
+      default:
+        return this.generateTheaterLayout(params)
     }
-
-    return this.generateTheaterLayout(rows, cols, layers)
   }
 
-  private generateSmartRandomLayout(
-    rows: number,
-    cols: number,
-    layers: number,
-    density: string,
-    numAisles: number,
-    symmetry: boolean
-  ): Section[] {
-    const zones = this.partitionZones(layers, symmetry)
-    const zoneTemplates = this.selectTemplatesForZones(zones)
-    const aislePositions = this.planAisles(numAisles, symmetry)
+  private generateTheaterLayout(params: any): Section[] {
     const sections: Section[] = []
+    const { rows = 15, seatsPerRow = 20, vipRows = 3, balcony = true } = params
 
-    zoneTemplates.forEach((zone, index) => {
-      const zoneSections = this.generateZoneSections(zone, rows, cols, density, aislePositions, index)
-      sections.push(...zoneSections)
+    // Orchestra Center
+    sections.push({
+      id: `orchestra-center-${Date.now()}`,
+      name: 'Orchestra Center',
+      displayName: 'ORCHESTRA CENTER',
+      points: [
+        { x: 350, y: 200 },
+        { x: 650, y: 200 },
+        { x: 670, y: 350 },
+        { x: 330, y: 350 }
+      ],
+      color: this.colors.orchestra,
+      rows: rows - 5,
+      seatsPerRow: Math.floor(seatsPerRow * 0.6),
+      bounds: { minX: 330, maxX: 670, minY: 200, maxY: 350 },
+      shape: 'polygon',
+      category: 'standard',
+      labelPosition: { x: 500, y: 275 }
     })
 
-    this.applyAestheticRules(sections, symmetry)
-    this.resolveCollisions(sections)
-
-    return sections
-  }
-
-  private partitionZones(layers: number, symmetry: boolean): Zone[] {
-    const zones: Zone[] = []
-    const baseY = 200
-
-    zones.push({
-      id: 'orchestra',
-      name: 'Orchestra',
-      bounds: { x: 200, y: baseY, width: 600, height: 120 },
-      template: 'staggeredGrid',
-      priority: 1,
-      density: 1.0
-    })
-
-    if (layers > 1) {
-      if (symmetry) {
-        zones.push({
-          id: 'mezz-left',
-          name: 'Mezzanine Left',
-          bounds: { x: 150, y: baseY + 130, width: 280, height: 100 },
-          template: 'theaterCurve',
-          priority: 2,
-          density: 0.9
-        })
-
-        zones.push({
-          id: 'mezz-right',
-          name: 'Mezzanine Right',
-          bounds: { x: 570, y: baseY + 130, width: 280, height: 100 },
-          template: 'theaterCurve',
-          priority: 2,
-          density: 0.9
-        })
-      } else {
-        zones.push({
-          id: 'mezzanine',
-          name: 'Mezzanine',
-          bounds: { x: 200, y: baseY + 130, width: 600, height: 100 },
-          template: 'arc',
-          priority: 2,
-          density: 0.85
-        })
-      }
-    }
-
-    if (layers > 2) {
-      zones.push({
-        id: 'balcony',
-        name: 'Balcony',
-        bounds: { x: 180, y: baseY + 240, width: 640, height: 90 },
-        template: 'wedge',
-        priority: 3,
-        density: 0.75
-      })
-    }
-
-    return zones
-  }
-
-  private selectTemplatesForZones(zones: Zone[]): Zone[] {
-    return zones.map((zone) => {
-      if (zone.id.includes('box')) {
-        zone.template = 'grid'
-      } else if (zone.id.includes('orchestra')) {
-        zone.template = 'staggeredGrid'
-      } else if (zone.id.includes('balcony')) {
-        zone.template = 'wedge'
-      }
-      return zone
-    })
-  }
-
-  private planAisles(numAisles: number, symmetry: boolean): number[] {
-    const positions: number[] = []
-    const centerX = 500
-
-    if (numAisles === 0) return positions
-
-    if (symmetry) {
-      positions.push(centerX)
-      if (numAisles > 1) {
-        const spacing = 200
-        for (let i = 1; i <= Math.floor(numAisles / 2); i++) {
-          positions.push(centerX - spacing * i)
-          positions.push(centerX + spacing * i)
-        }
-      }
-    }
-
-    return positions
-  }
-
-  private generateZoneSections(
-    zone: Zone,
-    rows: number,
-    cols: number,
-    density: string,
-    aislePositions: number[],
-    zoneIndex: number
-  ): Section[] {
-    const sections: Section[] = []
-    const densityFactor = density === 'sparse' ? 0.7 : density === 'dense' ? 1.3 : 1.0
-
-    const { x, y, width, height } = zone.bounds
-
-    if (zone.template === 'staggeredGrid') {
-      const aislesInZone = aislePositions.filter((pos) => pos > x && pos < x + width)
-
-      if (aislesInZone.length === 0) {
-        sections.push({
-          id: `${zone.id}-grid`,
-          name: zone.name,
-          points: [
-            { x, y },
-            { x: x + width, y },
-            { x: x + width, y: y + height },
-            { x, y: y + height }
-          ],
-          color: this.colors[0],
-          rows: Math.floor(rows * densityFactor),
-          seatsPerRow: Math.floor(cols * densityFactor),
-          bounds: { minX: x, maxX: x + width, minY: y, maxY: y + height },
-          shape: 'grid'
-        })
-      } else {
-        const leftSection = {
-          id: `${zone.id}-left`,
-          name: `${zone.name} Left`,
-          points: [
-            { x, y },
-            { x: aislesInZone[0] - 30, y },
-            { x: aislesInZone[0] - 30, y: y + height },
-            { x, y: y + height }
-          ],
-          color: this.colors[0],
-          rows: Math.floor(rows * densityFactor),
-          seatsPerRow: Math.floor((cols / 2) * densityFactor),
-          bounds: { minX: x, maxX: aislesInZone[0] - 30, minY: y, maxY: y + height },
-          shape: 'grid' as const
-        }
-
-        const rightSection = {
-          id: `${zone.id}-right`,
-          name: `${zone.name} Right`,
-          points: [
-            { x: aislesInZone[0] + 30, y },
-            { x: x + width, y },
-            { x: x + width, y: y + height },
-            { x: aislesInZone[0] + 30, y: y + height }
-          ],
-          color: this.colors[0],
-          rows: Math.floor(rows * densityFactor),
-          seatsPerRow: Math.floor((cols / 2) * densityFactor),
-          bounds: { minX: aislesInZone[0] + 30, maxX: x + width, minY: y, maxY: y + height },
-          shape: 'grid' as const
-        }
-
-        sections.push(leftSection, rightSection)
-      }
-    } else if (zone.template === 'theaterCurve') {
-      const path = d3.path()
-      const centerX = x + width / 2
-      const curveHeight = 20
-
-      path.moveTo(x, y)
-      path.quadraticCurveTo(centerX, y - curveHeight, x + width, y)
-      path.lineTo(x + width, y + height)
-      path.quadraticCurveTo(centerX, y + height + curveHeight, x, y + height)
-      path.closePath()
-
-      sections.push({
-        id: `${zone.id}-curve`,
-        name: zone.name,
-        points: [],
-        path: path.toString(),
-        color: this.colors[zoneIndex % this.colors.length],
-        rows: Math.floor(rows * densityFactor * 0.8),
-        seatsPerRow: Math.floor(cols * densityFactor),
-        shape: 'custom'
-      })
-    } else if (zone.template === 'arc') {
-      const centerX = x + width / 2
-      const centerY = y + height
-      const radius = Math.min(width / 2, height) * 1.2
-
-      const path = d3.path()
-      path.arc(centerX, centerY, radius, Math.PI * 1.2, Math.PI * -0.2)
-      path.arc(centerX, centerY, radius - 40, Math.PI * -0.2, Math.PI * 1.2, true)
-      path.closePath()
-
-      sections.push({
-        id: `${zone.id}-arc`,
-        name: zone.name,
-        points: [],
-        path: path.toString(),
-        color: this.colors[zoneIndex % this.colors.length],
-        rows: Math.floor(rows * densityFactor * 0.7),
-        seatsPerRow: Math.floor(cols * densityFactor * 0.8),
-        shape: 'arc'
-      })
-    } else if (zone.template === 'wedge') {
-      const numWedges = 3
-      const wedgeWidth = width / numWedges
-
-      for (let i = 0; i < numWedges; i++) {
-        const wedgeX = x + i * wedgeWidth
-        const topWidth = wedgeWidth * 0.7
-        const bottomWidth = wedgeWidth * 0.95
-        const offset = (wedgeWidth - topWidth) / 2
-
-        sections.push({
-          id: `${zone.id}-wedge-${i}`,
-          name: `${zone.name} ${i + 1}`,
-          points: [
-            { x: wedgeX + offset, y },
-            { x: wedgeX + offset + topWidth, y },
-            { x: wedgeX + bottomWidth, y: y + height },
-            { x: wedgeX, y: y + height }
-          ],
-          color: this.colors[(zoneIndex + i) % this.colors.length],
-          rows: Math.floor(rows * densityFactor * 0.6),
-          seatsPerRow: Math.floor((cols * densityFactor) / numWedges),
-          shape: 'polygon'
-        })
-      }
-    } else {
-      sections.push({
-        id: `${zone.id}-default`,
-        name: zone.name,
-        points: [
-          { x, y },
-          { x: x + width, y },
-          { x: x + width, y: y + height },
-          { x, y: y + height }
-        ],
-        color: this.colors[zoneIndex % this.colors.length],
-        rows: Math.floor(rows * densityFactor),
-        seatsPerRow: Math.floor(cols * densityFactor),
-        bounds: { minX: x, maxX: x + width, minY: y, maxY: y + height },
-        shape: 'grid'
-      })
-    }
-
-    return sections
-  }
-
-  private applyAestheticRules(sections: Section[], symmetry: boolean) {
-    if (!symmetry) return
-
-    const centerX = 500
-    sections.forEach((section) => {
-      const mirrorName = section.name.includes('Left')
-        ? section.name.replace('Left', 'Right')
-        : section.name.replace('Right', 'Left')
-
-      const mirrorSection = sections.find((s) => s.name === mirrorName)
-
-      if (mirrorSection && section.points.length > 0) {
-        mirrorSection.points = section.points.map((p) => ({
-          x: centerX + (centerX - p.x),
-          y: p.y
-        }))
-      }
-    })
-  }
-
-  private resolveCollisions(sections: Section[]) {
-    for (let i = 0; i < sections.length; i++) {
-      for (let j = i + 1; j < sections.length; j++) {
-        const s1 = sections[i]
-        const s2 = sections[j]
-
-        if (s1.bounds && s2.bounds) {
-          const overlap = !(
-            s1.bounds.maxX < s2.bounds.minX ||
-            s2.bounds.maxX < s1.bounds.minX ||
-            s1.bounds.maxY < s2.bounds.minY ||
-            s2.bounds.maxY < s1.bounds.minY
-          )
-
-          if (overlap) {
-            const shrinkFactor = 0.95
-            s1.bounds.maxX = s1.bounds.minX + (s1.bounds.maxX - s1.bounds.minX) * shrinkFactor
-            s1.bounds.maxY = s1.bounds.minY + (s1.bounds.maxY - s1.bounds.minY) * shrinkFactor
-          }
-        }
-      }
-    }
-  }
-
-  private generateTheaterLayout(rows: number, cols: number, layers: number): Section[] {
-    const sections: Section[] = []
-    const aisleX = 500
-    const aisleWidth = 60
+    // Orchestra Left & Right with curve
+    const leftPath = d3.path()
+    leftPath.moveTo(200, 210)
+    leftPath.quadraticCurveTo(250, 200, 320, 200)
+    leftPath.lineTo(320, 350)
+    leftPath.quadraticCurveTo(250, 360, 180, 370)
+    leftPath.closePath()
 
     sections.push({
-      id: 'orchestra-left',
+      id: `orchestra-left-${Date.now()}`,
       name: 'Orchestra Left',
-      points: [
-        { x: 200, y: 200 },
-        { x: aisleX - aisleWidth / 2, y: 200 },
-        { x: aisleX - aisleWidth / 2, y: 350 },
-        { x: 200, y: 350 }
-      ],
-      color: this.colors[0],
-      rows: rows,
-      seatsPerRow: Math.floor(cols / 2 - 1),
-      bounds: { minX: 200, maxX: aisleX - aisleWidth / 2, minY: 200, maxY: 350 },
-      shape: 'grid',
-      layer: 0
+      displayName: 'ORCHESTRA LEFT',
+      points: [],
+      path: leftPath.toString(),
+      color: this.colors.orchestra,
+      rows: rows - 5,
+      seatsPerRow: Math.floor(seatsPerRow * 0.25),
+      shape: 'custom',
+      category: 'standard',
+      labelPosition: { x: 250, y: 280 }
     })
+
+    const rightPath = d3.path()
+    rightPath.moveTo(680, 200)
+    rightPath.quadraticCurveTo(750, 200, 800, 210)
+    rightPath.lineTo(820, 370)
+    rightPath.quadraticCurveTo(750, 360, 680, 350)
+    rightPath.closePath()
 
     sections.push({
-      id: 'orchestra-right',
+      id: `orchestra-right-${Date.now()}`,
       name: 'Orchestra Right',
-      points: [
-        { x: aisleX + aisleWidth / 2, y: 200 },
-        { x: 800, y: 200 },
-        { x: 800, y: 350 },
-        { x: aisleX + aisleWidth / 2, y: 350 }
-      ],
-      color: this.colors[0],
-      rows: rows,
-      seatsPerRow: Math.floor(cols / 2 - 1),
-      bounds: { minX: aisleX + aisleWidth / 2, maxX: 800, minY: 200, maxY: 350 },
-      shape: 'grid',
-      layer: 0
+      displayName: 'ORCHESTRA RIGHT',
+      points: [],
+      path: rightPath.toString(),
+      color: this.colors.orchestra,
+      rows: rows - 5,
+      seatsPerRow: Math.floor(seatsPerRow * 0.25),
+      shape: 'custom',
+      category: 'standard',
+      labelPosition: { x: 750, y: 280 }
     })
 
-    for (let level = 1; level < layers; level++) {
-      const mezzY = 350 + level * 100
-      const curve = 20 * level
+    // VIP Front Rows
+    for (let i = 0; i < vipRows; i++) {
+      sections.push({
+        id: `vip-row-${i}-${Date.now()}`,
+        name: `VIP Row ${String.fromCharCode(65 + i)}`,
+        displayName: `VIP ROW ${String.fromCharCode(65 + i)}`,
+        points: [
+          { x: 300 + i * 10, y: 150 + i * 15 },
+          { x: 700 - i * 10, y: 150 + i * 15 },
+          { x: 700 - i * 10, y: 175 + i * 15 },
+          { x: 300 + i * 10, y: 175 + i * 15 }
+        ],
+        color: this.colors.vip,
+        rows: 1,
+        seatsPerRow: seatsPerRow - i * 2,
+        bounds: {
+          minX: 300 + i * 10,
+          maxX: 700 - i * 10,
+          minY: 150 + i * 15,
+          maxY: 175 + i * 15
+        },
+        shape: 'rectangle',
+        category: 'vip',
+        labelPosition: { x: 500, y: 162 + i * 15 }
+      })
+    }
 
+    // Mezzanine
+    if (rows > 10) {
       const mezzPath = d3.path()
-      mezzPath.moveTo(200 - level * 20, mezzY)
-      mezzPath.quadraticCurveTo(500, mezzY - curve, 800 + level * 20, mezzY)
-      mezzPath.lineTo(800 + level * 20, mezzY + 60)
-      mezzPath.quadraticCurveTo(500, mezzY + 60 + curve, 200 - level * 20, mezzY + 60)
+      mezzPath.moveTo(150, 380)
+      mezzPath.quadraticCurveTo(500, 360, 850, 380)
+      mezzPath.lineTo(850, 450)
+      mezzPath.quadraticCurveTo(500, 470, 150, 450)
       mezzPath.closePath()
 
       sections.push({
-        id: `mezzanine-${level}`,
-        name: `Mezzanine ${level}`,
+        id: `mezzanine-${Date.now()}`,
+        name: 'Mezzanine',
+        displayName: 'MEZZANINE',
         points: [],
         path: mezzPath.toString(),
-        color: this.colors[level],
-        rows: Math.floor(rows * 0.7),
-        seatsPerRow: cols + level * 2,
+        color: this.colors.mezzanine,
+        rows: Math.floor(rows * 0.4),
+        seatsPerRow: seatsPerRow + 5,
         shape: 'custom',
-        layer: level
+        layer: 1,
+        category: 'standard',
+        labelPosition: { x: 500, y: 415 }
       })
+    }
+
+    // Balcony
+    if (balcony && rows > 15) {
+      const balconyPath = d3.path()
+      balconyPath.arc(500, 550, 380, Math.PI * 1.1, Math.PI * -0.1)
+      balconyPath.arc(500, 550, 320, Math.PI * -0.1, Math.PI * 1.1, true)
+      balconyPath.closePath()
+
+      sections.push({
+        id: `balcony-${Date.now()}`,
+        name: 'Balcony',
+        displayName: 'BALCONY',
+        points: [],
+        path: balconyPath.toString(),
+        color: this.colors.balcony,
+        rows: Math.floor(rows * 0.3),
+        seatsPerRow: seatsPerRow + 10,
+        shape: 'arc',
+        layer: 2,
+        category: 'standard',
+        labelPosition: { x: 500, y: 500 }
+      })
+    }
+
+    // Box Seats
+    if (params.boxSeats) {
+      for (let i = 0; i < 2; i++) {
+        const side = i === 0 ? 'left' : 'right'
+        const x = i === 0 ? 100 : 900
+
+        for (let j = 0; j < 3; j++) {
+          sections.push({
+            id: `box-${side}-${j}-${Date.now()}`,
+            name: `Box ${side.toUpperCase()} ${j + 1}`,
+            displayName: `BOX ${j + 1}`,
+            points: [
+              { x: x - (i === 0 ? 50 : -50), y: 250 + j * 70 },
+              { x: x, y: 250 + j * 70 },
+              { x: x, y: 310 + j * 70 },
+              { x: x - (i === 0 ? 50 : -50), y: 310 + j * 70 }
+            ],
+            color: this.colors.box,
+            rows: 2,
+            seatsPerRow: 4,
+            bounds: {
+              minX: i === 0 ? x - 50 : x,
+              maxX: i === 0 ? x : x + 50,
+              minY: 250 + j * 70,
+              maxY: 310 + j * 70
+            },
+            shape: 'rectangle',
+            category: 'vip',
+            labelPosition: { x: x - (i === 0 ? 25 : -25), y: 280 + j * 70 }
+          })
+        }
+      }
+    }
+
+    return sections
+  }
+
+  private generateArenaLayout(params: any): Section[] {
+    const sections: Section[] = []
+    const { rows = 20, seatsPerRow = 25 } = params
+    const centerX = 500
+    const centerY = 350
+
+    // Floor/Court area
+    sections.push({
+      id: `floor-${Date.now()}`,
+      name: 'Floor',
+      displayName: 'FLOOR SEATS',
+      points: [
+        { x: centerX - 150, y: centerY - 100 },
+        { x: centerX + 150, y: centerY - 100 },
+        { x: centerX + 150, y: centerY + 100 },
+        { x: centerX - 150, y: centerY + 100 }
+      ],
+      color: this.colors.vip,
+      rows: 8,
+      seatsPerRow: 12,
+      bounds: {
+        minX: centerX - 150,
+        maxX: centerX + 150,
+        minY: centerY - 100,
+        maxY: centerY + 100
+      },
+      shape: 'rectangle',
+      category: 'vip',
+      labelPosition: { x: centerX, y: centerY }
+    })
+
+    // Create 8 sections around the arena
+    const sectionNames = ['North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West', 'NorthWest']
+    const angles = [0, 45, 90, 135, 180, 225, 270, 315]
+
+    angles.forEach((angle, i) => {
+      const rad = (angle * Math.PI) / 180
+      const innerRadius = 200
+      const outerRadius = 350
+
+      const path = d3.path()
+      const startAngle = rad - Math.PI / 8
+      const endAngle = rad + Math.PI / 8
+
+      path.arc(centerX, centerY, outerRadius, startAngle, endAngle)
+      path.arc(centerX, centerY, innerRadius, endAngle, startAngle, true)
+      path.closePath()
+
+      const labelRadius = (innerRadius + outerRadius) / 2
+      const labelX = centerX + Math.cos(rad) * labelRadius
+      const labelY = centerY + Math.sin(rad) * labelRadius
+
+      sections.push({
+        id: `section-${sectionNames[i]}-${Date.now()}`,
+        name: `Section ${sectionNames[i]}`,
+        displayName: sectionNames[i].toUpperCase(),
+        points: [],
+        path: path.toString(),
+        color: i % 2 === 0 ? this.colors.standard : this.colors.premium,
+        rows: rows,
+        seatsPerRow: Math.floor(seatsPerRow * 0.7),
+        shape: 'arc',
+        category: i % 2 === 0 ? 'standard' : 'premium',
+        labelPosition: { x: labelX, y: labelY }
+      })
+    })
+
+    // Upper deck sections
+    if (params.upperDeck) {
+      angles.forEach((angle, i) => {
+        const rad = (angle * Math.PI) / 180
+        const innerRadius = 380
+        const outerRadius = 480
+
+        const path = d3.path()
+        const startAngle = rad - Math.PI / 10
+        const endAngle = rad + Math.PI / 10
+
+        path.arc(centerX, centerY, outerRadius, startAngle, endAngle)
+        path.arc(centerX, centerY, innerRadius, endAngle, startAngle, true)
+        path.closePath()
+
+        const labelRadius = (innerRadius + outerRadius) / 2
+        const labelX = centerX + Math.cos(rad) * labelRadius
+        const labelY = centerY + Math.sin(rad) * labelRadius
+
+        sections.push({
+          id: `upper-${sectionNames[i]}-${Date.now()}`,
+          name: `Upper ${sectionNames[i]}`,
+          displayName: `UPPER ${sectionNames[i].toUpperCase()}`,
+          points: [],
+          path: path.toString(),
+          color: this.colors.balcony,
+          rows: Math.floor(rows * 0.6),
+          seatsPerRow: Math.floor(seatsPerRow * 0.5),
+          shape: 'arc',
+          layer: 1,
+          category: 'standard',
+          labelPosition: { x: labelX, y: labelY }
+        })
+      })
+    }
+
+    return sections
+  }
+
+  private generateBanquetLayout(params: any): Section[] {
+    const sections: Section[] = []
+    const { tables = 12, seatsPerTable = 10 } = params
+
+    const tableRadius = 40
+    const spacing = 120
+    const centerX = 500
+    const centerY = 300
+
+    // Calculate grid layout for tables
+    const cols = Math.ceil(Math.sqrt(tables * 1.5))
+    const rows = Math.ceil(tables / cols)
+
+    for (let i = 0; i < tables; i++) {
+      const row = Math.floor(i / cols)
+      const col = i % cols
+
+      const x = centerX - ((cols - 1) * spacing) / 2 + col * spacing
+      const y = centerY - ((rows - 1) * spacing) / 2 + row * spacing
+
+      // Add slight randomness for organic feel
+      const offsetX = (Math.random() - 0.5) * 20
+      const offsetY = (Math.random() - 0.5) * 20
+
+      const finalX = x + offsetX
+      const finalY = y + offsetY
+
+      // Create circular table
+      const path = d3.path()
+      path.arc(finalX, finalY, tableRadius, 0, Math.PI * 2)
+      path.closePath()
+
+      sections.push({
+        id: `table-${i + 1}-${Date.now()}`,
+        name: `Table ${i + 1}`,
+        displayName: `TABLE ${i + 1}`,
+        points: [],
+        path: path.toString(),
+        color: i < 3 ? this.colors.vip : this.colors.standard,
+        rows: 2,
+        seatsPerRow: Math.floor(seatsPerTable / 2),
+        shape: 'circle',
+        category: i < 3 ? 'vip' : 'standard',
+        position: { x: finalX, y: finalY },
+        labelPosition: { x: finalX, y: finalY }
+      })
+    }
+
+    // Add head table
+    sections.push({
+      id: `head-table-${Date.now()}`,
+      name: 'Head Table',
+      displayName: 'HEAD TABLE',
+      points: [
+        { x: 300, y: 100 },
+        { x: 700, y: 100 },
+        { x: 700, y: 150 },
+        { x: 300, y: 150 }
+      ],
+      color: this.colors.vip,
+      rows: 1,
+      seatsPerRow: params.headTableSeats || 8,
+      bounds: { minX: 300, maxX: 700, minY: 100, maxY: 150 },
+      shape: 'rectangle',
+      category: 'vip',
+      labelPosition: { x: 500, y: 125 }
+    })
+
+    // Add dance floor
+    sections.push({
+      id: `dance-floor-${Date.now()}`,
+      name: 'Dance Floor',
+      displayName: 'DANCE FLOOR',
+      points: [
+        { x: 400, y: 450 },
+        { x: 600, y: 450 },
+        { x: 600, y: 550 },
+        { x: 400, y: 550 }
+      ],
+      color: '#444444',
+      rows: 0,
+      seatsPerRow: 0,
+      bounds: { minX: 400, maxX: 600, minY: 450, maxY: 550 },
+      shape: 'rectangle',
+      category: 'special',
+      labelPosition: { x: 500, y: 500 }
+    })
+
+    return sections
+  }
+
+  private generateClassroomLayout(params: any): Section[] {
+    const sections: Section[] = []
+    const { rows = 10, seatsPerRow = 8, columns = 3 } = params
+
+    const sectionWidth = 200
+    const sectionHeight = 350
+    const aisleWidth = 60
+    const startX = 200
+    const startY = 150
+
+    for (let col = 0; col < columns; col++) {
+      const x = startX + col * (sectionWidth + aisleWidth)
+
+      sections.push({
+        id: `column-${col + 1}-${Date.now()}`,
+        name: `Section ${String.fromCharCode(65 + col)}`,
+        displayName: `SECTION ${String.fromCharCode(65 + col)}`,
+        points: [
+          { x, y: startY },
+          { x: x + sectionWidth, y: startY },
+          { x: x + sectionWidth, y: startY + sectionHeight },
+          { x, y: startY + sectionHeight }
+        ],
+        color: this.colors.standard,
+        rows,
+        seatsPerRow,
+        bounds: {
+          minX: x,
+          maxX: x + sectionWidth,
+          minY: startY,
+          maxY: startY + sectionHeight
+        },
+        shape: 'grid',
+        category: 'standard',
+        labelPosition: { x: x + sectionWidth / 2, y: startY - 20 }
+      })
+    }
+
+    // Add presenter area
+    sections.push({
+      id: `presenter-${Date.now()}`,
+      name: 'Presenter Area',
+      displayName: 'PRESENTER',
+      points: [
+        { x: 400, y: 80 },
+        { x: 600, y: 80 },
+        { x: 600, y: 120 },
+        { x: 400, y: 120 }
+      ],
+      color: '#666666',
+      rows: 0,
+      seatsPerRow: 0,
+      bounds: { minX: 400, maxX: 600, minY: 80, maxY: 120 },
+      shape: 'rectangle',
+      category: 'special',
+      labelPosition: { x: 500, y: 100 }
+    })
+
+    return sections
+  }
+
+  private generateUShapeLayout(params: any): Section[] {
+    const sections: Section[] = []
+    const { rows = 8, seatsPerRow = 15 } = params
+
+    // Left arm
+    sections.push({
+      id: `left-arm-${Date.now()}`,
+      name: 'Left Section',
+      displayName: 'LEFT SECTION',
+      points: [
+        { x: 200, y: 150 },
+        { x: 350, y: 150 },
+        { x: 350, y: 450 },
+        { x: 200, y: 450 }
+      ],
+      color: this.colors.standard,
+      rows,
+      seatsPerRow: Math.floor(seatsPerRow * 0.4),
+      bounds: { minX: 200, maxX: 350, minY: 150, maxY: 450 },
+      shape: 'grid',
+      category: 'standard',
+      labelPosition: { x: 275, y: 130 }
+    })
+
+    // Center/bottom
+    sections.push({
+      id: `center-${Date.now()}`,
+      name: 'Center Section',
+      displayName: 'CENTER SECTION',
+      points: [
+        { x: 350, y: 350 },
+        { x: 650, y: 350 },
+        { x: 650, y: 450 },
+        { x: 350, y: 450 }
+      ],
+      color: this.colors.premium,
+      rows: Math.floor(rows * 0.5),
+      seatsPerRow,
+      bounds: { minX: 350, maxX: 650, minY: 350, maxY: 450 },
+      shape: 'grid',
+      category: 'premium',
+      labelPosition: { x: 500, y: 400 }
+    })
+
+    // Right arm
+    sections.push({
+      id: `right-arm-${Date.now()}`,
+      name: 'Right Section',
+      displayName: 'RIGHT SECTION',
+      points: [
+        { x: 650, y: 150 },
+        { x: 800, y: 150 },
+        { x: 800, y: 450 },
+        { x: 650, y: 450 }
+      ],
+      color: this.colors.standard,
+      rows,
+      seatsPerRow: Math.floor(seatsPerRow * 0.4),
+      bounds: { minX: 650, maxX: 800, minY: 150, maxY: 450 },
+      shape: 'grid',
+      category: 'standard',
+      labelPosition: { x: 725, y: 130 }
+    })
+
+    // Presenter area in the middle
+    sections.push({
+      id: `presenter-area-${Date.now()}`,
+      name: 'Presenter Area',
+      displayName: 'PRESENTER',
+      points: [
+        { x: 400, y: 250 },
+        { x: 600, y: 250 },
+        { x: 600, y: 300 },
+        { x: 400, y: 300 }
+      ],
+      color: '#666666',
+      rows: 0,
+      seatsPerRow: 0,
+      bounds: { minX: 400, maxX: 600, minY: 250, maxY: 300 },
+      shape: 'rectangle',
+      category: 'special',
+      labelPosition: { x: 500, y: 275 }
+    })
+
+    return sections
+  }
+
+  private generateWeddingLayout(params: any): Section[] {
+    const sections: Section[] = []
+    const { guestCount = 150, ceremonySide = true } = params
+
+    if (ceremonySide) {
+      // Ceremony layout - two sides with aisle
+      const rowsPerSide = Math.ceil(guestCount / 20)
+      const seatsPerRow = 10
+
+      // Bride's side
+      sections.push({
+        id: `bride-side-${Date.now()}`,
+        name: "Bride's Side",
+        displayName: "BRIDE'S SIDE",
+        points: [
+          { x: 200, y: 200 },
+          { x: 450, y: 200 },
+          { x: 450, y: 450 },
+          { x: 200, y: 450 }
+        ],
+        color: '#ffb3ba',
+        rows: rowsPerSide,
+        seatsPerRow,
+        bounds: { minX: 200, maxX: 450, minY: 200, maxY: 450 },
+        shape: 'grid',
+        category: 'standard',
+        labelPosition: { x: 325, y: 180 }
+      })
+
+      // Groom's side
+      sections.push({
+        id: `groom-side-${Date.now()}`,
+        name: "Groom's Side",
+        displayName: "GROOM'S SIDE",
+        points: [
+          { x: 550, y: 200 },
+          { x: 800, y: 200 },
+          { x: 800, y: 450 },
+          { x: 550, y: 450 }
+        ],
+        color: '#bae1ff',
+        rows: rowsPerSide,
+        seatsPerRow,
+        bounds: { minX: 550, maxX: 800, minY: 200, maxY: 450 },
+        shape: 'grid',
+        category: 'standard',
+        labelPosition: { x: 675, y: 180 }
+      })
+
+      // Altar area
+      sections.push({
+        id: `altar-${Date.now()}`,
+        name: 'Altar',
+        displayName: 'ALTAR',
+        points: [
+          { x: 400, y: 100 },
+          { x: 600, y: 100 },
+          { x: 600, y: 150 },
+          { x: 400, y: 150 }
+        ],
+        color: '#ffd700',
+        rows: 0,
+        seatsPerRow: 0,
+        bounds: { minX: 400, maxX: 600, minY: 100, maxY: 150 },
+        shape: 'rectangle',
+        category: 'special',
+        labelPosition: { x: 500, y: 125 }
+      })
+
+      // Family rows
+      for (let i = 0; i < 2; i++) {
+        sections.push({
+          id: `family-row-${i}-${Date.now()}`,
+          name: `Family Row ${i + 1}`,
+          displayName: `FAMILY ${i + 1}`,
+          points: [
+            { x: 300, y: 160 + i * 30 },
+            { x: 700, y: 160 + i * 30 },
+            { x: 700, y: 180 + i * 30 },
+            { x: 300, y: 180 + i * 30 }
+          ],
+          color: this.colors.vip,
+          rows: 1,
+          seatsPerRow: 12,
+          bounds: {
+            minX: 300,
+            maxX: 700,
+            minY: 160 + i * 30,
+            maxY: 180 + i * 30
+          },
+          shape: 'rectangle',
+          category: 'vip',
+          labelPosition: { x: 500, y: 170 + i * 30 }
+        })
+      }
     }
 
     return sections
   }
 }
 
-// Seat Interaction Manager Class
+// Seat Interaction Manager (keeping existing functionality)
 class SeatInteractionManager {
   private animationQueue: Map<string, any> = new Map()
   private seatStates: Map<string, 'available' | 'occupied' | 'locked'> = new Map()
@@ -520,12 +780,11 @@ class SeatInteractionManager {
     return this.seatStates.get(seatId) || 'available'
   }
 
-  private animateCharacterLeaving(seatElement: HTMLElement, seatId: string, onComplete: () => void) {
+  private animateCharacterLeaving(seatElement: HTMLElement, _seatId: string, onComplete: () => void) {
     if (!window.gsap) {
       onComplete()
       return
     }
-    console.log(seatId)
 
     const character = seatElement.querySelector('.seated-character')
     if (!character) {
@@ -563,12 +822,11 @@ class SeatInteractionManager {
     })
   }
 
-  private animateCharacterEntering(seatElement: HTMLElement, seatId: string, onComplete: () => void) {
+  private animateCharacterEntering(seatElement: HTMLElement, _seatId: string, onComplete: () => void) {
     if (!window.gsap) {
       onComplete()
       return
     }
-    console.log(seatId)
 
     const col = parseInt(seatElement.dataset.col || '0')
 
@@ -706,10 +964,10 @@ class SeatInteractionManager {
 }
 
 // Main Component
-export default function AdvancedCinemaSeatMapDesigner() {
+export default function AdvancedSeatMapDesigner() {
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
-  const layoutGeneratorRef = useRef(new AdvancedLayoutGenerator())
+  const layoutGeneratorRef = useRef(new ProfessionalLayoutGenerator())
   const seatManagerRef = useRef(new SeatInteractionManager())
 
   const [mode, setMode] = useState<'edit' | 'preview' | 'quick-booking'>('edit')
@@ -718,6 +976,8 @@ export default function AdvancedCinemaSeatMapDesigner() {
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([])
   const [isDrawing, setIsDrawing] = useState(false)
   const [selectedSection, setSelectedSection] = useState<Section | null>(null)
+  const [editingLabel, setEditingLabel] = useState<string | null>(null)
+  const [labelText, setLabelText] = useState('')
   const [mapData, setMapData] = useState<SeatMapData>({
     sections: [],
     stage: { x: 350, y: 50, width: 300, height: 80 },
@@ -725,15 +985,31 @@ export default function AdvancedCinemaSeatMapDesigner() {
   })
   const [is3DView, setIs3DView] = useState(false)
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
+  const [layoutStyle] = useState<LayoutStyle>('theater')
   const [layoutParams, setLayoutParams] = useState({
-    rows: 12,
+    rows: 15,
+    seatsPerRow: 20,
+    vipRows: 3,
+    balcony: true,
+    boxSeats: true,
+    tables: 12,
+    seatsPerTable: 10,
+    columns: 3,
+    guestCount: 150,
+    ceremonySide: true,
+    upperDeck: true,
+    headTableSeats: 8,
     cols: 16,
     layers: 3,
-    density: 'normal' as 'sparse' | 'normal' | 'dense',
     aisles: 2,
-    symmetry: true
+    symmetry: true,
+    density: 'medium' as 'high' | 'medium' | 'low'
   })
-  const [sectionConfig, setSectionConfig] = useState({ rows: 8, seatsPerRow: 12 })
+  const [sectionConfig, setSectionConfig] = useState({
+    rows: 8,
+    seatsPerRow: 12,
+    name: 'New Section'
+  })
   const [colorPicker, setColorPicker] = useState({
     fill: '#3498db',
     stroke: '#2980b9',
@@ -741,6 +1017,8 @@ export default function AdvancedCinemaSeatMapDesigner() {
     gradientFrom: '#667eea',
     gradientTo: '#764ba2'
   })
+  const [draggedSection, setDraggedSection] = useState<string | null>(null)
+  const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 })
 
   useEffect(() => {
     const loadGSAP = () => {
@@ -796,7 +1074,8 @@ export default function AdvancedCinemaSeatMapDesigner() {
     const path = generateShapePath(selectedShape, center)
     const newSection: Section = {
       id: `section-${Date.now()}`,
-      name: `${selectedShape} ${mapData.sections.length + 1}`,
+      name: sectionConfig.name || `${selectedShape} ${mapData.sections.length + 1}`,
+      displayName: sectionConfig.name?.toUpperCase() || `${selectedShape.toUpperCase()} ${mapData.sections.length + 1}`,
       points: [],
       path,
       color: colorPicker.useGradient ? '#3498db' : colorPicker.fill,
@@ -804,7 +1083,8 @@ export default function AdvancedCinemaSeatMapDesigner() {
       gradient: colorPicker.useGradient ? { from: colorPicker.gradientFrom, to: colorPicker.gradientTo } : undefined,
       rows: sectionConfig.rows,
       seatsPerRow: sectionConfig.seatsPerRow,
-      shape: selectedShape === 'polygon' ? 'custom' : selectedShape
+      shape: selectedShape === 'polygon' ? 'custom' : selectedShape,
+      labelPosition: center
     }
 
     newSection.seats = generateSeatsForSection(newSection)
@@ -817,9 +1097,13 @@ export default function AdvancedCinemaSeatMapDesigner() {
 
   const createSectionFromPoints = (points: Point[]) => {
     const bounds = calculateBounds(points)
+    const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2
+    const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2
+
     const newSection: Section = {
       id: `section-${Date.now()}`,
-      name: `Section ${mapData.sections.length + 1}`,
+      name: sectionConfig.name || `Section ${mapData.sections.length + 1}`,
+      displayName: sectionConfig.name?.toUpperCase() || `SECTION ${mapData.sections.length + 1}`,
       points: points,
       color: colorPicker.useGradient ? '#3498db' : colorPicker.fill,
       strokeColor: colorPicker.stroke,
@@ -827,7 +1111,8 @@ export default function AdvancedCinemaSeatMapDesigner() {
       rows: sectionConfig.rows,
       seatsPerRow: sectionConfig.seatsPerRow,
       bounds,
-      shape: 'polygon'
+      shape: 'polygon',
+      labelPosition: { x: centerX, y: centerY }
     }
 
     newSection.seats = generateSeatsForSection(newSection)
@@ -903,12 +1188,39 @@ export default function AdvancedCinemaSeatMapDesigner() {
   }
 
   const generateAutoLayout = useCallback(
-    (style: LayoutStyle) => {
+    (layoutType?: string) => {
       const generator = layoutGeneratorRef.current
-      const newSections = generator.generateLayout(style, layoutParams)
+
+      let styleToUse: LayoutStyle
+      let paramsToUse = layoutParams
+
+      if (layoutType === 'smart-random') {
+        const availableLayouts: LayoutStyle[] = ['theater', 'arena', 'banquet', 'classroom', 'u-shape', 'wedding']
+        styleToUse = availableLayouts[Math.floor(Math.random() * availableLayouts.length)]
+
+        // Randomize some params too for more variety
+        paramsToUse = {
+          ...layoutParams,
+          rows: Math.floor(Math.random() * 10) + 10, // 10-20 rows
+          seatsPerRow: Math.floor(Math.random() * 15) + 15, // 15-30 seats per row
+          vipRows: Math.floor(Math.random() * 3) + 2, // 2-5 VIP rows
+          tables: Math.floor(Math.random() * 8) + 8, // 8-16 tables for banquet
+          balcony: Math.random() > 0.5,
+          upperDeck: Math.random() > 0.5,
+          boxSeats: Math.random() > 0.5
+        }
+      } else {
+        styleToUse = (layoutType as LayoutStyle) || layoutStyle
+      }
+
+      const newSections = generator.generateLayout(styleToUse, paramsToUse)
+
+      if (layoutType === 'smart-random') {
+        console.log('Generated random layout:', styleToUse, 'with params:', paramsToUse)
+      }
 
       const updatedSections = newSections.map((section) => {
-        const seats = generateSeatsForSection(section)
+        const seats = section.rows > 0 ? generateSeatsForSection(section) : []
         return { ...section, seats }
       })
 
@@ -922,10 +1234,10 @@ export default function AdvancedCinemaSeatMapDesigner() {
       setMapData({
         ...mapData,
         sections: updatedSections,
-        aisles: layoutParams.aisles > 0 ? [{ start: { x: 470, y: 150 }, end: { x: 470, y: 550 }, width: 60 }] : []
+        aisles: styleToUse === 'theater' ? [{ start: { x: 470, y: 150 }, end: { x: 470, y: 550 }, width: 60 }] : []
       })
     },
-    [mapData.stage, layoutParams, generateSeatsForSection]
+    [mapData.stage, layoutParams, layoutStyle, generateSeatsForSection]
   )
 
   useEffect(() => {
@@ -961,7 +1273,18 @@ export default function AdvancedCinemaSeatMapDesigner() {
     }
 
     renderMap(g)
-  }, [mapData, mode, editTool, isDrawing, drawingPoints, selectedSection, seatStatuses, colorPicker])
+  }, [
+    mapData,
+    mode,
+    editTool,
+    isDrawing,
+    drawingPoints,
+    selectedSection,
+    seatStatuses,
+    colorPicker,
+    draggedSection,
+    editingLabel
+  ])
 
   const handleSvgClick = (event: any) => {
     if (!isDrawing || editTool !== 'draw') return
@@ -981,6 +1304,112 @@ export default function AdvancedCinemaSeatMapDesigner() {
       }
     }
   }
+
+  const handleSectionMouseDown = (event: MouseEvent, sectionId: string) => {
+    if (editTool !== 'move') return
+    event.stopPropagation()
+
+    const svg = svgRef.current
+    if (!svg) return
+
+    const pt = svg.createSVGPoint()
+    pt.x = event.clientX
+    pt.y = event.clientY
+    const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+
+    const section = mapData.sections.find((s) => s.id === sectionId)
+    if (!section) return
+
+    const bounds = section.bounds || (section.points.length > 0 ? calculateBounds(section.points) : null)
+    if (!bounds) return
+
+    const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2
+    const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2
+
+    setDragOffset({
+      x: svgP.x - centerX,
+      y: svgP.y - centerY
+    })
+    setDraggedSection(sectionId)
+    setSelectedSection(section)
+  }
+
+  const handleSvgMouseMove = (event: MouseEvent) => {
+    if (!draggedSection || editTool !== 'move') return
+
+    const svg = svgRef.current
+    if (!svg) return
+
+    const pt = svg.createSVGPoint()
+    pt.x = event.clientX
+    pt.y = event.clientY
+    const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+
+    const newX = svgP.x - dragOffset.x
+    const newY = svgP.y - dragOffset.y
+
+    setMapData((prev) => ({
+      ...prev,
+      sections: prev.sections.map((section) => {
+        if (section.id === draggedSection) {
+          const bounds = section.bounds || (section.points.length > 0 ? calculateBounds(section.points) : null)
+          if (!bounds) return section
+
+          const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2
+          const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2
+          const dx = newX - centerX
+          const dy = newY - centerY
+
+          return {
+            ...section,
+            points: section.points.map((p) => ({ x: p.x + dx, y: p.y + dy })),
+            bounds: section.bounds
+              ? {
+                  minX: section.bounds.minX + dx,
+                  maxX: section.bounds.maxX + dx,
+                  minY: section.bounds.minY + dy,
+                  maxY: section.bounds.maxY + dy
+                }
+              : undefined,
+            seats: section.seats?.map((seat) => ({
+              ...seat,
+              x: seat.x + dx,
+              y: seat.y + dy
+            })),
+            labelPosition: section.labelPosition
+              ? {
+                  x: section.labelPosition.x + dx,
+                  y: section.labelPosition.y + dy
+                }
+              : undefined,
+            position: section.position
+              ? {
+                  x: section.position.x + dx,
+                  y: section.position.y + dy
+                }
+              : undefined
+          }
+        }
+        return section
+      })
+    }))
+  }
+
+  const handleSvgMouseUp = () => {
+    setDraggedSection(null)
+  }
+
+  useEffect(() => {
+    if (mode === 'edit' && editTool === 'move') {
+      document.addEventListener('mousemove', handleSvgMouseMove)
+      document.addEventListener('mouseup', handleSvgMouseUp)
+
+      return () => {
+        document.removeEventListener('mousemove', handleSvgMouseMove)
+        document.removeEventListener('mouseup', handleSvgMouseUp)
+      }
+    }
+  }, [mode, editTool, draggedSection, dragOffset])
 
   const renderMap = (g: d3.Selection<SVGGElement, unknown, null, undefined>) => {
     g.selectAll('*').remove()
@@ -1054,6 +1483,7 @@ export default function AdvancedCinemaSeatMapDesigner() {
         .append('g')
         .attr('class', `section section-${section.id}`)
         .style('opacity', section.layer ? 1 - section.layer * 0.1 : 1)
+        .style('cursor', editTool === 'move' ? 'move' : 'pointer')
 
       let sectionElement
       if (section.path) {
@@ -1064,7 +1494,6 @@ export default function AdvancedCinemaSeatMapDesigner() {
           .attr('fill-opacity', 0.3)
           .attr('stroke', section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
-          .attr('cursor', 'pointer')
       } else if (section.points.length > 0) {
         const polygonPoints = section.points.map((p) => `${p.x},${p.y}`).join(' ')
         sectionElement = sectionGroup
@@ -1074,68 +1503,71 @@ export default function AdvancedCinemaSeatMapDesigner() {
           .attr('fill-opacity', 0.3)
           .attr('stroke', section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
-          .attr('cursor', 'pointer')
       }
 
-      if (mode === 'edit' && editTool === 'select' && sectionElement) {
-        sectionElement.on('click', (event) => {
-          event.stopPropagation()
-          setSelectedSection(section)
-        })
-      }
-
-      if (mode === 'edit' && editTool === 'move' && selectedSection?.id === section.id && sectionElement) {
-        const drag = d3.drag().on('drag', (event) => {
-          const dx = event.dx
-          const dy = event.dy
-
-          const newSections = mapData.sections.map((s) => {
-            if (s.id === selectedSection.id) {
-              const newPoints = s.points.map((p) => ({
-                x: p.x + dx,
-                y: p.y + dy
-              }))
-              const newBounds = s.bounds
-                ? {
-                    minX: s.bounds.minX + dx,
-                    maxX: s.bounds.maxX + dx,
-                    minY: s.bounds.minY + dy,
-                    maxY: s.bounds.maxY + dy
-                  }
-                : undefined
-
-              const newSeats = s.seats?.map((seat) => ({
-                ...seat,
-                x: seat.x + dx,
-                y: seat.y + dy
-              }))
-
-              return { ...s, points: newPoints, bounds: newBounds, seats: newSeats }
-            }
-            return s
+      if (mode === 'edit') {
+        if (editTool === 'select' && sectionElement) {
+          sectionElement.on('click', (event) => {
+            event.stopPropagation()
+            setSelectedSection(section)
           })
-
-          setMapData({ ...mapData, sections: newSections })
-        })
-
-        sectionGroup.call(drag as any)
+        } else if (editTool === 'move' && sectionElement) {
+          sectionElement.on('mousedown', (event) => handleSectionMouseDown(event, section.id))
+        } else if (editTool === 'label' && sectionElement) {
+          sectionElement.on('click', (event) => {
+            event.stopPropagation()
+            setEditingLabel(section.id)
+            setLabelText(section.displayName || section.name)
+          })
+        }
       }
 
-      if (section.bounds || section.points.length > 0) {
-        const bounds = section.bounds || calculateBounds(section.points)
-        sectionGroup
+      // Render section label
+      if (section.labelPosition || section.bounds || section.points.length > 0) {
+        let labelX, labelY
+
+        if (section.labelPosition) {
+          labelX = section.labelPosition.x
+          labelY = section.labelPosition.y
+        } else if (section.position) {
+          labelX = section.position.x
+          labelY = section.position.y
+        } else if (section.bounds) {
+          labelX = section.bounds.minX + (section.bounds.maxX - section.bounds.minX) / 2
+          labelY = section.bounds.minY + (section.bounds.maxY - section.bounds.minY) / 2
+        } else {
+          const bounds = calculateBounds(section.points)
+          labelX = bounds.minX + (bounds.maxX - bounds.minX) / 2
+          labelY = bounds.minY + (bounds.maxY - bounds.minY) / 2
+        }
+
+        const labelGroup = sectionGroup.append('g').attr('class', 'section-label')
+
+        // Background for better readability
+        labelGroup
+          .append('rect')
+          .attr('x', labelX - 60)
+          .attr('y', labelY - 12)
+          .attr('width', 120)
+          .attr('height', 24)
+          .attr('fill', 'rgba(0,0,0,0.7)')
+          .attr('rx', 4)
+
+        labelGroup
           .append('text')
-          .attr('x', bounds.minX + (bounds.maxX - bounds.minX) / 2)
-          .attr('y', bounds.minY - 10)
+          .attr('x', labelX)
+          .attr('y', labelY + 2)
           .attr('text-anchor', 'middle')
-          .attr('fill', section.strokeColor || section.color)
+          .attr('dominant-baseline', 'middle')
+          .attr('fill', '#fff')
           .attr('font-size', '12px')
           .attr('font-weight', 'bold')
-          .text(section.name)
+          .text(section.displayName || section.name)
+          .style('pointer-events', 'none')
       }
 
       if (mode === 'preview' || mode === 'quick-booking') {
-        const seats = section.seats || generateSeatsForSection(section)
+        const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
 
         seats.forEach((seat) => {
           const status = seatStatuses.get(seat.id) || seat.status
@@ -1310,7 +1742,7 @@ export default function AdvancedCinemaSeatMapDesigner() {
       font-weight: bold;
       box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
     `
-    screen.textContent = section.name.toUpperCase()
+    screen.textContent = (section.displayName || section.name).toUpperCase()
     cinemaContainer.appendChild(screen)
 
     const seatsContainer = document.createElement('div')
@@ -1486,6 +1918,19 @@ export default function AdvancedCinemaSeatMapDesigner() {
     }
   }
 
+  const updateSectionLabel = () => {
+    if (!editingLabel) return
+
+    setMapData({
+      ...mapData,
+      sections: mapData.sections.map((s) =>
+        s.id === editingLabel ? { ...s, displayName: labelText, name: labelText } : s
+      )
+    })
+    setEditingLabel(null)
+    setLabelText('')
+  }
+
   const deleteSection = (sectionId: string) => {
     setMapData({
       ...mapData,
@@ -1505,7 +1950,7 @@ export default function AdvancedCinemaSeatMapDesigner() {
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
     const linkElement = document.createElement('a')
     linkElement.setAttribute('href', dataUri)
-    linkElement.setAttribute('download', `cinema-layout-${Date.now()}.json`)
+    linkElement.setAttribute('download', `seating-layout-${Date.now()}.json`)
     linkElement.click()
   }
 
@@ -2044,6 +2489,45 @@ export default function AdvancedCinemaSeatMapDesigner() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Label Edit Modal */}
+        {editingLabel && (
+          <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+            <div className='bg-slate-800 border border-purple-500/30 rounded-lg p-6 min-w-[300px]'>
+              <h3 className='text-lg font-semibold text-white mb-4'>Edit Section Label</h3>
+              <div className='space-y-4'>
+                <div>
+                  <Label htmlFor='label-input' className='text-sm text-gray-300'>
+                    Section Name
+                  </Label>
+                  <Input
+                    id='label-input'
+                    value={labelText}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabelText(e.target.value)}
+                    placeholder='Enter section name'
+                    className='mt-1 bg-slate-700 border-slate-600 text-white'
+                    autoFocus
+                  />
+                </div>
+                <div className='flex gap-2 justify-end'>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setEditingLabel(null)
+                      setLabelText('')
+                    }}
+                    size='sm'
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={updateSectionLabel} size='sm' className='bg-purple-600 hover:bg-purple-700'>
+                    Update
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
