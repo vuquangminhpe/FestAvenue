@@ -19,12 +19,10 @@ import {
   Star,
   Moon,
   Hexagon,
-  Shuffle,
   Palette,
-  Grid,
-  Layers,
   MousePointer,
-  Sparkles
+  Sparkles,
+  DollarSign
 } from 'lucide-react'
 
 // Types
@@ -42,6 +40,7 @@ interface Seat {
   status: 'available' | 'occupied' | 'locked'
   section: string
   category?: 'vip' | 'premium' | 'standard'
+  price?: number
 }
 
 interface Section {
@@ -63,6 +62,7 @@ interface Section {
   position?: { x: number; y: number }
   angle?: number
   labelPosition?: { x: number; y: number }
+  price?: number
 }
 
 interface SeatMapData {
@@ -73,666 +73,7 @@ interface SeatMapData {
 
 type ShapeType = 'polygon' | 'rectangle' | 'circle' | 'star' | 'crescent' | 'arc' | 'custom'
 type EditTool = 'select' | 'move' | 'draw' | 'shape' | 'label'
-type LayoutStyle = 'theater' | 'arena' | 'banquet' | 'classroom' | 'u-shape' | 'wedding'
 
-// Professional Layout Templates
-class ProfessionalLayoutGenerator {
-  private colors = {
-    vip: '#ffd700',
-    premium: '#c0c0c0',
-    standard: '#3498db',
-    balcony: '#9b59b6',
-    box: '#e74c3c',
-    orchestra: '#2ecc71',
-    mezzanine: '#f39c12',
-    general: '#34495e'
-  }
-
-  generateLayout(style: LayoutStyle, params: any): Section[] {
-    switch (style) {
-      case 'theater':
-        return this.generateTheaterLayout(params)
-      case 'arena':
-        return this.generateArenaLayout(params)
-      case 'banquet':
-        return this.generateBanquetLayout(params)
-      case 'classroom':
-        return this.generateClassroomLayout(params)
-      case 'u-shape':
-        return this.generateUShapeLayout(params)
-      case 'wedding':
-        return this.generateWeddingLayout(params)
-      default:
-        return this.generateTheaterLayout(params)
-    }
-  }
-
-  private generateTheaterLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { rows = 15, seatsPerRow = 20, vipRows = 3, balcony = true } = params
-
-    // Orchestra Center
-    sections.push({
-      id: `orchestra-center-${Date.now()}`,
-      name: 'Orchestra Center',
-      displayName: 'ORCHESTRA CENTER',
-      points: [
-        { x: 350, y: 200 },
-        { x: 650, y: 200 },
-        { x: 670, y: 350 },
-        { x: 330, y: 350 }
-      ],
-      color: this.colors.orchestra,
-      rows: rows - 5,
-      seatsPerRow: Math.floor(seatsPerRow * 0.6),
-      bounds: { minX: 330, maxX: 670, minY: 200, maxY: 350 },
-      shape: 'polygon',
-      category: 'standard',
-      labelPosition: { x: 500, y: 275 }
-    })
-
-    // Orchestra Left & Right with curve
-    const leftPath = d3.path()
-    leftPath.moveTo(200, 210)
-    leftPath.quadraticCurveTo(250, 200, 320, 200)
-    leftPath.lineTo(320, 350)
-    leftPath.quadraticCurveTo(250, 360, 180, 370)
-    leftPath.closePath()
-
-    sections.push({
-      id: `orchestra-left-${Date.now()}`,
-      name: 'Orchestra Left',
-      displayName: 'ORCHESTRA LEFT',
-      points: [],
-      path: leftPath.toString(),
-      color: this.colors.orchestra,
-      rows: rows - 5,
-      seatsPerRow: Math.floor(seatsPerRow * 0.25),
-      shape: 'custom',
-      category: 'standard',
-      labelPosition: { x: 250, y: 280 }
-    })
-
-    const rightPath = d3.path()
-    rightPath.moveTo(680, 200)
-    rightPath.quadraticCurveTo(750, 200, 800, 210)
-    rightPath.lineTo(820, 370)
-    rightPath.quadraticCurveTo(750, 360, 680, 350)
-    rightPath.closePath()
-
-    sections.push({
-      id: `orchestra-right-${Date.now()}`,
-      name: 'Orchestra Right',
-      displayName: 'ORCHESTRA RIGHT',
-      points: [],
-      path: rightPath.toString(),
-      color: this.colors.orchestra,
-      rows: rows - 5,
-      seatsPerRow: Math.floor(seatsPerRow * 0.25),
-      shape: 'custom',
-      category: 'standard',
-      labelPosition: { x: 750, y: 280 }
-    })
-
-    // VIP Front Rows
-    for (let i = 0; i < vipRows; i++) {
-      sections.push({
-        id: `vip-row-${i}-${Date.now()}`,
-        name: `VIP Row ${String.fromCharCode(65 + i)}`,
-        displayName: `VIP ROW ${String.fromCharCode(65 + i)}`,
-        points: [
-          { x: 300 + i * 10, y: 150 + i * 15 },
-          { x: 700 - i * 10, y: 150 + i * 15 },
-          { x: 700 - i * 10, y: 175 + i * 15 },
-          { x: 300 + i * 10, y: 175 + i * 15 }
-        ],
-        color: this.colors.vip,
-        rows: 1,
-        seatsPerRow: seatsPerRow - i * 2,
-        bounds: {
-          minX: 300 + i * 10,
-          maxX: 700 - i * 10,
-          minY: 150 + i * 15,
-          maxY: 175 + i * 15
-        },
-        shape: 'rectangle',
-        category: 'vip',
-        labelPosition: { x: 500, y: 162 + i * 15 }
-      })
-    }
-
-    // Mezzanine
-    if (rows > 10) {
-      const mezzPath = d3.path()
-      mezzPath.moveTo(150, 380)
-      mezzPath.quadraticCurveTo(500, 360, 850, 380)
-      mezzPath.lineTo(850, 450)
-      mezzPath.quadraticCurveTo(500, 470, 150, 450)
-      mezzPath.closePath()
-
-      sections.push({
-        id: `mezzanine-${Date.now()}`,
-        name: 'Mezzanine',
-        displayName: 'MEZZANINE',
-        points: [],
-        path: mezzPath.toString(),
-        color: this.colors.mezzanine,
-        rows: Math.floor(rows * 0.4),
-        seatsPerRow: seatsPerRow + 5,
-        shape: 'custom',
-        layer: 1,
-        category: 'standard',
-        labelPosition: { x: 500, y: 415 }
-      })
-    }
-
-    // Balcony
-    if (balcony && rows > 15) {
-      const balconyPath = d3.path()
-      balconyPath.arc(500, 550, 380, Math.PI * 1.1, Math.PI * -0.1)
-      balconyPath.arc(500, 550, 320, Math.PI * -0.1, Math.PI * 1.1, true)
-      balconyPath.closePath()
-
-      sections.push({
-        id: `balcony-${Date.now()}`,
-        name: 'Balcony',
-        displayName: 'BALCONY',
-        points: [],
-        path: balconyPath.toString(),
-        color: this.colors.balcony,
-        rows: Math.floor(rows * 0.3),
-        seatsPerRow: seatsPerRow + 10,
-        shape: 'arc',
-        layer: 2,
-        category: 'standard',
-        labelPosition: { x: 500, y: 500 }
-      })
-    }
-
-    // Box Seats
-    if (params.boxSeats) {
-      for (let i = 0; i < 2; i++) {
-        const side = i === 0 ? 'left' : 'right'
-        const x = i === 0 ? 100 : 900
-
-        for (let j = 0; j < 3; j++) {
-          sections.push({
-            id: `box-${side}-${j}-${Date.now()}`,
-            name: `Box ${side.toUpperCase()} ${j + 1}`,
-            displayName: `BOX ${j + 1}`,
-            points: [
-              { x: x - (i === 0 ? 50 : -50), y: 250 + j * 70 },
-              { x: x, y: 250 + j * 70 },
-              { x: x, y: 310 + j * 70 },
-              { x: x - (i === 0 ? 50 : -50), y: 310 + j * 70 }
-            ],
-            color: this.colors.box,
-            rows: 2,
-            seatsPerRow: 4,
-            bounds: {
-              minX: i === 0 ? x - 50 : x,
-              maxX: i === 0 ? x : x + 50,
-              minY: 250 + j * 70,
-              maxY: 310 + j * 70
-            },
-            shape: 'rectangle',
-            category: 'vip',
-            labelPosition: { x: x - (i === 0 ? 25 : -25), y: 280 + j * 70 }
-          })
-        }
-      }
-    }
-
-    return sections
-  }
-
-  private generateArenaLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { rows = 20, seatsPerRow = 25 } = params
-    const centerX = 500
-    const centerY = 350
-
-    // Floor/Court area
-    sections.push({
-      id: `floor-${Date.now()}`,
-      name: 'Floor',
-      displayName: 'FLOOR SEATS',
-      points: [
-        { x: centerX - 150, y: centerY - 100 },
-        { x: centerX + 150, y: centerY - 100 },
-        { x: centerX + 150, y: centerY + 100 },
-        { x: centerX - 150, y: centerY + 100 }
-      ],
-      color: this.colors.vip,
-      rows: 8,
-      seatsPerRow: 12,
-      bounds: {
-        minX: centerX - 150,
-        maxX: centerX + 150,
-        minY: centerY - 100,
-        maxY: centerY + 100
-      },
-      shape: 'rectangle',
-      category: 'vip',
-      labelPosition: { x: centerX, y: centerY }
-    })
-
-    // Create 8 sections around the arena
-    const sectionNames = ['North', 'NorthEast', 'East', 'SouthEast', 'South', 'SouthWest', 'West', 'NorthWest']
-    const angles = [0, 45, 90, 135, 180, 225, 270, 315]
-
-    angles.forEach((angle, i) => {
-      const rad = (angle * Math.PI) / 180
-      const innerRadius = 200
-      const outerRadius = 350
-
-      const path = d3.path()
-      const startAngle = rad - Math.PI / 8
-      const endAngle = rad + Math.PI / 8
-
-      path.arc(centerX, centerY, outerRadius, startAngle, endAngle)
-      path.arc(centerX, centerY, innerRadius, endAngle, startAngle, true)
-      path.closePath()
-
-      const labelRadius = (innerRadius + outerRadius) / 2
-      const labelX = centerX + Math.cos(rad) * labelRadius
-      const labelY = centerY + Math.sin(rad) * labelRadius
-
-      sections.push({
-        id: `section-${sectionNames[i]}-${Date.now()}`,
-        name: `Section ${sectionNames[i]}`,
-        displayName: sectionNames[i].toUpperCase(),
-        points: [],
-        path: path.toString(),
-        color: i % 2 === 0 ? this.colors.standard : this.colors.premium,
-        rows: rows,
-        seatsPerRow: Math.floor(seatsPerRow * 0.7),
-        shape: 'arc',
-        category: i % 2 === 0 ? 'standard' : 'premium',
-        labelPosition: { x: labelX, y: labelY }
-      })
-    })
-
-    // Upper deck sections
-    if (params.upperDeck) {
-      angles.forEach((angle, i) => {
-        const rad = (angle * Math.PI) / 180
-        const innerRadius = 380
-        const outerRadius = 480
-
-        const path = d3.path()
-        const startAngle = rad - Math.PI / 10
-        const endAngle = rad + Math.PI / 10
-
-        path.arc(centerX, centerY, outerRadius, startAngle, endAngle)
-        path.arc(centerX, centerY, innerRadius, endAngle, startAngle, true)
-        path.closePath()
-
-        const labelRadius = (innerRadius + outerRadius) / 2
-        const labelX = centerX + Math.cos(rad) * labelRadius
-        const labelY = centerY + Math.sin(rad) * labelRadius
-
-        sections.push({
-          id: `upper-${sectionNames[i]}-${Date.now()}`,
-          name: `Upper ${sectionNames[i]}`,
-          displayName: `UPPER ${sectionNames[i].toUpperCase()}`,
-          points: [],
-          path: path.toString(),
-          color: this.colors.balcony,
-          rows: Math.floor(rows * 0.6),
-          seatsPerRow: Math.floor(seatsPerRow * 0.5),
-          shape: 'arc',
-          layer: 1,
-          category: 'standard',
-          labelPosition: { x: labelX, y: labelY }
-        })
-      })
-    }
-
-    return sections
-  }
-
-  private generateBanquetLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { tables = 12, seatsPerTable = 10 } = params
-
-    const tableRadius = 40
-    const spacing = 120
-    const centerX = 500
-    const centerY = 300
-
-    // Calculate grid layout for tables
-    const cols = Math.ceil(Math.sqrt(tables * 1.5))
-    const rows = Math.ceil(tables / cols)
-
-    for (let i = 0; i < tables; i++) {
-      const row = Math.floor(i / cols)
-      const col = i % cols
-
-      const x = centerX - ((cols - 1) * spacing) / 2 + col * spacing
-      const y = centerY - ((rows - 1) * spacing) / 2 + row * spacing
-
-      // Add slight randomness for organic feel
-      const offsetX = (Math.random() - 0.5) * 20
-      const offsetY = (Math.random() - 0.5) * 20
-
-      const finalX = x + offsetX
-      const finalY = y + offsetY
-
-      // Create circular table
-      const path = d3.path()
-      path.arc(finalX, finalY, tableRadius, 0, Math.PI * 2)
-      path.closePath()
-
-      sections.push({
-        id: `table-${i + 1}-${Date.now()}`,
-        name: `Table ${i + 1}`,
-        displayName: `TABLE ${i + 1}`,
-        points: [],
-        path: path.toString(),
-        color: i < 3 ? this.colors.vip : this.colors.standard,
-        rows: 2,
-        seatsPerRow: Math.floor(seatsPerTable / 2),
-        shape: 'circle',
-        category: i < 3 ? 'vip' : 'standard',
-        position: { x: finalX, y: finalY },
-        labelPosition: { x: finalX, y: finalY }
-      })
-    }
-
-    // Add head table
-    sections.push({
-      id: `head-table-${Date.now()}`,
-      name: 'Head Table',
-      displayName: 'HEAD TABLE',
-      points: [
-        { x: 300, y: 100 },
-        { x: 700, y: 100 },
-        { x: 700, y: 150 },
-        { x: 300, y: 150 }
-      ],
-      color: this.colors.vip,
-      rows: 1,
-      seatsPerRow: params.headTableSeats || 8,
-      bounds: { minX: 300, maxX: 700, minY: 100, maxY: 150 },
-      shape: 'rectangle',
-      category: 'vip',
-      labelPosition: { x: 500, y: 125 }
-    })
-
-    // Add dance floor
-    sections.push({
-      id: `dance-floor-${Date.now()}`,
-      name: 'Dance Floor',
-      displayName: 'DANCE FLOOR',
-      points: [
-        { x: 400, y: 450 },
-        { x: 600, y: 450 },
-        { x: 600, y: 550 },
-        { x: 400, y: 550 }
-      ],
-      color: '#444444',
-      rows: 0,
-      seatsPerRow: 0,
-      bounds: { minX: 400, maxX: 600, minY: 450, maxY: 550 },
-      shape: 'rectangle',
-      category: 'special',
-      labelPosition: { x: 500, y: 500 }
-    })
-
-    return sections
-  }
-
-  private generateClassroomLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { rows = 10, seatsPerRow = 8, columns = 3 } = params
-
-    const sectionWidth = 200
-    const sectionHeight = 350
-    const aisleWidth = 60
-    const startX = 200
-    const startY = 150
-
-    for (let col = 0; col < columns; col++) {
-      const x = startX + col * (sectionWidth + aisleWidth)
-
-      sections.push({
-        id: `column-${col + 1}-${Date.now()}`,
-        name: `Section ${String.fromCharCode(65 + col)}`,
-        displayName: `SECTION ${String.fromCharCode(65 + col)}`,
-        points: [
-          { x, y: startY },
-          { x: x + sectionWidth, y: startY },
-          { x: x + sectionWidth, y: startY + sectionHeight },
-          { x, y: startY + sectionHeight }
-        ],
-        color: this.colors.standard,
-        rows,
-        seatsPerRow,
-        bounds: {
-          minX: x,
-          maxX: x + sectionWidth,
-          minY: startY,
-          maxY: startY + sectionHeight
-        },
-        shape: 'grid',
-        category: 'standard',
-        labelPosition: { x: x + sectionWidth / 2, y: startY - 20 }
-      })
-    }
-
-    // Add presenter area
-    sections.push({
-      id: `presenter-${Date.now()}`,
-      name: 'Presenter Area',
-      displayName: 'PRESENTER',
-      points: [
-        { x: 400, y: 80 },
-        { x: 600, y: 80 },
-        { x: 600, y: 120 },
-        { x: 400, y: 120 }
-      ],
-      color: '#666666',
-      rows: 0,
-      seatsPerRow: 0,
-      bounds: { minX: 400, maxX: 600, minY: 80, maxY: 120 },
-      shape: 'rectangle',
-      category: 'special',
-      labelPosition: { x: 500, y: 100 }
-    })
-
-    return sections
-  }
-
-  private generateUShapeLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { rows = 8, seatsPerRow = 15 } = params
-
-    // Left arm
-    sections.push({
-      id: `left-arm-${Date.now()}`,
-      name: 'Left Section',
-      displayName: 'LEFT SECTION',
-      points: [
-        { x: 200, y: 150 },
-        { x: 350, y: 150 },
-        { x: 350, y: 450 },
-        { x: 200, y: 450 }
-      ],
-      color: this.colors.standard,
-      rows,
-      seatsPerRow: Math.floor(seatsPerRow * 0.4),
-      bounds: { minX: 200, maxX: 350, minY: 150, maxY: 450 },
-      shape: 'grid',
-      category: 'standard',
-      labelPosition: { x: 275, y: 130 }
-    })
-
-    // Center/bottom
-    sections.push({
-      id: `center-${Date.now()}`,
-      name: 'Center Section',
-      displayName: 'CENTER SECTION',
-      points: [
-        { x: 350, y: 350 },
-        { x: 650, y: 350 },
-        { x: 650, y: 450 },
-        { x: 350, y: 450 }
-      ],
-      color: this.colors.premium,
-      rows: Math.floor(rows * 0.5),
-      seatsPerRow,
-      bounds: { minX: 350, maxX: 650, minY: 350, maxY: 450 },
-      shape: 'grid',
-      category: 'premium',
-      labelPosition: { x: 500, y: 400 }
-    })
-
-    // Right arm
-    sections.push({
-      id: `right-arm-${Date.now()}`,
-      name: 'Right Section',
-      displayName: 'RIGHT SECTION',
-      points: [
-        { x: 650, y: 150 },
-        { x: 800, y: 150 },
-        { x: 800, y: 450 },
-        { x: 650, y: 450 }
-      ],
-      color: this.colors.standard,
-      rows,
-      seatsPerRow: Math.floor(seatsPerRow * 0.4),
-      bounds: { minX: 650, maxX: 800, minY: 150, maxY: 450 },
-      shape: 'grid',
-      category: 'standard',
-      labelPosition: { x: 725, y: 130 }
-    })
-
-    // Presenter area in the middle
-    sections.push({
-      id: `presenter-area-${Date.now()}`,
-      name: 'Presenter Area',
-      displayName: 'PRESENTER',
-      points: [
-        { x: 400, y: 250 },
-        { x: 600, y: 250 },
-        { x: 600, y: 300 },
-        { x: 400, y: 300 }
-      ],
-      color: '#666666',
-      rows: 0,
-      seatsPerRow: 0,
-      bounds: { minX: 400, maxX: 600, minY: 250, maxY: 300 },
-      shape: 'rectangle',
-      category: 'special',
-      labelPosition: { x: 500, y: 275 }
-    })
-
-    return sections
-  }
-
-  private generateWeddingLayout(params: any): Section[] {
-    const sections: Section[] = []
-    const { guestCount = 150, ceremonySide = true } = params
-
-    if (ceremonySide) {
-      // Ceremony layout - two sides with aisle
-      const rowsPerSide = Math.ceil(guestCount / 20)
-      const seatsPerRow = 10
-
-      // Bride's side
-      sections.push({
-        id: `bride-side-${Date.now()}`,
-        name: "Bride's Side",
-        displayName: "BRIDE'S SIDE",
-        points: [
-          { x: 200, y: 200 },
-          { x: 450, y: 200 },
-          { x: 450, y: 450 },
-          { x: 200, y: 450 }
-        ],
-        color: '#ffb3ba',
-        rows: rowsPerSide,
-        seatsPerRow,
-        bounds: { minX: 200, maxX: 450, minY: 200, maxY: 450 },
-        shape: 'grid',
-        category: 'standard',
-        labelPosition: { x: 325, y: 180 }
-      })
-
-      // Groom's side
-      sections.push({
-        id: `groom-side-${Date.now()}`,
-        name: "Groom's Side",
-        displayName: "GROOM'S SIDE",
-        points: [
-          { x: 550, y: 200 },
-          { x: 800, y: 200 },
-          { x: 800, y: 450 },
-          { x: 550, y: 450 }
-        ],
-        color: '#bae1ff',
-        rows: rowsPerSide,
-        seatsPerRow,
-        bounds: { minX: 550, maxX: 800, minY: 200, maxY: 450 },
-        shape: 'grid',
-        category: 'standard',
-        labelPosition: { x: 675, y: 180 }
-      })
-
-      // Altar area
-      sections.push({
-        id: `altar-${Date.now()}`,
-        name: 'Altar',
-        displayName: 'ALTAR',
-        points: [
-          { x: 400, y: 100 },
-          { x: 600, y: 100 },
-          { x: 600, y: 150 },
-          { x: 400, y: 150 }
-        ],
-        color: '#ffd700',
-        rows: 0,
-        seatsPerRow: 0,
-        bounds: { minX: 400, maxX: 600, minY: 100, maxY: 150 },
-        shape: 'rectangle',
-        category: 'special',
-        labelPosition: { x: 500, y: 125 }
-      })
-
-      // Family rows
-      for (let i = 0; i < 2; i++) {
-        sections.push({
-          id: `family-row-${i}-${Date.now()}`,
-          name: `Family Row ${i + 1}`,
-          displayName: `FAMILY ${i + 1}`,
-          points: [
-            { x: 300, y: 160 + i * 30 },
-            { x: 700, y: 160 + i * 30 },
-            { x: 700, y: 180 + i * 30 },
-            { x: 300, y: 180 + i * 30 }
-          ],
-          color: this.colors.vip,
-          rows: 1,
-          seatsPerRow: 12,
-          bounds: {
-            minX: 300,
-            maxX: 700,
-            minY: 160 + i * 30,
-            maxY: 180 + i * 30
-          },
-          shape: 'rectangle',
-          category: 'vip',
-          labelPosition: { x: 500, y: 170 + i * 30 }
-        })
-      }
-    }
-
-    return sections
-  }
-}
-
-// Seat Interaction Manager (keeping existing functionality)
 class SeatInteractionManager {
   private animationQueue: Map<string, any> = new Map()
   private seatStates: Map<string, 'available' | 'occupied' | 'locked'> = new Map()
@@ -967,10 +308,10 @@ class SeatInteractionManager {
 export default function AdvancedSeatMapDesigner() {
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
-  const layoutGeneratorRef = useRef(new ProfessionalLayoutGenerator())
+
   const seatManagerRef = useRef(new SeatInteractionManager())
 
-  const [mode, setMode] = useState<'edit' | 'preview' | 'quick-booking'>('edit')
+  const [mode, setMode] = useState<'edit' | 'preview' | 'review-check'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
   const [selectedShape, setSelectedShape] = useState<ShapeType>('polygon')
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([])
@@ -978,6 +319,8 @@ export default function AdvancedSeatMapDesigner() {
   const [selectedSection, setSelectedSection] = useState<Section | null>(null)
   const [editingLabel, setEditingLabel] = useState<string | null>(null)
   const [labelText, setLabelText] = useState('')
+  const [editingSeatPrice, setEditingSeatPrice] = useState<string | null>(null)
+  const [seatPrice, setSeatPrice] = useState('')
   const [mapData, setMapData] = useState<SeatMapData>({
     sections: [],
     stage: { x: 350, y: 50, width: 300, height: 80 },
@@ -985,7 +328,7 @@ export default function AdvancedSeatMapDesigner() {
   })
   const [is3DView, setIs3DView] = useState(false)
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
-  const [layoutStyle] = useState<LayoutStyle>('theater')
+  const [totalPrice, setTotalPrice] = useState(0)
   const [layoutParams, setLayoutParams] = useState({
     rows: 15,
     seatsPerRow: 20,
@@ -1031,6 +374,58 @@ export default function AdvancedSeatMapDesigner() {
     }
     loadGSAP()
   }, [])
+
+  // Sync seatManagerRef with seatStatuses
+  useEffect(() => {
+    seatStatuses.forEach((status, seatId) => {
+      seatManagerRef.current.setSeatStatus(seatId, status)
+    })
+  }, [seatStatuses])
+
+  // Update total price when seat statuses or map data changes
+  useEffect(() => {
+    let total = 0
+    let occupiedSeatsDebug: any[] = []
+
+    // Debug: Show what's in seatStatuses Map
+    console.log('seatStatuses Map contents:', Array.from(seatStatuses.entries()))
+
+    mapData.sections.forEach((section) => {
+      const sectionPrice = section.price || 0
+      console.log(`Section ${section.name}: price=${sectionPrice}, seats stored=${section.seats?.length || 0}`)
+
+      // Use the same logic as renderMap to get seats
+      const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
+      console.log(`Section ${section.name}: seats after generation=${seats.length}`)
+
+      seats?.forEach((seat) => {
+        const seatStatus = seatStatuses.get(seat.id) || seat.status
+        console.log(`Checking seat ${seat.id}: status=${seatStatus}, seat.price=${seat.price}`)
+        if (seatStatus === 'occupied') {
+          const seatPrice = seat.price || sectionPrice
+          console.log(
+            `Occupied seat ${seat.id}: seat.price=${seat.price}, sectionPrice=${sectionPrice}, finalPrice=${seatPrice}`
+          )
+          total += seatPrice
+          occupiedSeatsDebug.push({
+            seatId: seat.id,
+            seatPrice: seat.price,
+            sectionPrice: sectionPrice,
+            finalPrice: seatPrice
+          })
+        }
+      })
+    })
+
+    console.log('Occupied seats detail:', occupiedSeatsDebug)
+    console.log(
+      'Total price updated:',
+      total,
+      'Occupied seats:',
+      Array.from(seatStatuses.entries()).filter(([_, status]) => status === 'occupied').length
+    )
+    setTotalPrice(total)
+  }, [seatStatuses, mapData])
 
   const generateShapePath = useCallback((type: ShapeType, center: Point, size: number = 100): string => {
     const path = d3.path()
@@ -1084,10 +479,21 @@ export default function AdvancedSeatMapDesigner() {
       rows: sectionConfig.rows,
       seatsPerRow: sectionConfig.seatsPerRow,
       shape: selectedShape === 'polygon' ? 'custom' : selectedShape,
-      labelPosition: center
+      labelPosition: center,
+      price: 10 // Default price
     }
 
     newSection.seats = generateSeatsForSection(newSection)
+    console.log(
+      'Created section:',
+      newSection.name,
+      'with price:',
+      newSection.price,
+      'and',
+      newSection.seats.length,
+      'seats'
+    )
+    console.log('Sample seat price:', newSection.seats[0]?.price)
 
     setMapData({
       ...mapData,
@@ -1112,7 +518,8 @@ export default function AdvancedSeatMapDesigner() {
       seatsPerRow: sectionConfig.seatsPerRow,
       bounds,
       shape: 'polygon',
-      labelPosition: { x: centerX, y: centerY }
+      labelPosition: { x: centerX, y: centerY },
+      price: 10 // Default price
     }
 
     newSection.seats = generateSeatsForSection(newSection)
@@ -1125,6 +532,7 @@ export default function AdvancedSeatMapDesigner() {
   const generateSeatsForSection = useCallback(
     (section: Section): Seat[] => {
       const seats: Seat[] = []
+      console.log('generateSeatsForSection called for section:', section.name, 'section.price:', section.price)
 
       if (section.bounds || section.points.length > 0) {
         const bounds = section.bounds || calculateBounds(section.points)
@@ -1143,6 +551,7 @@ export default function AdvancedSeatMapDesigner() {
             if (!section.points.length || isPointInPolygon({ x, y }, section.points)) {
               const seatId = `${section.id}-R${row + 1}-S${col + 1}`
               const status = seatStatuses.get(seatId) || 'available'
+              const seatPrice = section.price || 10
               seats.push({
                 id: seatId,
                 x,
@@ -1151,8 +560,12 @@ export default function AdvancedSeatMapDesigner() {
                 number: col + 1,
                 section: section.id,
                 status: status,
-                category: section.category === 'vip' ? 'vip' : 'standard'
+                category: section.category === 'vip' ? 'vip' : 'standard',
+                price: seatPrice // Use section price or default
               })
+              if (seats.length === 1) {
+                console.log('First seat created with price:', seatPrice, 'from section.price:', section.price)
+              }
             }
           }
         }
@@ -1187,59 +600,6 @@ export default function AdvancedSeatMapDesigner() {
     return inside
   }
 
-  const generateAutoLayout = useCallback(
-    (layoutType?: string) => {
-      const generator = layoutGeneratorRef.current
-
-      let styleToUse: LayoutStyle
-      let paramsToUse = layoutParams
-
-      if (layoutType === 'smart-random') {
-        const availableLayouts: LayoutStyle[] = ['theater', 'arena', 'banquet', 'classroom', 'u-shape', 'wedding']
-        styleToUse = availableLayouts[Math.floor(Math.random() * availableLayouts.length)]
-
-        // Randomize some params too for more variety
-        paramsToUse = {
-          ...layoutParams,
-          rows: Math.floor(Math.random() * 10) + 10, // 10-20 rows
-          seatsPerRow: Math.floor(Math.random() * 15) + 15, // 15-30 seats per row
-          vipRows: Math.floor(Math.random() * 3) + 2, // 2-5 VIP rows
-          tables: Math.floor(Math.random() * 8) + 8, // 8-16 tables for banquet
-          balcony: Math.random() > 0.5,
-          upperDeck: Math.random() > 0.5,
-          boxSeats: Math.random() > 0.5
-        }
-      } else {
-        styleToUse = (layoutType as LayoutStyle) || layoutStyle
-      }
-
-      const newSections = generator.generateLayout(styleToUse, paramsToUse)
-
-      if (layoutType === 'smart-random') {
-        console.log('Generated random layout:', styleToUse, 'with params:', paramsToUse)
-      }
-
-      const updatedSections = newSections.map((section) => {
-        const seats = section.rows > 0 ? generateSeatsForSection(section) : []
-        return { ...section, seats }
-      })
-
-      seatManagerRef.current.clearState()
-      updatedSections.forEach((section) => {
-        section.seats?.forEach((seat) => {
-          seatManagerRef.current.setSeatStatus(seat.id, seat.status)
-        })
-      })
-
-      setMapData({
-        ...mapData,
-        sections: updatedSections,
-        aisles: styleToUse === 'theater' ? [{ start: { x: 470, y: 150 }, end: { x: 470, y: 550 }, width: 60 }] : []
-      })
-    },
-    [mapData.stage, layoutParams, layoutStyle, generateSeatsForSection]
-  )
-
   useEffect(() => {
     if (!svgRef.current) return
 
@@ -1255,7 +615,7 @@ export default function AdvancedSeatMapDesigner() {
         g.attr('transform', event.transform)
       })
 
-    if (mode === 'preview' || mode === 'quick-booking') {
+    if (mode === 'preview' || mode === 'review-check') {
       svg.call(zoom as any)
     }
 
@@ -1552,6 +912,23 @@ export default function AdvancedSeatMapDesigner() {
           .attr('height', 24)
           .attr('fill', 'rgba(0,0,0,0.7)')
           .attr('rx', 4)
+          .style('cursor', 'pointer')
+          .style('pointer-events', 'all')
+          .on('dblclick', (event) => {
+            event.stopPropagation()
+            event.preventDefault()
+            console.log('Double click on section:', section.name, section.id)
+            setEditingLabel(section.id)
+            setLabelText(section.displayName || section.name)
+          })
+          .on('contextmenu', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setEditingLabel(section.id)
+            setLabelText(section.displayName || section.name)
+          })
+          .append('title')
+          .text('Double-click or right-click to edit section name')
 
         labelGroup
           .append('text')
@@ -1563,10 +940,27 @@ export default function AdvancedSeatMapDesigner() {
           .attr('font-size', '12px')
           .attr('font-weight', 'bold')
           .text(section.displayName || section.name)
+          .style('cursor', 'pointer')
+          .style('pointer-events', 'all')
+          .on('dblclick', (event) => {
+            event.stopPropagation()
+            event.preventDefault()
+            console.log('Double click on text:', section.name, section.id)
+            setEditingLabel(section.id)
+            setLabelText(section.displayName || section.name)
+          })
+          .on('contextmenu', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setEditingLabel(section.id)
+            setLabelText(section.displayName || section.name)
+          })
+          .append('title')
+          .text('Double-click or right-click to edit section name')
           .style('pointer-events', 'none')
       }
 
-      if (mode === 'preview' || mode === 'quick-booking') {
+      if (mode === 'preview' || mode === 'review-check') {
         const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
 
         seats.forEach((seat) => {
@@ -1616,10 +1010,22 @@ export default function AdvancedSeatMapDesigner() {
               .text('🔒')
           }
 
-          if (mode === 'quick-booking') {
+          if (mode === 'preview') {
             hitboxGroup.on('click', (event) => {
               event.stopPropagation()
               handleQuickSeatToggle(seat.id, status)
+            })
+          }
+
+          if (mode === 'review-check') {
+            hitboxGroup.on('click', (event) => {
+              event.stopPropagation()
+              handleSeatLockToggle(seat.id, status)
+            })
+            hitboxGroup.on('dblclick', (event) => {
+              event.stopPropagation()
+              setEditingSeatPrice(seat.id)
+              setSeatPrice((seat.price || 0).toString())
             })
           }
 
@@ -1694,6 +1100,13 @@ export default function AdvancedSeatMapDesigner() {
     if (currentStatus === 'locked') return
 
     const newStatus = currentStatus === 'occupied' ? 'available' : 'occupied'
+    console.log('Seat toggle:', seatId, currentStatus, '->', newStatus)
+    setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
+    seatManagerRef.current.setSeatStatus(seatId, newStatus)
+  }
+
+  const handleSeatLockToggle = (seatId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'locked' ? 'available' : 'locked'
     setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
     seatManagerRef.current.setSeatStatus(seatId, newStatus)
   }
@@ -1785,9 +1198,11 @@ export default function AdvancedSeatMapDesigner() {
 
   const create3DSeatElement = (section: Section, row: number, col: number): HTMLElement => {
     const seatId = `${section.id}-R${row + 1}-S${col + 1}`
-    const status = seatManagerRef.current.getSeatStatus(seatId)
+    const status = seatStatuses.get(seatId) || 'available' // Use React state instead of seatManagerRef
     const isLocked = status === 'locked'
     const isOccupied = status === 'occupied'
+
+    console.log('Creating 3D seat:', seatId, 'with status:', status)
 
     const seatWrapper = document.createElement('div')
     seatWrapper.style.cssText = `
@@ -1876,9 +1291,16 @@ export default function AdvancedSeatMapDesigner() {
     if (!isLocked) {
       seatWrapper.addEventListener('click', (e) => {
         e.stopPropagation()
+        console.log('3D seat clicked:', seatId)
 
         seatManagerRef.current.toggleSeat(seatWrapper, seatId, (id, newStatus) => {
-          setSeatStatuses((prev) => new Map(prev).set(id, newStatus))
+          console.log('3D seat status changing:', id, 'to', newStatus)
+          setSeatStatuses((prev) => {
+            const newMap = new Map(prev)
+            newMap.set(id, newStatus)
+            console.log('Updated seatStatuses in 3D:', Array.from(newMap.entries()))
+            return newMap
+          })
         })
       })
     }
@@ -1931,6 +1353,20 @@ export default function AdvancedSeatMapDesigner() {
     setLabelText('')
   }
 
+  const updateSeatPrice = () => {
+    if (!editingSeatPrice) return
+
+    const price = parseFloat(seatPrice) || 0
+    const updatedSections = mapData.sections.map((section) => ({
+      ...section,
+      seats: section.seats?.map((seat) => (seat.id === editingSeatPrice ? { ...seat, price } : seat))
+    }))
+
+    setMapData({ ...mapData, sections: updatedSections })
+    setEditingSeatPrice(null)
+    setSeatPrice('')
+  }
+
   const deleteSection = (sectionId: string) => {
     setMapData({
       ...mapData,
@@ -1961,7 +1397,8 @@ export default function AdvancedSeatMapDesigner() {
           <CardHeader className='pb-3'>
             <div className='flex items-center justify-between'>
               <CardTitle className='text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent'>
-                🎬 Advanced Cinema Seat Map Designer
+                🎬 Advanced Cinema Seat Map Designer {mode === 'review-check' && '- Review & Check'}{' '}
+                {mode === 'preview' && `- Total: $${totalPrice.toFixed(2)}`}
               </CardTitle>
               <div className='flex gap-2'>
                 <Button
@@ -1974,22 +1411,22 @@ export default function AdvancedSeatMapDesigner() {
                   Design
                 </Button>
                 <Button
-                  onClick={() => setMode('quick-booking')}
-                  variant={mode === 'quick-booking' ? 'default' : 'outline'}
-                  size='sm'
-                  className={mode === 'quick-booking' ? 'bg-gradient-to-r from-blue-600 to-cyan-600' : ''}
-                >
-                  <MousePointer className='w-4 h-4 mr-1' />
-                  Quick Book
-                </Button>
-                <Button
                   onClick={() => setMode('preview')}
                   variant={mode === 'preview' ? 'default' : 'outline'}
                   size='sm'
                   className={mode === 'preview' ? 'bg-gradient-to-r from-green-600 to-emerald-600' : ''}
                 >
                   <Eye className='w-4 h-4 mr-1' />
-                  3D View
+                  Preview
+                </Button>
+                <Button
+                  onClick={() => setMode('review-check')}
+                  variant={mode === 'review-check' ? 'default' : 'outline'}
+                  size='sm'
+                  className={mode === 'review-check' ? 'bg-gradient-to-r from-orange-600 to-red-600' : ''}
+                >
+                  <DollarSign className='w-4 h-4 mr-1' />
+                  Review & Check
                 </Button>
               </div>
             </div>
@@ -2001,9 +1438,20 @@ export default function AdvancedSeatMapDesigner() {
             <CardContent className='p-4 space-y-4'>
               {mode === 'edit' && (
                 <>
+                  <Alert className='bg-purple-600/20 border-purple-500/50'>
+                    <AlertDescription className='text-xs'>
+                      💡 <strong>Quick Tips:</strong>
+                      <br />
+                      • Double-click or right-click section labels to rename
+                      <br />
+                      • Or use Label tool + click section
+                      <br />• Draw/Shape tools create new sections
+                    </AlertDescription>
+                  </Alert>
+
                   <div className='space-y-3'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
-                      <Layers className='w-4 h-4' />
+                      <Edit className='w-4 h-4' />
                       Edit Tools
                     </h3>
                     <div className='grid grid-cols-2 gap-2'>
@@ -2043,8 +1491,29 @@ export default function AdvancedSeatMapDesigner() {
                         <Hexagon className='w-3 h-3 mr-1' />
                         Shape
                       </Button>
+                      <Button
+                        onClick={() => setEditTool('label')}
+                        variant={editTool === 'label' ? 'default' : 'outline'}
+                        size='sm'
+                        className={editTool === 'label' ? 'bg-red-600' : ''}
+                      >
+                        <Edit className='w-3 h-3 mr-1' />
+                        Label
+                      </Button>
                     </div>
                   </div>
+
+                  {editTool === 'label' && (
+                    <Alert className='bg-red-600/20 border-red-600/50'>
+                      <AlertDescription className='text-xs'>
+                        🏷️ <strong>Label Mode</strong>
+                        <br />
+                        Click any section to edit its name.
+                        <br />
+                        OR double-click/right-click section labels directly.
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   {editTool === 'shape' && (
                     <div className='space-y-3'>
@@ -2248,88 +1717,6 @@ export default function AdvancedSeatMapDesigner() {
                           max='40'
                         />
                       </div>
-                      <div>
-                        <label className='text-xs text-gray-400'>Layers</label>
-                        <input
-                          type='number'
-                          value={layoutParams.layers}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              layers: parseInt(e.target.value) || 3
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='1'
-                          max='5'
-                        />
-                      </div>
-                      <div>
-                        <label className='text-xs text-gray-400'>Aisles</label>
-                        <input
-                          type='number'
-                          value={layoutParams.aisles}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              aisles: parseInt(e.target.value) || 2
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='0'
-                          max='5'
-                        />
-                      </div>
-                    </div>
-
-                    <div className='flex items-center gap-4'>
-                      <label className='text-xs text-gray-400 flex items-center gap-2'>
-                        <input
-                          type='checkbox'
-                          checked={layoutParams.symmetry}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              symmetry: e.target.checked
-                            })
-                          }
-                          className='rounded'
-                        />
-                        Symmetry
-                      </label>
-                      <select
-                        value={layoutParams.density}
-                        onChange={(e) =>
-                          setLayoutParams({
-                            ...layoutParams,
-                            density: e.target.value as any
-                          })
-                        }
-                        className='px-2 py-1 bg-slate-700 rounded text-sm'
-                      >
-                        <option value='sparse'>Sparse</option>
-                        <option value='normal'>Normal</option>
-                        <option value='dense'>Dense</option>
-                      </select>
-                    </div>
-
-                    <div className='grid grid-cols-2 gap-2'>
-                      <Button
-                        onClick={() => generateAutoLayout('theater')}
-                        className='bg-gradient-to-r from-violet-600 to-purple-600'
-                        size='sm'
-                      >
-                        <Grid className='w-3 h-3 mr-1' />
-                        Theater
-                      </Button>
-                      <Button
-                        onClick={() => generateAutoLayout('smart-random')}
-                        className='bg-gradient-to-r from-orange-600 to-yellow-600'
-                        size='sm'
-                      >
-                        <Shuffle className='w-3 h-3 mr-1' />
-                        Smart Mix
-                      </Button>
                     </div>
                   </div>
 
@@ -2359,6 +1746,9 @@ export default function AdvancedSeatMapDesigner() {
                             <span className='text-xs text-gray-400'>
                               ({section.rows}x{section.seatsPerRow})
                             </span>
+                            {section.price && (
+                              <span className='text-xs text-green-400 font-semibold'>${section.price}</span>
+                            )}
                           </div>
                           <Button
                             onClick={(e) => {
@@ -2378,41 +1768,122 @@ export default function AdvancedSeatMapDesigner() {
                 </>
               )}
 
-              {mode === 'quick-booking' && (
-                <Alert className='bg-blue-600/20 border-blue-600/50'>
-                  <AlertDescription className='text-sm'>
-                    💡 <strong>Quick Booking Mode</strong>
-                    <br />
-                    <br />
-                    • Click any seat to book/unbook
-                    <br />
-                    • Green = Available
-                    <br />
-                    • Red = Occupied
-                    <br />
-                    • Gray 🔒 = Locked
-                    <br />
-                    <br />
-                    Use scroll to zoom
-                  </AlertDescription>
-                </Alert>
+              {mode === 'review-check' && (
+                <>
+                  <Alert className='bg-orange-600/20 border-orange-600/50'>
+                    <AlertDescription className='text-sm'>
+                      💰 <strong>Review & Check Mode</strong>
+                      <br />
+                      <br />
+                      • Set section pricing
+                      <br />
+                      • Lock seats for invited guests
+                      <br />
+                      • Edit individual seat prices
+                      <br />
+                      <br />
+                      Click seats to lock/unlock them
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className='space-y-2'>
+                    <h3 className='text-sm font-semibold text-orange-300 flex items-center gap-2'>
+                      <DollarSign className='w-4 h-4' />
+                      Section Pricing
+                    </h3>
+                    <div className='space-y-2 max-h-60 overflow-y-auto'>
+                      {mapData.sections.map((section) => (
+                        <div key={section.id} className='bg-slate-700/50 p-3 rounded border'>
+                          <div className='flex items-center justify-between mb-2'>
+                            <span className='text-sm font-medium'>{section.name}</span>
+                            <div className='flex items-center gap-2'>
+                              <span className='text-xs text-gray-400'>
+                                {section.seats?.length || section.rows * section.seatsPerRow} seats
+                              </span>
+                            </div>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            <DollarSign className='w-3 h-3' />
+                            <input
+                              type='number'
+                              value={section.price || 0}
+                              onChange={(e) => {
+                                const price = parseFloat(e.target.value) || 0
+                                const updatedSections = mapData.sections.map((s) => {
+                                  if (s.id === section.id) {
+                                    const updatedSection = { ...s, price }
+                                    // Update all seats in this section with new price
+                                    if (updatedSection.seats) {
+                                      updatedSection.seats = updatedSection.seats.map((seat) => ({
+                                        ...seat,
+                                        price: price
+                                      }))
+                                    }
+                                    return updatedSection
+                                  }
+                                  return s
+                                })
+                                setMapData({ ...mapData, sections: updatedSections })
+                              }}
+                              placeholder='0.00'
+                              className='w-full px-2 py-1 bg-slate-600 rounded text-sm'
+                              step='0.01'
+                              min='0'
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      onClick={() => {
+                        // Force regenerate all seats with updated prices
+                        const updatedSections = mapData.sections.map((section) => ({
+                          ...section,
+                          seats: generateSeatsForSection(section)
+                        }))
+                        setMapData({ ...mapData, sections: updatedSections })
+                      }}
+                      className='w-full bg-orange-600 hover:bg-orange-700 mt-2'
+                      size='sm'
+                    >
+                      🔄 Update All Seat Prices
+                    </Button>
+                  </div>
+                </>
               )}
 
               {mode === 'preview' && (
-                <Alert className='bg-purple-600/20 border-purple-600/50'>
-                  <AlertDescription className='text-sm'>
-                    🎬 <strong>3D Cinema View</strong>
-                    <br />
-                    <br />
-                    Click any section to enter 3D view
-                    <br />
-                    <br />
-                    • Click seat → Character walks in
-                    <br />
-                    • Click again → Character leaves
-                    <br />• Gray seats are locked
-                  </AlertDescription>
-                </Alert>
+                <>
+                  <Alert className='bg-green-600/20 border-green-600/50'>
+                    <AlertDescription className='text-sm'>
+                      🎬 <strong>Preview Mode</strong>
+                      <br />
+                      <br />
+                      • Click any seat to book/unbook
+                      <br />
+                      • Green = Available
+                      <br />
+                      • Red = Occupied
+                      <br />
+                      • Gray 🔒 = Locked
+                      <br />
+                      • Click section for 3D view
+                      <br />
+                      <br />
+                      Use scroll to zoom
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className='bg-green-600/20 border border-green-600/50 rounded-lg p-4'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-2'>
+                        <DollarSign className='w-5 h-5 text-green-400' />
+                        <span className='text-lg font-semibold text-green-400'>Total:</span>
+                      </div>
+                      <span className='text-2xl font-bold text-green-400'>${totalPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className='space-y-2 pt-4 border-t border-purple-500/30'>
@@ -2476,6 +1947,15 @@ export default function AdvancedSeatMapDesigner() {
                     <X className='w-4 h-4 mr-2' />
                     Back to Map
                   </Button>
+
+                  {/* Total Price Display in 3D View */}
+                  <div className='absolute top-4 right-4 z-50 bg-slate-800/90 backdrop-blur border border-green-500/30 rounded-lg p-3'>
+                    <div className='flex items-center gap-2'>
+                      <DollarSign className='w-5 h-5 text-green-400' />
+                      <span className='text-green-400 font-semibold'>Total: ${totalPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+
                   <div
                     ref={seat3DRef}
                     className='w-full h-full overflow-auto'
@@ -2521,6 +2001,48 @@ export default function AdvancedSeatMapDesigner() {
                     Cancel
                   </Button>
                   <Button onClick={updateSectionLabel} size='sm' className='bg-purple-600 hover:bg-purple-700'>
+                    Update
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Seat Price Edit Modal */}
+        {editingSeatPrice && (
+          <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
+            <div className='bg-slate-800 border border-orange-500/30 rounded-lg p-6 min-w-[300px]'>
+              <h3 className='text-lg font-semibold text-white mb-4'>Edit Seat Price</h3>
+              <div className='space-y-4'>
+                <div>
+                  <Label htmlFor='price-input' className='text-sm text-gray-300'>
+                    Seat Price ($)
+                  </Label>
+                  <Input
+                    id='price-input'
+                    type='number'
+                    value={seatPrice}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeatPrice(e.target.value)}
+                    placeholder='0.00'
+                    className='mt-1 bg-slate-700 border-slate-600 text-white'
+                    step='0.01'
+                    min='0'
+                    autoFocus
+                  />
+                </div>
+                <div className='flex gap-2 justify-end'>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setEditingSeatPrice(null)
+                      setSeatPrice('')
+                    }}
+                    size='sm'
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={updateSeatPrice} size='sm' className='bg-orange-600 hover:bg-orange-700'>
                     Update
                   </Button>
                 </div>
