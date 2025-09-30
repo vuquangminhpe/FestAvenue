@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import * as d3 from 'd3'
+import { useMutation } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -22,57 +23,21 @@ import {
   Palette,
   MousePointer,
   Sparkles,
-  DollarSign
+  DollarSign,
+  Loader2,
+  Scissors,
+  GitBranch
 } from 'lucide-react'
-
-// Types
-interface Point {
-  x: number
-  y: number
-}
-
-interface Seat {
-  id: string
-  x: number
-  y: number
-  row: number
-  number: number
-  status: 'available' | 'occupied' | 'locked'
-  section: string
-  category?: 'vip' | 'premium' | 'standard'
-  price?: number
-}
-
-interface Section {
-  id: string
-  name: string
-  displayName?: string
-  points: Point[]
-  path?: string
-  color: string
-  strokeColor?: string
-  gradient?: { from: string; to: string }
-  rows: number
-  seatsPerRow: number
-  bounds?: { minX: number; minY: number; maxX: number; maxY: number }
-  shape?: 'polygon' | 'arc' | 'circle' | 'custom' | 'grid' | 'rectangle' | 'star' | 'crescent'
-  seats?: Seat[]
-  layer?: number
-  category?: string
-  position?: { x: number; y: number }
-  angle?: number
-  labelPosition?: { x: number; y: number }
-  price?: number
-}
-
-interface SeatMapData {
-  sections: Section[]
-  stage: { x: number; y: number; width: number; height: number }
-  aisles?: { start: Point; end: Point; width: number }[]
-}
-
-type ShapeType = 'polygon' | 'rectangle' | 'circle' | 'star' | 'crescent' | 'arc' | 'custom'
-type EditTool = 'select' | 'move' | 'draw' | 'shape' | 'label'
+import type {
+  DetectedText,
+  EditTool,
+  ExtractionResult,
+  Point,
+  Seat,
+  SeatMapData,
+  Section,
+  ShapeType
+} from '@/types/seat.types'
 
 class SeatInteractionManager {
   private animationQueue: Map<string, any> = new Map()
@@ -308,6 +273,7 @@ class SeatInteractionManager {
 export default function AdvancedSeatMapDesigner() {
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const seatManagerRef = useRef(new SeatInteractionManager())
 
@@ -362,6 +328,12 @@ export default function AdvancedSeatMapDesigner() {
   })
   const [draggedSection, setDraggedSection] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 })
+  const [isImageImportMode, setIsImageImportMode] = useState(false)
+  const [splitLine, setSplitLine] = useState<{ start: Point; end: Point } | null>(null)
+  const [isSplitting] = useState(false)
+  const [splitFirstPoint, setSplitFirstPoint] = useState<Point | null>(null)
+  const [editingPoints, setEditingPoints] = useState<{ sectionId: string; points: Point[] } | null>(null)
+  const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
 
   useEffect(() => {
     const loadGSAP = () => {
@@ -388,24 +360,18 @@ export default function AdvancedSeatMapDesigner() {
     let occupiedSeatsDebug: any[] = []
 
     // Debug: Show what's in seatStatuses Map
-    console.log('seatStatuses Map contents:', Array.from(seatStatuses.entries()))
 
     mapData.sections.forEach((section) => {
       const sectionPrice = section.price || 0
-      console.log(`Section ${section.name}: price=${sectionPrice}, seats stored=${section.seats?.length || 0}`)
 
       // Use the same logic as renderMap to get seats
       const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
-      console.log(`Section ${section.name}: seats after generation=${seats.length}`)
 
       seats?.forEach((seat) => {
         const seatStatus = seatStatuses.get(seat.id) || seat.status
-        console.log(`Checking seat ${seat.id}: status=${seatStatus}, seat.price=${seat.price}`)
         if (seatStatus === 'occupied') {
           const seatPrice = seat.price || sectionPrice
-          console.log(
-            `Occupied seat ${seat.id}: seat.price=${seat.price}, sectionPrice=${sectionPrice}, finalPrice=${seatPrice}`
-          )
+
           total += seatPrice
           occupiedSeatsDebug.push({
             seatId: seat.id,
@@ -417,15 +383,287 @@ export default function AdvancedSeatMapDesigner() {
       })
     })
 
-    console.log('Occupied seats detail:', occupiedSeatsDebug)
-    console.log(
-      'Total price updated:',
-      total,
-      'Occupied seats:',
-      Array.from(seatStatuses.entries()).filter(([_, status]) => status === 'occupied').length
-    )
     setTotalPrice(total)
   }, [seatStatuses, mapData])
+
+  // API Mutation for image polygon extraction
+  const extractPolygonsMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/extract-seats/', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status} ${response.statusText}`)
+      }
+
+      return response.json() as Promise<ExtractionResult>
+    },
+    onSuccess: (data) => {
+      convertPolygonsToSections(data)
+      setIsImageImportMode(true)
+    },
+    onError: (error: Error) => {
+      console.error('Polygon extraction failed:', error)
+      alert(`Failed to extract polygons: ${error.message}`)
+    }
+  })
+
+  // Helper function to find detected text for a polygon
+  const findTextForPolygon = (bounds: any, detectedTexts: DetectedText[]): DetectedText | null => {
+    if (!detectedTexts || detectedTexts.length === 0) return null
+
+    // Find text whose bbox center is inside or near the polygon bounds
+    for (const textData of detectedTexts) {
+      const [x1, y1, x2, y2] = textData.bbox
+      const textCenterX = (x1 + x2) / 2
+      const textCenterY = (y1 + y2) / 2
+
+      // Check if text center is within polygon bounds (with some margin)
+      const margin = 20
+      if (
+        textCenterX >= bounds.minX - margin &&
+        textCenterX <= bounds.maxX + margin &&
+        textCenterY >= bounds.minY - margin &&
+        textCenterY <= bounds.maxY + margin
+      ) {
+        return textData
+      }
+    }
+    return null
+  }
+
+  // Convert API polygons to EditorSeat sections
+  const convertPolygonsToSections = (data: ExtractionResult) => {
+    const newSections: Section[] = data.polygons.map((polygonPoints, index) => {
+      const points: Point[] = polygonPoints.map(([x, y]) => ({ x, y }))
+      const bounds = calculateBounds(points)
+      const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2
+      const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2
+
+      // Try to find detected text for this polygon
+      const detectedText = findTextForPolygon(bounds, data.detected_text)
+      const sectionName = detectedText?.text || data.labels?.[index] || `Seat ${index + 1}`
+
+      const section: Section = {
+        id: `imported-section-${Date.now()}-${index}`,
+        name: sectionName,
+        displayName: sectionName.toUpperCase(),
+        points: points,
+        color: getPolygonColor(index, data.polygons.length),
+        strokeColor: getPolygonColor(index, data.polygons.length),
+        rows: sectionConfig.rows,
+        seatsPerRow: sectionConfig.seatsPerRow,
+        bounds: bounds,
+        shape: 'polygon',
+        labelPosition: { x: centerX, y: centerY },
+        price: 10
+      }
+
+      section.seats = generateSeatsForSection(section)
+      return section
+    })
+
+    setMapData({
+      sections: newSections,
+      stage: { x: 0, y: 0, width: 0, height: 0 }, // Hide stage in image import mode
+      aisles: []
+    })
+  }
+
+  // Color generator for imported polygons
+  const getPolygonColor = (index: number, total: number): string => {
+    const hue = (index * 360) / total
+    return `hsl(${hue}, 70%, 50%)`
+  }
+
+  // Handle image file upload
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select a valid image file')
+      return
+    }
+
+    extractPolygonsMutation.mutate(file)
+  }
+
+  // Split section function
+  const splitSection = (section: Section, lineStart: Point, lineEnd: Point) => {
+    if (!section.points || section.points.length < 3) return
+
+    // Find intersection points between split line and polygon edges
+    const intersections: { point: Point; edgeIndex: number }[] = []
+
+    for (let i = 0; i < section.points.length; i++) {
+      const p1 = section.points[i]
+      const p2 = section.points[(i + 1) % section.points.length]
+
+      const intersection = lineIntersection(lineStart, lineEnd, p1, p2)
+      if (intersection) {
+        intersections.push({ point: intersection, edgeIndex: i })
+      }
+    }
+
+    // Need exactly 2 intersection points to split
+    if (intersections.length !== 2) {
+      alert(`Split line must intersect the section at exactly 2 points. Found ${intersections.length} intersections.`)
+      return
+    }
+
+    // Sort intersections by edge index
+    intersections.sort((a, b) => a.edgeIndex - b.edgeIndex)
+
+    // Create two new polygons
+    const [int1, int2] = intersections
+    const polygon1Points: Point[] = []
+    const polygon2Points: Point[] = []
+
+    // First polygon: vertices from edge 0 to int1, then int1, int2, and back to start if needed
+    for (let i = 0; i <= int1.edgeIndex; i++) {
+      polygon1Points.push({ ...section.points[i] })
+    }
+    polygon1Points.push({ ...int1.point })
+    polygon1Points.push({ ...int2.point })
+    for (let i = int2.edgeIndex + 1; i < section.points.length; i++) {
+      polygon1Points.push({ ...section.points[i] })
+    }
+
+    // Second polygon: int1, vertices from int1 to int2, then int2 back to int1
+    polygon2Points.push({ ...int1.point })
+    for (let i = int1.edgeIndex + 1; i <= int2.edgeIndex; i++) {
+      polygon2Points.push({ ...section.points[i] })
+    }
+    polygon2Points.push({ ...int2.point })
+
+    // Validate polygons have at least 3 points
+    if (polygon1Points.length < 3 || polygon2Points.length < 3) {
+      alert('Error: Invalid polygon created after split. Please try a different split line.')
+      return
+    }
+
+    // Create two new sections
+    const bounds1 = calculateBounds(polygon1Points)
+    const bounds2 = calculateBounds(polygon2Points)
+
+    const section1: Section = {
+      ...section,
+      id: `${section.id}-split-1-${Date.now()}`,
+      name: `${section.name}_A`,
+      displayName: `${section.displayName}_A`,
+      points: polygon1Points,
+      bounds: bounds1,
+      labelPosition: {
+        x: bounds1.minX + (bounds1.maxX - bounds1.minX) / 2,
+        y: bounds1.minY + (bounds1.maxY - bounds1.minY) / 2
+      }
+    }
+
+    const section2: Section = {
+      ...section,
+      id: `${section.id}-split-2-${Date.now()}`,
+      name: `${section.name}_B`,
+      displayName: `${section.displayName}_B`,
+      points: polygon2Points,
+      bounds: bounds2,
+      labelPosition: {
+        x: bounds2.minX + (bounds2.maxX - bounds2.minX) / 2,
+        y: bounds2.minY + (bounds2.maxY - bounds2.minY) / 2
+      }
+    }
+
+    section1.seats = generateSeatsForSection(section1)
+    section2.seats = generateSeatsForSection(section2)
+
+    // Replace original section with two new sections
+    setMapData((prev) => ({
+      ...prev,
+      sections: prev.sections.filter((s) => s.id !== section.id).concat([section1, section2])
+    }))
+
+    alert(`Successfully split ${section.name} into ${section1.name} and ${section2.name}!`)
+  }
+
+  // Line intersection helper
+  const lineIntersection = (l1p1: Point, l1p2: Point, l2p1: Point, l2p2: Point): Point | null => {
+    const x1 = l1p1.x,
+      y1 = l1p1.y
+    const x2 = l1p2.x,
+      y2 = l1p2.y
+    const x3 = l2p1.x,
+      y3 = l2p1.y
+    const x4 = l2p2.x,
+      y4 = l2p2.y
+
+    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+
+    if (Math.abs(denom) < 0.0001) {
+      return null
+    }
+
+    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
+    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
+
+    if (u >= 0 && u <= 1) {
+      const intersection = {
+        x: x1 + t * (x2 - x1),
+        y: y1 + t * (y2 - y1)
+      }
+      return intersection
+    }
+
+    return null
+  }
+
+  const startEditingPoints = (section: Section) => {
+    if (!section.points) return
+    setEditingPoints({ sectionId: section.id, points: [...section.points] })
+    setEditTool('edit-points')
+  }
+
+  const updatePointPosition = (pointIndex: number, newPosition: Point) => {
+    if (!editingPoints) return
+
+    const newPoints = [...editingPoints.points]
+    newPoints[pointIndex] = newPosition
+
+    setEditingPoints({ ...editingPoints, points: newPoints })
+  }
+
+  const applyEditedPoints = () => {
+    if (!editingPoints) return
+
+    setMapData((prev) => ({
+      ...prev,
+      sections: prev.sections.map((section) => {
+        if (section.id === editingPoints.sectionId) {
+          const bounds = calculateBounds(editingPoints.points)
+          const updatedSection = {
+            ...section,
+            points: editingPoints.points,
+            bounds: bounds,
+            labelPosition: {
+              x: bounds.minX + (bounds.maxX - bounds.minX) / 2,
+              y: bounds.minY + (bounds.maxY - bounds.minY) / 2
+            }
+          }
+          updatedSection.seats = generateSeatsForSection(updatedSection)
+          return updatedSection
+        }
+        return section
+      })
+    }))
+
+    setEditingPoints(null)
+    setSelectedPointIndex(null)
+    setEditTool('select')
+  }
 
   const generateShapePath = useCallback((type: ShapeType, center: Point, size: number = 100): string => {
     const path = d3.path()
@@ -484,16 +722,6 @@ export default function AdvancedSeatMapDesigner() {
     }
 
     newSection.seats = generateSeatsForSection(newSection)
-    console.log(
-      'Created section:',
-      newSection.name,
-      'with price:',
-      newSection.price,
-      'and',
-      newSection.seats.length,
-      'seats'
-    )
-    console.log('Sample seat price:', newSection.seats[0]?.price)
 
     setMapData({
       ...mapData,
@@ -532,7 +760,6 @@ export default function AdvancedSeatMapDesigner() {
   const generateSeatsForSection = useCallback(
     (section: Section): Seat[] => {
       const seats: Seat[] = []
-      console.log('generateSeatsForSection called for section:', section.name, 'section.price:', section.price)
 
       if (section.bounds || section.points.length > 0) {
         const bounds = section.bounds || calculateBounds(section.points)
@@ -561,11 +788,8 @@ export default function AdvancedSeatMapDesigner() {
                 section: section.id,
                 status: status,
                 category: section.category === 'vip' ? 'vip' : 'standard',
-                price: seatPrice // Use section price or default
+                price: seatPrice
               })
-              if (seats.length === 1) {
-                console.log('First seat created with price:', seatPrice, 'from section.price:', section.price)
-              }
             }
           }
         }
@@ -627,8 +851,40 @@ export default function AdvancedSeatMapDesigner() {
           const [x, y] = d3.pointer(event)
           createShapeSection({ x, y })
         })
+      } else if (editTool === 'split' && selectedSection) {
+        // Two-click mode: first click for start point, second click for end point
+        svg.on('click', (event) => {
+          const [x, y] = d3.pointer(event, g.node())
+
+          if (!splitFirstPoint) {
+            setSplitFirstPoint({ x, y })
+            setSplitLine({ start: { x, y }, end: { x, y } })
+          } else {
+            const finalLine = { start: splitFirstPoint, end: { x, y } }
+            setSplitLine(finalLine)
+
+            if (selectedSection) {
+              splitSection(selectedSection, finalLine.start, finalLine.end)
+              setSplitLine(null)
+              setSplitFirstPoint(null)
+            }
+          }
+        })
+
+        svg.on('mousemove', (event) => {
+          if (splitFirstPoint) {
+            const [x, y] = d3.pointer(event, g.node())
+            setSplitLine({ start: splitFirstPoint, end: { x, y } })
+          }
+        })
+
+        svg.on('mousedown', null)
+        svg.on('mouseup', null)
       } else {
         svg.on('click', null)
+        svg.on('mousedown', null)
+        svg.on('mousemove', null)
+        svg.on('mouseup', null)
       }
     }
 
@@ -643,7 +899,13 @@ export default function AdvancedSeatMapDesigner() {
     seatStatuses,
     colorPicker,
     draggedSection,
-    editingLabel
+    editingLabel,
+    isImageImportMode,
+    splitLine,
+    isSplitting,
+    splitFirstPoint,
+    editingPoints,
+    selectedPointIndex
   ])
 
   const handleSvgClick = (event: any) => {
@@ -800,28 +1062,31 @@ export default function AdvancedSeatMapDesigner() {
       }
     })
 
-    const stage = g.append('g').attr('class', 'stage')
-    stage
-      .append('rect')
-      .attr('x', mapData.stage.x)
-      .attr('y', mapData.stage.y)
-      .attr('width', mapData.stage.width)
-      .attr('height', mapData.stage.height)
-      .attr('fill', 'url(#stage-gradient)')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2)
-      .attr('rx', 10)
+    // Only render stage if not in image import mode
+    if (!isImageImportMode && mapData.stage.width > 0) {
+      const stage = g.append('g').attr('class', 'stage')
+      stage
+        .append('rect')
+        .attr('x', mapData.stage.x)
+        .attr('y', mapData.stage.y)
+        .attr('width', mapData.stage.width)
+        .attr('height', mapData.stage.height)
+        .attr('fill', 'url(#stage-gradient)')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+        .attr('rx', 10)
 
-    stage
-      .append('text')
-      .attr('x', mapData.stage.x + mapData.stage.width / 2)
-      .attr('y', mapData.stage.y + mapData.stage.height / 2)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'middle')
-      .attr('fill', '#fff')
-      .attr('font-size', '24px')
-      .attr('font-weight', 'bold')
-      .text('STAGE')
+      stage
+        .append('text')
+        .attr('x', mapData.stage.x + mapData.stage.width / 2)
+        .attr('y', mapData.stage.y + mapData.stage.height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('fill', '#fff')
+        .attr('font-size', '24px')
+        .attr('font-weight', 'bold')
+        .text('STAGE')
+    }
 
     if (mapData.aisles) {
       const aisles = g.append('g').attr('class', 'aisles')
@@ -917,7 +1182,6 @@ export default function AdvancedSeatMapDesigner() {
           .on('dblclick', (event) => {
             event.stopPropagation()
             event.preventDefault()
-            console.log('Double click on section:', section.name, section.id)
             setEditingLabel(section.id)
             setLabelText(section.displayName || section.name)
           })
@@ -945,7 +1209,6 @@ export default function AdvancedSeatMapDesigner() {
           .on('dblclick', (event) => {
             event.stopPropagation()
             event.preventDefault()
-            console.log('Double click on text:', section.name, section.id)
             setEditingLabel(section.id)
             setLabelText(section.displayName || section.name)
           })
@@ -1094,13 +1357,111 @@ export default function AdvancedSeatMapDesigner() {
           .attr('stroke-width', 2)
       })
     }
+
+    // Render split line when in split mode
+    if (splitLine) {
+      const splitGroup = g.append('g').attr('class', 'split-line')
+
+      splitGroup
+        .append('line')
+        .attr('x1', splitLine.start.x)
+        .attr('y1', splitLine.start.y)
+        .attr('x2', splitLine.end.x)
+        .attr('y2', splitLine.end.y)
+        .attr('stroke', '#ff0000')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '10,5')
+
+      splitGroup
+        .append('circle')
+        .attr('cx', splitLine.start.x)
+        .attr('cy', splitLine.start.y)
+        .attr('r', 6)
+        .attr('fill', '#ff0000')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+
+      splitGroup
+        .append('circle')
+        .attr('cx', splitLine.end.x)
+        .attr('cy', splitLine.end.y)
+        .attr('r', 6)
+        .attr('fill', '#ff0000')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+    }
+
+    // Render edit points when in edit-points mode
+    if (editingPoints && editTool === 'edit-points') {
+      const editPointsGroup = g.append('g').attr('class', 'edit-points')
+
+      // Draw the polygon being edited
+      const polygonPoints = editingPoints.points.map((p) => `${p.x},${p.y}`).join(' ')
+      editPointsGroup
+        .append('polygon')
+        .attr('points', polygonPoints)
+        .attr('fill', 'rgba(100, 150, 255, 0.2)')
+        .attr('stroke', '#4488ff')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '5,5')
+
+      // Draw control points
+      editingPoints.points.forEach((point, index) => {
+        const pointGroup = editPointsGroup.append('g').attr('class', `edit-point-${index}`)
+
+        pointGroup
+          .append('circle')
+          .attr('cx', point.x)
+          .attr('cy', point.y)
+          .attr('r', selectedPointIndex === index ? 10 : 7)
+          .attr('fill', selectedPointIndex === index ? '#ffaa00' : '#4488ff')
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 2)
+          .style('cursor', 'move')
+          .on('mousedown', (event) => {
+            event.stopPropagation()
+            setSelectedPointIndex(index)
+
+            const onMouseMove = (moveEvent: MouseEvent) => {
+              const svg = svgRef.current
+              if (!svg) return
+
+              const pt = svg.createSVGPoint()
+              pt.x = moveEvent.clientX
+              pt.y = moveEvent.clientY
+              const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+
+              updatePointPosition(index, { x: svgP.x, y: svgP.y })
+            }
+
+            const onMouseUp = () => {
+              document.removeEventListener('mousemove', onMouseMove)
+              document.removeEventListener('mouseup', onMouseUp)
+            }
+
+            document.addEventListener('mousemove', onMouseMove)
+            document.addEventListener('mouseup', onMouseUp)
+          })
+
+        // Point label
+        pointGroup
+          .append('text')
+          .attr('x', point.x)
+          .attr('y', point.y - 12)
+          .attr('text-anchor', 'middle')
+          .attr('fill', '#fff')
+          .attr('font-size', '10px')
+          .attr('font-weight', 'bold')
+          .attr('pointer-events', 'none')
+          .text(index + 1)
+      })
+    }
   }
 
   const handleQuickSeatToggle = (seatId: string, currentStatus: string) => {
     if (currentStatus === 'locked') return
 
     const newStatus = currentStatus === 'occupied' ? 'available' : 'occupied'
-    console.log('Seat toggle:', seatId, currentStatus, '->', newStatus)
     setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
     seatManagerRef.current.setSeatStatus(seatId, newStatus)
   }
@@ -1202,8 +1563,6 @@ export default function AdvancedSeatMapDesigner() {
     const isLocked = status === 'locked'
     const isOccupied = status === 'occupied'
 
-    console.log('Creating 3D seat:', seatId, 'with status:', status)
-
     const seatWrapper = document.createElement('div')
     seatWrapper.style.cssText = `
       position: relative;
@@ -1291,14 +1650,11 @@ export default function AdvancedSeatMapDesigner() {
     if (!isLocked) {
       seatWrapper.addEventListener('click', (e) => {
         e.stopPropagation()
-        console.log('3D seat clicked:', seatId)
 
         seatManagerRef.current.toggleSeat(seatWrapper, seatId, (id, newStatus) => {
-          console.log('3D seat status changing:', id, 'to', newStatus)
           setSeatStatuses((prev) => {
             const newMap = new Map(prev)
             newMap.set(id, newStatus)
-            console.log('Updated seatStatuses in 3D:', Array.from(newMap.entries()))
             return newMap
           })
         })
@@ -1449,6 +1805,47 @@ export default function AdvancedSeatMapDesigner() {
                     </AlertDescription>
                   </Alert>
 
+                  {/* Image Import Section */}
+                  <div className='space-y-2 pb-3 border-b border-purple-500/30'>
+                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                      <Sparkles className='w-4 h-4' />
+                      AI Seat Detection
+                    </h3>
+                    <p className='text-xs text-slate-400'>Upload an image and let AI automatically detect seats</p>
+                    <input
+                      ref={imageInputRef}
+                      type='file'
+                      accept='image/*'
+                      onChange={handleImageUpload}
+                      className='hidden'
+                    />
+                    <Button
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={extractPolygonsMutation.isPending}
+                      className='w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
+                      size='sm'
+                    >
+                      {extractPolygonsMutation.isPending ? (
+                        <>
+                          <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                          AI Detecting Seats...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className='w-4 h-4 mr-2' />
+                          AI Detect Seats from Image
+                        </>
+                      )}
+                    </Button>
+                    {isImageImportMode && (
+                      <Alert className='bg-cyan-600/20 border-cyan-500/50'>
+                        <AlertDescription className='text-xs'>
+                          ✅ AI detected {mapData.sections.length} seat sections! You can now edit them.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+
                   <div className='space-y-3'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                       <Edit className='w-4 h-4' />
@@ -1500,8 +1897,101 @@ export default function AdvancedSeatMapDesigner() {
                         <Edit className='w-3 h-3 mr-1' />
                         Label
                       </Button>
+                      <Button
+                        onClick={() => {
+                          setEditTool('split')
+                          if (!selectedSection) {
+                            alert('Please select a section first to split')
+                          }
+                        }}
+                        variant={editTool === 'split' ? 'default' : 'outline'}
+                        size='sm'
+                        className={editTool === 'split' ? 'bg-yellow-600' : ''}
+                        disabled={!selectedSection}
+                      >
+                        <Scissors className='w-3 h-3 mr-1' />
+                        Split
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (selectedSection) {
+                            startEditingPoints(selectedSection)
+                          } else {
+                            alert('Please select a section first to edit points')
+                          }
+                        }}
+                        variant={editTool === 'edit-points' ? 'default' : 'outline'}
+                        size='sm'
+                        className={editTool === 'edit-points' ? 'bg-teal-600' : ''}
+                        disabled={!selectedSection}
+                      >
+                        <GitBranch className='w-3 h-3 mr-1' />
+                        Edit Points
+                      </Button>
                     </div>
                   </div>
+
+                  {editTool === 'split' && selectedSection && (
+                    <Alert className='bg-yellow-600/20 border-yellow-600/50'>
+                      <AlertDescription className='text-xs'>
+                        ✂️ <strong>Split Mode - {selectedSection.displayName}</strong>
+                        <br />
+                        {!splitFirstPoint ? (
+                          <>
+                            📍 Click on the section to set the <strong>first point</strong> of the split line.
+                          </>
+                        ) : (
+                          <>
+                            📍 Click to set the <strong>second point</strong> and split the section.
+                          </>
+                        )}
+                        <br />
+                        {splitFirstPoint && (
+                          <>
+                            <span className='text-green-300'>✓ First point set! Move mouse to preview.</span>
+                            <br />
+                            <Button
+                              onClick={() => {
+                                setSplitFirstPoint(null)
+                                setSplitLine(null)
+                              }}
+                              size='sm'
+                              variant='outline'
+                              className='mt-2 w-full'
+                            >
+                              Reset Points
+                            </Button>
+                          </>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {editTool === 'edit-points' && editingPoints && (
+                    <Alert className='bg-teal-600/20 border-teal-600/50'>
+                      <AlertDescription className='text-xs'>
+                        🔧 <strong>Edit Points Mode</strong>
+                        <br />
+                        Drag control points to reshape the polygon.
+                        <br />
+                        <Button onClick={applyEditedPoints} size='sm' className='mt-2 w-full bg-teal-600'>
+                          Apply Changes
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setEditingPoints(null)
+                            setSelectedPointIndex(null)
+                            setEditTool('select')
+                          }}
+                          size='sm'
+                          variant='outline'
+                          className='mt-1 w-full'
+                        >
+                          Cancel
+                        </Button>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   {editTool === 'label' && (
                     <Alert className='bg-red-600/20 border-red-600/50'>
