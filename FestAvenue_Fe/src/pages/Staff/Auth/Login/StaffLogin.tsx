@@ -17,6 +17,7 @@ const StaffLogin = () => {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const setIsLogin = useStaffStore((state) => state.setIsLogin)
+  const setProfile = useStaffStore((state) => state.setProfile)
 
   const {
     register,
@@ -26,11 +27,29 @@ const StaffLogin = () => {
 
   const loginMutation = useMutation({
     mutationFn: userApi.login_normal,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       saveAccessTokenToLS(data?.data?.accessToken)
-      setIsLogin(true)
-      toast.success('Đăng nhập Staff thành công!')
-      navigate(path.staff.messages)
+
+      // Lấy thông tin profile để kiểm tra roles
+      try {
+        const profileData = await userApi.getMyProfile()
+        const profile = profileData?.data
+
+        // Kiểm tra xem có role Staff không
+        if (!profile?.roles.includes('Staff')) {
+          toast.error('Bạn không có quyền truy cập Staff')
+          localStorage.removeItem('access_token')
+          return
+        }
+
+        setProfile(profile)
+        setIsLogin(true)
+        toast.success('Đăng nhập Staff thành công!')
+        navigate(path.staff.messages)
+      } catch (error) {
+        toast.error('Không thể lấy thông tin người dùng')
+        localStorage.removeItem('access_token')
+      }
     },
     onError: (error: any) => {
       toast.error(error?.data?.message || 'Đăng nhập thất bại')

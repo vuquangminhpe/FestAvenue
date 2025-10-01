@@ -168,8 +168,19 @@ function RejectedRoute() {
 
 function ProtectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
+  const profile = useAdminStore((state) => state.profile)
   let location = useLocation()
-  return isLogin ? <Outlet /> : <Navigate to={path.admin.auth.login} state={{ from: location }} />
+
+  if (!isLogin) {
+    return <Navigate to={path.admin.auth.login} state={{ from: location }} />
+  }
+
+  // Kiểm tra nếu đã login nhưng chưa có profile hoặc không có role Admin
+  if (profile && !profile.roles.includes('Admin')) {
+    return <Navigate to={path.home} />
+  }
+
+  return <Outlet />
 }
 
 function RejectedAdminRoute() {
@@ -181,8 +192,19 @@ function RejectedAdminRoute() {
 
 function ProtectedStaffRoute() {
   const isLogin = useStaffStore((state) => state.isLogin)
+  const profile = useStaffStore((state) => state.profile)
   let location = useLocation()
-  return isLogin ? <Outlet /> : <Navigate to={path.staff.auth.login} state={{ from: location }} />
+
+  if (!isLogin) {
+    return <Navigate to={path.staff.auth.login} state={{ from: location }} />
+  }
+
+  // Kiểm tra nếu đã login nhưng chưa có profile hoặc không có role Staff
+  if (profile && !profile.roles.includes('Staff')) {
+    return <Navigate to={path.home} />
+  }
+
+  return <Outlet />
 }
 
 function RejectedStaffRoute() {

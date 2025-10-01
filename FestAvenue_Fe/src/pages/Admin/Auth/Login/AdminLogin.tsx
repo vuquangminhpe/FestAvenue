@@ -16,6 +16,7 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const setIsLogin = useAdminStore((state) => state.setIsLogin)
+  const setProfile = useAdminStore((state) => state.setProfile)
 
   const {
     register,
@@ -25,11 +26,28 @@ const AdminLogin = () => {
 
   const loginMutation = useMutation({
     mutationFn: userApi.login_normal,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       localStorage.setItem('access_token', data?.data?.accessToken)
-      setIsLogin(true)
-      toast.success('Đăng nhập Admin thành công!')
-      navigate(path.admin.process.dashboard)
+
+      try {
+        const profileData = await userApi.getMyProfile()
+        const profile = profileData?.data
+
+        // Kiểm tra xem có role Admin không
+        if (!profile?.roles.includes('Admin')) {
+          toast.error('Bạn không có quyền truy cập Admin')
+          localStorage.removeItem('access_token')
+          return
+        }
+
+        setProfile(profile)
+        setIsLogin(true)
+        toast.success('Đăng nhập Admin thành công!')
+        navigate(path.admin.process.dashboard)
+      } catch (error) {
+        toast.error('Không thể lấy thông tin người dùng')
+        localStorage.removeItem('access_token')
+      }
     },
     onError: (error: any) => {
       toast.error(error?.data?.message || 'Đăng nhập thất bại')

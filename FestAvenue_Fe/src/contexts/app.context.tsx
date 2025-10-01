@@ -6,11 +6,15 @@ import { create } from 'zustand'
 interface AdminState {
   isLogin: boolean
   setIsLogin: (value: boolean) => void
+  profile?: userRes
+  setProfile: (value: userRes | undefined) => void
 }
 
 interface StaffState {
   isLogin: boolean
   setIsLogin: (value: boolean) => void
+  profile?: userRes
+  setProfile: (value: userRes | undefined) => void
 }
 interface UsersState {
   isAuth: boolean
@@ -22,12 +26,16 @@ interface UsersState {
 }
 export const useAdminStore = create<AdminState>()((set) => ({
   isLogin: getAdminTokenFromLS() !== null ? true : false,
-  setIsLogin: (value) => set({ isLogin: value })
+  setIsLogin: (value) => set({ isLogin: value }),
+  profile: undefined,
+  setProfile: (value) => set({ profile: value })
 }))
 
 export const useStaffStore = create<StaffState>()((set) => ({
-  isLogin: false, // Tạm thời false, sẽ cập nhật sau khi có getStaffTokenFromLS
-  setIsLogin: (value) => set({ isLogin: value })
+  isLogin: false,
+  setIsLogin: (value) => set({ isLogin: value }),
+  profile: undefined,
+  setProfile: (value) => set({ profile: value })
 }))
 
 export const useUsersStore = create<UsersState>()((set) => ({
