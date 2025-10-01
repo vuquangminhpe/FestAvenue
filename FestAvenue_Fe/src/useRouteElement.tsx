@@ -29,6 +29,8 @@ import StaffMessages from './pages/Staff/Process/Messages'
 import Dashboard from './pages/Admin/Process/Dashboard'
 import Category from './pages/Admin/Process/Category'
 import Packages from './pages/Admin/Process/Packages'
+import AccountManagement from './pages/Admin/Process/Accounts'
+import Analytics from './pages/Admin/Process/Analytics'
 import SeatMapEditor from './components/custom/EditorSeat'
 import CinemaTemplate from './components/custom/Template/CinemaExperience'
 const Loader = () => (
@@ -424,6 +426,14 @@ export default function useRouteElement() {
             {
               path: path.admin.process.package,
               element: <Packages />
+            },
+            {
+              path: path.admin.process.accounts,
+              element: <AccountManagement />
+            },
+            {
+              path: path.admin.process.analytics,
+              element: <Analytics />
             }
           ]
         }

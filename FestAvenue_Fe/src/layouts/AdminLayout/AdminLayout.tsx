@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { Shield, Menu, X, Users, Settings, BarChart3, LogOut } from 'lucide-react'
+import { Shield, Menu, X, Settings, BarChart3, LogOut, UserCog, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAdminStore } from '@/contexts/app.context'
 import path from '@/constants/path'
@@ -16,16 +16,16 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   const menuItems = [
     {
-      label: 'Dashboard',
-      icon: BarChart3,
-      path: path.admin.process.dashboard,
-      description: 'Tổng quan hệ thống'
+      label: 'Accounts',
+      icon: UserCog,
+      path: path.admin.process.accounts,
+      description: 'Quản lý tài khoản'
     },
     {
-      label: 'Users',
-      icon: Users,
-      path: path.admin.process.users,
-      description: 'Quản lý người dùng'
+      label: 'Analytics',
+      icon: TrendingUp,
+      path: path.admin.process.analytics,
+      description: 'Phân tích dữ liệu'
     },
     {
       label: 'Category',
@@ -38,12 +38,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       icon: Settings,
       path: path.admin.process.package,
       description: 'Gói tiền sử dụng'
-    },
-    {
-      label: 'Settings',
-      icon: Settings,
-      path: path.admin.process.settings,
-      description: 'Cài đặt hệ thống'
     }
   ]
 
