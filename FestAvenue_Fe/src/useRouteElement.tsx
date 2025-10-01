@@ -22,6 +22,7 @@ import MyOrganization from './pages/User/Auth/My/MyOrganization'
 import MyPayment from './pages/User/Auth/My/MyPayment'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
 import ScheduleManagement from './pages/User/Auth/Schedule'
+import EventAnalyticsDashboard from './pages/User/Auth/EventAnalytics'
 import StaffLogin from './pages/Staff/Auth/Login'
 import AdminLogin from './pages/Admin/Auth/Login'
 import StaffLayout from './layouts/StaffLayout'
@@ -368,6 +369,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <ScheduleManagement />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.analytics_event.view,
+              element: (
+                <SuspenseWrapper>
+                  <EventAnalyticsDashboard />
                 </SuspenseWrapper>
               )
             },
