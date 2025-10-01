@@ -21,6 +21,7 @@ import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
 import MyPayment from './pages/User/Auth/My/MyPayment'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
+import ScheduleManagement from './pages/User/Auth/Schedule'
 import StaffLogin from './pages/Staff/Auth/Login'
 import AdminLogin from './pages/Admin/Auth/Login'
 import StaffLayout from './layouts/StaffLayout'
@@ -359,6 +360,14 @@ export default function useRouteElement() {
                   <MyLayout>
                     <MyPayment />
                   </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.schedule.view,
+              element: (
+                <SuspenseWrapper>
+                  <ScheduleManagement />
                 </SuspenseWrapper>
               )
             },

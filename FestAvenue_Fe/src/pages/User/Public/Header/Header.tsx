@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { clearLocalStorage } from '@/utils/auth'
 import { Search, Heart, HelpCircle, LogOut, Menu, X, Building } from 'lucide-react'
 import { useUsersStore } from '@/contexts/app.context'
-import OrganizationNotification from '@/components/OrganizationNotification'
 import LOGO_DEFAULT from '../../../../../public/Images/default-avatar.png'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export default function Header() {
@@ -373,11 +372,6 @@ export default function Header() {
           </div>
         )}
       </header>
-
-      {/* Organization Notification */}
-      {isAuthenticated && (
-        <OrganizationNotification isVisible={showOrgNotification} onClose={() => setShowOrgNotification(false)} />
-      )}
     </>
   )
 }

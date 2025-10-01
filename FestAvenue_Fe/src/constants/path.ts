@@ -44,7 +44,8 @@ const path = {
       messages: '/user/my/messages',
       organization: '/user/my/organization',
       credit: '/user/my/credit',
-      payment: '/user/my/payment'
+      payment: '/user/my/payment',
+      schedule: '/user/my/schedule'
     },
     credit: {
       root: '/user/credit',
@@ -55,6 +56,13 @@ const path = {
       root: '/user/payment',
       payment_organization: '/user/payment/payment_organization',
       payment_event: '/user/payment/payment_event'
+    },
+    schedule: {
+      root: '/user/schedule',
+      view: '/user/schedule/view',
+      create: '/user/schedule/create',
+      edit: '/user/schedule/edit/:id',
+      detail: '/user/schedule/:id'
     }
   },
   admin: {
