@@ -1,16 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
-  TrendingUp,
-  Users,
-  DollarSign,
-  Eye,
-  Share2,
-  CheckCircle,
-  Calendar,
-  Download,
-  Ticket,
-  Search
-} from 'lucide-react'
+import { TrendingUp, Users, DollarSign, Eye, Share2, CheckCircle, Calendar, Download, Search } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
 import StatCard from './components/StatCard'
 import ParticipantsChart from './components/ParticipantsChart'
@@ -80,11 +69,7 @@ export default function EventAnalyticsDashboard() {
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
-    { id: 'participants', label: 'Người tham gia', icon: Users },
-    { id: 'tickets', label: 'Bán vé', icon: Ticket },
-    { id: 'revenue', label: 'Doanh thu', icon: DollarSign },
-    { id: 'checkin', label: 'Check-in', icon: CheckCircle },
-    { id: 'views', label: 'Lượt xem', icon: Eye },
+
     { id: 'social', label: 'Social Media', icon: Share2 },
     { id: 'keywords', label: 'Từ khóa', icon: Search }
   ] as const
@@ -209,7 +194,7 @@ export default function EventAnalyticsDashboard() {
                   iconBg='#cffafe'
                 />
               </div>
-
+              {/* Event Summary */}
               <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
                 <h3 className='text-lg font-bold text-gray-900 mb-4'>Tổng quan sự kiện</h3>
                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
@@ -230,6 +215,20 @@ export default function EventAnalyticsDashboard() {
                     <p className='text-base font-semibold text-gray-900'>{formatCurrency(summary.totalExpenses)}</p>
                   </div>
                 </div>
+              </div>
+              {/* Người tham gia + Bán vé (Flex) */}
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                <ParticipantsChart data={analytics.participants} />
+                <TicketSalesChart data={analytics.ticketSales} />
+              </div>
+
+              {/* Check-in (Full width) */}
+              <CheckInChart data={analytics.checkIn} />
+
+              {/* Doanh thu + Lượt xem (Flex) */}
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                <RevenueChart data={analytics.revenue} />
+                <ViewsChart data={analytics.eventViews} />
               </div>
             </>
           )}
