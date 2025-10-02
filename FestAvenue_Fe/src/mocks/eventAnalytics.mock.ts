@@ -15,7 +15,13 @@ export const mockEventAnalytics: EventAnalytics = {
     totalSocialEngagement: 45680,
     checkInRate: 87.3,
     popularTicketType: 'VIP',
-    peakSalesDate: '2025-11-25'
+    peakSalesDate: '2025-11-25',
+    // Staff statistics
+    totalStaff: 15,
+    totalTasks: 156,
+    completedTasks: 132,
+    lateTasks: 18,
+    avgTaskCompletionRate: 84.6
   },
 
   participants: [
@@ -290,6 +296,283 @@ export const mockEventAnalytics: EventAnalytics = {
       clicks: 8960,
       clickRate: 80.0,
       color: '#f43f5e'
+    }
+  ],
+
+  staffPerformance: [
+    {
+      staffId: 'staff_001',
+      staffName: 'Nguyễn Văn A',
+      avatar: 'https://i.pravatar.cc/150?img=1',
+      totalTasks: 28,
+      completedTasks: 26,
+      lateTasks: 1,
+      onTimeTasks: 25,
+      completionRate: 92.9,
+      avgCompletionTime: 18.5,
+      performanceScore: 95
+    },
+    {
+      staffId: 'staff_002',
+      staffName: 'Trần Thị B',
+      avatar: 'https://i.pravatar.cc/150?img=2',
+      totalTasks: 24,
+      completedTasks: 22,
+      lateTasks: 2,
+      onTimeTasks: 20,
+      completionRate: 91.7,
+      avgCompletionTime: 20.3,
+      performanceScore: 92
+    },
+    {
+      staffId: 'staff_003',
+      staffName: 'Lê Văn C',
+      avatar: 'https://i.pravatar.cc/150?img=3',
+      totalTasks: 22,
+      completedTasks: 21,
+      lateTasks: 0,
+      onTimeTasks: 21,
+      completionRate: 95.5,
+      avgCompletionTime: 16.2,
+      performanceScore: 98
+    },
+    {
+      staffId: 'staff_004',
+      staffName: 'Phạm Thị D',
+      avatar: 'https://i.pravatar.cc/150?img=4',
+      totalTasks: 20,
+      completedTasks: 19,
+      lateTasks: 1,
+      onTimeTasks: 18,
+      completionRate: 95.0,
+      avgCompletionTime: 17.8,
+      performanceScore: 94
+    },
+    {
+      staffId: 'staff_005',
+      staffName: 'Hoàng Văn E',
+      avatar: 'https://i.pravatar.cc/150?img=5',
+      totalTasks: 18,
+      completedTasks: 17,
+      lateTasks: 1,
+      onTimeTasks: 16,
+      completionRate: 94.4,
+      avgCompletionTime: 19.1,
+      performanceScore: 93
+    },
+    {
+      staffId: 'staff_006',
+      staffName: 'Võ Thị F',
+      avatar: 'https://i.pravatar.cc/150?img=6',
+      totalTasks: 16,
+      completedTasks: 14,
+      lateTasks: 2,
+      onTimeTasks: 12,
+      completionRate: 87.5,
+      avgCompletionTime: 22.4,
+      performanceScore: 85
+    },
+    {
+      staffId: 'staff_007',
+      staffName: 'Đặng Văn G',
+      avatar: 'https://i.pravatar.cc/150?img=7',
+      totalTasks: 15,
+      completedTasks: 13,
+      lateTasks: 3,
+      onTimeTasks: 10,
+      completionRate: 86.7,
+      avgCompletionTime: 24.6,
+      performanceScore: 82
+    },
+    {
+      staffId: 'staff_008',
+      staffName: 'Bùi Thị H',
+      avatar: 'https://i.pravatar.cc/150?img=8',
+      totalTasks: 12,
+      completedTasks: 11,
+      lateTasks: 1,
+      onTimeTasks: 10,
+      completionRate: 91.7,
+      avgCompletionTime: 19.8,
+      performanceScore: 90
+    },
+    {
+      staffId: 'staff_009',
+      staffName: 'Dương Văn I',
+      avatar: 'https://i.pravatar.cc/150?img=9',
+      totalTasks: 10,
+      completedTasks: 8,
+      lateTasks: 2,
+      onTimeTasks: 6,
+      completionRate: 80.0,
+      avgCompletionTime: 26.3,
+      performanceScore: 75
+    },
+    {
+      staffId: 'staff_010',
+      staffName: 'Phan Thị K',
+      avatar: 'https://i.pravatar.cc/150?img=10',
+      totalTasks: 8,
+      completedTasks: 7,
+      lateTasks: 1,
+      onTimeTasks: 6,
+      completionRate: 87.5,
+      avgCompletionTime: 21.5,
+      performanceScore: 86
+    },
+    {
+      staffId: 'staff_011',
+      staffName: 'Lý Văn L',
+      avatar: 'https://i.pravatar.cc/150?img=11',
+      totalTasks: 9,
+      completedTasks: 7,
+      lateTasks: 2,
+      onTimeTasks: 5,
+      completionRate: 77.8,
+      avgCompletionTime: 27.8,
+      performanceScore: 72
+    },
+    {
+      staffId: 'staff_012',
+      staffName: 'Trương Thị M',
+      avatar: 'https://i.pravatar.cc/150?img=12',
+      totalTasks: 7,
+      completedTasks: 6,
+      lateTasks: 1,
+      onTimeTasks: 5,
+      completionRate: 85.7,
+      avgCompletionTime: 23.2,
+      performanceScore: 83
+    },
+    {
+      staffId: 'staff_013',
+      staffName: 'Vũ Văn N',
+      avatar: 'https://i.pravatar.cc/150?img=13',
+      totalTasks: 6,
+      completedTasks: 5,
+      lateTasks: 1,
+      onTimeTasks: 4,
+      completionRate: 83.3,
+      avgCompletionTime: 24.1,
+      performanceScore: 81
+    },
+    {
+      staffId: 'staff_014',
+      staffName: 'Hồ Thị O',
+      avatar: 'https://i.pravatar.cc/150?img=14',
+      totalTasks: 5,
+      completedTasks: 4,
+      lateTasks: 1,
+      onTimeTasks: 3,
+      completionRate: 80.0,
+      avgCompletionTime: 25.6,
+      performanceScore: 78
+    },
+    {
+      staffId: 'staff_015',
+      staffName: 'Mai Văn P',
+      avatar: 'https://i.pravatar.cc/150?img=15',
+      totalTasks: 6,
+      completedTasks: 4,
+      lateTasks: 2,
+      onTimeTasks: 2,
+      completionRate: 66.7,
+      avgCompletionTime: 30.2,
+      performanceScore: 65
+    }
+  ],
+
+  taskStatus: [
+    { date: '2025-11-01', completed: 8, late: 1, pending: 5, inProgress: 3 },
+    { date: '2025-11-05', completed: 15, late: 2, pending: 8, inProgress: 6 },
+    { date: '2025-11-10', completed: 28, late: 3, pending: 12, inProgress: 8 },
+    { date: '2025-11-15', completed: 45, late: 5, pending: 15, inProgress: 10 },
+    { date: '2025-11-20', completed: 67, late: 8, pending: 18, inProgress: 12 },
+    { date: '2025-11-25', completed: 92, late: 12, pending: 20, inProgress: 14 },
+    { date: '2025-11-30', completed: 118, late: 15, pending: 22, inProgress: 8 },
+    { date: '2025-12-05', completed: 132, late: 18, pending: 20, inProgress: 6 }
+  ],
+
+  staffRanking: [
+    {
+      rank: 1,
+      staff: {
+        staffId: 'staff_003',
+        staffName: 'Lê Văn C',
+        avatar: 'https://i.pravatar.cc/150?img=3',
+        totalTasks: 22,
+        completedTasks: 21,
+        lateTasks: 0,
+        onTimeTasks: 21,
+        completionRate: 95.5,
+        avgCompletionTime: 16.2,
+        performanceScore: 98
+      },
+      change: 0 // No change
+    },
+    {
+      rank: 2,
+      staff: {
+        staffId: 'staff_001',
+        staffName: 'Nguyễn Văn A',
+        avatar: 'https://i.pravatar.cc/150?img=1',
+        totalTasks: 28,
+        completedTasks: 26,
+        lateTasks: 1,
+        onTimeTasks: 25,
+        completionRate: 92.9,
+        avgCompletionTime: 18.5,
+        performanceScore: 95
+      },
+      change: 1 // Up 1 position
+    },
+    {
+      rank: 3,
+      staff: {
+        staffId: 'staff_004',
+        staffName: 'Phạm Thị D',
+        avatar: 'https://i.pravatar.cc/150?img=4',
+        totalTasks: 20,
+        completedTasks: 19,
+        lateTasks: 1,
+        onTimeTasks: 18,
+        completionRate: 95.0,
+        avgCompletionTime: 17.8,
+        performanceScore: 94
+      },
+      change: -1 // Down 1 position
+    },
+    {
+      rank: 4,
+      staff: {
+        staffId: 'staff_005',
+        staffName: 'Hoàng Văn E',
+        avatar: 'https://i.pravatar.cc/150?img=5',
+        totalTasks: 18,
+        completedTasks: 17,
+        lateTasks: 1,
+        onTimeTasks: 16,
+        completionRate: 94.4,
+        avgCompletionTime: 19.1,
+        performanceScore: 93
+      },
+      change: 2 // Up 2 positions
+    },
+    {
+      rank: 5,
+      staff: {
+        staffId: 'staff_002',
+        staffName: 'Trần Thị B',
+        avatar: 'https://i.pravatar.cc/150?img=2',
+        totalTasks: 24,
+        completedTasks: 22,
+        lateTasks: 2,
+        onTimeTasks: 20,
+        completionRate: 91.7,
+        avgCompletionTime: 20.3,
+        performanceScore: 92
+      },
+      change: -1 // Down 1 position
     }
   ]
 }

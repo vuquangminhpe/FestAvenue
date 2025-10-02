@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react'
-import { TrendingUp, Users, DollarSign, Eye, Share2, CheckCircle, Calendar, Download, Search } from 'lucide-react'
+import {
+  TrendingUp,
+  Users,
+  DollarSign,
+  Eye,
+  Share2,
+  CheckCircle,
+  Calendar,
+  Download,
+  Search,
+  UserCheck,
+  Clock,
+  AlertCircle
+} from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
 import StatCard from './components/StatCard'
 import ParticipantsChart from './components/ParticipantsChart'
@@ -9,10 +22,22 @@ import CheckInChart from './components/CheckInChart'
 import ViewsChart from './components/ViewsChart'
 import KeywordSearchChart from './components/KeywordSearchChart'
 import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
+import StaffPerformanceChart from './components/StaffPerformanceChart'
+import TaskCompletionChart from './components/TaskCompletionChart'
+import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../services/eventAnalytics.service'
 import type { EventAnalytics } from '../../../../types/eventAnalytics.types'
 
-type TabType = 'overview' | 'participants' | 'tickets' | 'revenue' | 'checkin' | 'views' | 'social' | 'keywords'
+type TabType =
+  | 'overview'
+  | 'participants'
+  | 'tickets'
+  | 'revenue'
+  | 'checkin'
+  | 'views'
+  | 'social'
+  | 'keywords'
+  | 'staff'
 
 export default function EventAnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<EventAnalytics | null>(null)
@@ -69,7 +94,7 @@ export default function EventAnalyticsDashboard() {
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
-
+    { id: 'staff', label: 'Nhân sự', icon: UserCheck },
     { id: 'social', label: 'Social Media', icon: Share2 },
     { id: 'keywords', label: 'Từ khóa', icon: Search }
   ] as const
@@ -253,6 +278,61 @@ export default function EventAnalyticsDashboard() {
 
           {/* Keywords Tab */}
           {activeTab === 'keywords' && <KeywordSearchChart data={analytics.keywordSearch} />}
+
+          {/* Staff Tab */}
+          {activeTab === 'staff' && (
+            <>
+              {/* Staff Stats Cards */}
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+                <StatCard
+                  title='Tổng nhân viên'
+                  value={summary.totalStaff}
+                  icon={UserCheck}
+                  iconColor='#3b82f6'
+                  iconBg='#dbeafe'
+                />
+                <StatCard
+                  title='Task hoàn thành'
+                  value={summary.completedTasks}
+                  change={15.3}
+                  icon={CheckCircle}
+                  iconColor='#10b981'
+                  iconBg='#d1fae5'
+                  trend='up'
+                />
+                <StatCard
+                  title='Task trễ hạn'
+                  value={summary.lateTasks}
+                  change={-8.2}
+                  icon={AlertCircle}
+                  iconColor='#ef4444'
+                  iconBg='#fee2e2'
+                  trend='down'
+                />
+                <StatCard
+                  title='Tỷ lệ hoàn thành TB'
+                  value={summary.avgTaskCompletionRate}
+                  change={5.7}
+                  icon={Clock}
+                  iconColor='#8b5cf6'
+                  iconBg='#ede9fe'
+                  suffix='%'
+                  trend='up'
+                />
+              </div>
+
+              {/* Task Completion Chart */}
+              <TaskCompletionChart data={analytics.taskStatus} />
+
+              {/* Staff Performance + Ranking */}
+              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                <StaffPerformanceChart data={analytics.staffPerformance} />
+                <div className='space-y-6'>
+                  <StaffRankingTable data={analytics.staffRanking} />
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

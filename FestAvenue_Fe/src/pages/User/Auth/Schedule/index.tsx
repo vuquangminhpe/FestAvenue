@@ -9,15 +9,18 @@ import ScheduleFilter from './components/ScheduleFilter'
 import ScheduleForm from './components/ScheduleForm'
 import ScheduleDetail from './components/ScheduleDetail'
 import { addMonths, subMonths } from 'date-fns'
+import { scheduleService } from '../../../../services/schedule.service'
 
 export default function ScheduleManagement() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [, setSelectedDate] = useState<Date | null>(null)
-  const [, setSelectedSchedules] = useState<Schedule[]>([])
+  const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([])
+  const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0)
   const [showForm, setShowForm] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
   const [detailSchedule, setDetailSchedule] = useState<Schedule | null>(null)
+  const [prefilledDateRange, setPrefilledDateRange] = useState<{ start: Date; end: Date } | null>(null)
 
   const { schedules, filter, isLoading, fetchSchedules, searchSchedules, setFilter, refreshSchedules } =
     useScheduleStore()
@@ -42,21 +45,76 @@ export default function ScheduleManagement() {
   const handleDayClick = (date: Date, daySchedules: Schedule[]) => {
     setSelectedDate(date)
     setSelectedSchedules(daySchedules)
+    setCurrentScheduleIndex(0)
 
-    if (daySchedules.length === 1) {
-      setDetailSchedule(daySchedules[0])
-      setShowDetail(true)
-    } else if (daySchedules.length > 1) {
-      // Show list of schedules for this day
-      // For now, just show the first one
+    if (daySchedules.length > 0) {
       setDetailSchedule(daySchedules[0])
       setShowDetail(true)
     }
   }
 
+  const handleScheduleChange = (index: number) => {
+    setCurrentScheduleIndex(index)
+    setDetailSchedule(selectedSchedules[index])
+  }
+
   const handleCreateNew = () => {
     setEditingSchedule(null)
+    setPrefilledDateRange(null)
     setShowForm(true)
+  }
+
+  const handleDateRangeSelect = (startDate: Date, endDate: Date) => {
+    setPrefilledDateRange({ start: startDate, end: endDate })
+    setEditingSchedule(null)
+    setShowForm(true)
+  }
+
+  const handleScheduleDrop = async (scheduleId: string, newStartDate: Date) => {
+    const schedule = schedules.find((s) => s.id === scheduleId)
+    if (!schedule) return
+
+    const oldStart = new Date(schedule.startDate)
+    const oldEnd = new Date(schedule.endDate)
+
+    // Calculate the difference in days between old start and new start
+    const oldStartDay = new Date(oldStart.getFullYear(), oldStart.getMonth(), oldStart.getDate())
+    const newStartDay = new Date(newStartDate.getFullYear(), newStartDate.getMonth(), newStartDate.getDate())
+    const diffDays = Math.round((newStartDay.getTime() - oldStartDay.getTime()) / (1000 * 60 * 60 * 24))
+
+    // If no change, do nothing
+    if (diffDays === 0) return
+
+    // Create new start date preserving the original time
+    const newStart = new Date(oldStart)
+    newStart.setDate(newStart.getDate() + diffDays)
+
+    // Create new end date preserving the original time
+    const newEnd = new Date(oldEnd)
+    newEnd.setDate(newEnd.getDate() + diffDays)
+
+    // Update schedule with new dates
+    try {
+      await scheduleService.updateSchedule(scheduleId, {
+        title: schedule.title,
+        description: schedule.description,
+        startDate: newStart.toISOString(),
+        endDate: newEnd.toISOString(),
+        color: schedule.color,
+        subTasks: schedule.subTasks.map((st) => ({
+          title: st.title,
+          description: st.description,
+          isCompleted: st.isCompleted,
+          assigneeId: st.assigneeId,
+          assigneeName: st.assigneeName
+        }))
+      })
+
+      refreshSchedules()
+    } catch (error) {
+      console.error('Failed to move schedule:', error)
+      alert('Có lỗi xảy ra khi di chuyển lịch trình')
+    }
   }
 
   const handleEdit = () => {
@@ -69,6 +127,7 @@ export default function ScheduleManagement() {
     refreshSchedules()
     setShowForm(false)
     setEditingSchedule(null)
+    setPrefilledDateRange(null)
   }
 
   const handleDetailDelete = () => {
@@ -205,7 +264,13 @@ export default function ScheduleManagement() {
               <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600' />
             </div>
           ) : (
-            <CalendarGrid currentDate={currentDate} schedules={sortedSchedules} onDayClick={handleDayClick} />
+            <CalendarGrid
+              currentDate={currentDate}
+              schedules={sortedSchedules}
+              onDayClick={handleDayClick}
+              onDateRangeSelect={handleDateRangeSelect}
+              onScheduleDrop={handleScheduleDrop}
+            />
           )}
         </div>
 
@@ -229,9 +294,11 @@ export default function ScheduleManagement() {
       {showForm && (
         <ScheduleForm
           schedule={editingSchedule}
+          prefilledDateRange={prefilledDateRange}
           onClose={() => {
             setShowForm(false)
             setEditingSchedule(null)
+            setPrefilledDateRange(null)
           }}
           onSuccess={handleFormSuccess}
         />
@@ -240,13 +307,18 @@ export default function ScheduleManagement() {
       {showDetail && detailSchedule && (
         <ScheduleDetail
           schedule={detailSchedule}
+          schedules={selectedSchedules}
+          currentIndex={currentScheduleIndex}
           onClose={() => {
             setShowDetail(false)
             setDetailSchedule(null)
+            setSelectedSchedules([])
+            setCurrentScheduleIndex(0)
           }}
           onEdit={handleEdit}
           onDelete={handleDetailDelete}
           onRefresh={refreshSchedules}
+          onScheduleChange={handleScheduleChange}
         />
       )}
     </div>

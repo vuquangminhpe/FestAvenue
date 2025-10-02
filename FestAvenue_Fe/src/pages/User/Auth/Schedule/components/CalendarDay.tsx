@@ -1,25 +1,83 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import type { Schedule } from '../../../../../types/schedule.types'
 import BellNotification from './BellNotification'
 import { format, isSameDay, isToday } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 interface CalendarDayProps {
   date: Date
   schedules: Schedule[]
   isCurrentMonth: boolean
+  isInDragRange?: boolean
+  isDragTarget?: boolean
   onClick: () => void
+  onMouseDown?: () => void
+  onMouseEnter?: () => void
+  onScheduleDragStart?: (scheduleId: string) => void
+  onScheduleDrop?: () => void
 }
 
-export default function CalendarDay({ date, schedules, isCurrentMonth, onClick }: CalendarDayProps) {
+export default function CalendarDay({
+  date,
+  schedules,
+  isCurrentMonth,
+  isInDragRange = false,
+  isDragTarget = false,
+  onClick,
+  onMouseDown,
+  onMouseEnter,
+  onScheduleDragStart,
+  onScheduleDrop
+}: CalendarDayProps) {
   const dayRef = useRef<HTMLDivElement>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
   const hasSchedules = schedules.length > 0
+  const hasMoreThanTwo = schedules.length > 2
   const isActiveDay = isToday(date)
-  const hasNotification = schedules.some((s) => {
-    const scheduleDate = new Date(s.startDate)
-    return isSameDay(scheduleDate, date) && s.isNotified
-  })
+
+  // Determine notification status for this day
+  const getNotificationStatus = (): 'upcoming' | 'overdue' | 'none' => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+    for (const schedule of schedules) {
+      const scheduleStart = new Date(schedule.startDate)
+      const scheduleEnd = new Date(schedule.endDate)
+
+      // Check if this schedule is on this date
+      if (isSameDay(scheduleStart, date) || isSameDay(scheduleEnd, date)) {
+        // Check if all tasks are completed (100%)
+        const totalTasks = schedule.subTasks.length
+        const completedTasks = schedule.subTasks.filter((st) => st.isCompleted).length
+        const isFullyCompleted = totalTasks > 0 && completedTasks === totalTasks
+
+        // If 100% completed, don't show notification
+        if (isFullyCompleted) {
+          continue
+        }
+
+        // Overdue: end date has passed
+        if (scheduleEnd < now) {
+          return 'overdue'
+        }
+        // Upcoming: starts within 24 hours or is today
+        const hoursUntilStart = (scheduleStart.getTime() - now.getTime()) / (1000 * 60 * 60)
+        if (hoursUntilStart <= 24 && hoursUntilStart >= 0) {
+          return 'upcoming'
+        }
+        // Also show upcoming if it's today and hasn't ended
+        if (isSameDay(scheduleStart, today) && scheduleEnd >= now) {
+          return 'upcoming'
+        }
+      }
+    }
+    return 'none'
+  }
+
+  const notificationStatus = getNotificationStatus()
+  const displayedSchedules = isExpanded ? schedules : schedules.slice(0, 2)
 
   useEffect(() => {
     if (!dayRef.current || !hasSchedules) return
@@ -54,15 +112,36 @@ export default function CalendarDay({ date, schedules, isCurrentMonth, onClick }
     return schedules.slice(0, 3).map((s) => s.color)
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    onScheduleDrop?.()
+  }
+
+  const handleToggleExpand = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsExpanded(!isExpanded)
+  }
+
   return (
     <div
       ref={dayRef}
       onClick={onClick}
+      onMouseDown={onMouseDown}
+      onMouseEnter={onMouseEnter}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       className={`
-        relative min-h-[80px] p-2 border border-gray-200 cursor-pointer
-        transition-colors duration-200 hover:bg-gray-50
+        relative p-3 pb-6 border border-gray-200 cursor-pointer
+        transition-all duration-200 hover:bg-gray-50
         ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
         ${isActiveDay ? 'ring-2 ring-blue-500 ring-inset' : ''}
+        ${isInDragRange ? 'bg-blue-100 ring-2 ring-blue-400' : ''}
+        ${isDragTarget ? 'ring-2 ring-green-400' : ''}
+        ${isExpanded ? 'min-h-[140px]' : 'min-h-[100px]'}
       `}
     >
       {/* Date number */}
@@ -78,35 +157,60 @@ export default function CalendarDay({ date, schedules, isCurrentMonth, onClick }
         </span>
 
         {/* Bell notification */}
-        {hasNotification && (
+        {notificationStatus !== 'none' && (
           <div className='absolute top-1 right-1'>
-            <BellNotification isActive={true} size={18} />
+            <BellNotification status={notificationStatus} size={18} />
           </div>
         )}
       </div>
 
       {/* Schedule indicators */}
       {hasSchedules && (
-        <div className='space-y-1'>
-          {schedules.slice(0, 2).map((schedule) => (
+        <div className='space-y-1.5'>
+          {displayedSchedules.map((schedule) => (
             <div
               key={schedule.id}
-              className='text-xs truncate px-1.5 py-0.5 rounded text-white font-medium'
+              draggable
+              onDragStart={(e) => {
+                e.stopPropagation()
+                onScheduleDragStart?.(schedule.id)
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation()
+              }}
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+              className='text-xs truncate px-2 py-1 rounded text-white font-medium cursor-move hover:opacity-80 transition-opacity'
               style={{ backgroundColor: schedule.color }}
               title={schedule.title}
             >
               {schedule.title}
             </div>
           ))}
-          {schedules.length > 2 && (
-            <div className='text-xs text-gray-500 font-medium px-1.5'>+{schedules.length - 2} lịch khác</div>
+          {hasMoreThanTwo && (
+            <button
+              onClick={handleToggleExpand}
+              className='w-full text-xs text-gray-600 hover:text-gray-900 font-medium px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors flex items-center justify-center gap-1'
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className='w-3 h-3' />
+                  Thu gọn
+                </>
+              ) : (
+                <>
+                  <ChevronDown className='w-3 h-3' />+{schedules.length - 2} lịch khác
+                </>
+              )}
+            </button>
           )}
         </div>
       )}
 
       {/* Color dots for schedules */}
       {hasSchedules && schedules.length > 0 && (
-        <div className='absolute bottom-1 left-1/2 transform -translate-x-1/2 flex gap-1'>
+        <div className='absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1'>
           {getScheduleColors().map((color, index) => (
             <div key={index} className='w-1.5 h-1.5 rounded-full' style={{ backgroundColor: color }} />
           ))}

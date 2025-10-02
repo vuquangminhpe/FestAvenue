@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { X, Plus, Trash2, User } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
@@ -9,13 +9,23 @@ import type { Schedule, ScheduleFormData, SubTask } from '../../../../../types/s
 import { scheduleService } from '../../../../../services/schedule.service'
 import ColorPicker from './ColorPicker'
 
+// Mock users - Replace with real user data from API
+const MOCK_USERS = [
+  { id: 'user_1', name: 'Nguyễn Văn A' },
+  { id: 'user_2', name: 'Trần Thị B' },
+  { id: 'user_3', name: 'Lê Văn C' },
+  { id: 'user_4', name: 'Phạm Thị D' },
+  { id: 'user_5', name: 'Hoàng Văn E' }
+]
+
 interface ScheduleFormProps {
   schedule?: Schedule | null
+  prefilledDateRange?: { start: Date; end: Date } | null
   onClose: () => void
   onSuccess: () => void
 }
 
-export default function ScheduleForm({ schedule, onClose, onSuccess }: ScheduleFormProps) {
+export default function ScheduleForm({ schedule, prefilledDateRange, onClose, onSuccess }: ScheduleFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
@@ -37,11 +47,26 @@ export default function ScheduleForm({ schedule, onClose, onSuccess }: ScheduleF
         subTasks: schedule.subTasks.map((st) => ({
           title: st.title,
           description: st.description,
-          isCompleted: st.isCompleted
+          isCompleted: st.isCompleted,
+          assigneeId: st.assigneeId,
+          assigneeName: st.assigneeName
         }))
       })
+    } else if (prefilledDateRange) {
+      // Set default times: 8:00 AM for start, 6:00 PM for end
+      const startDateTime = new Date(prefilledDateRange.start)
+      startDateTime.setHours(8, 0, 0, 0)
+
+      const endDateTime = new Date(prefilledDateRange.end)
+      endDateTime.setHours(18, 0, 0, 0)
+
+      setFormData((prev) => ({
+        ...prev,
+        startDate: startDateTime.toISOString().slice(0, 16),
+        endDate: endDateTime.toISOString().slice(0, 16)
+      }))
     }
-  }, [schedule])
+  }, [schedule, prefilledDateRange])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,10 +108,22 @@ export default function ScheduleForm({ schedule, onClose, onSuccess }: ScheduleF
     value: string | boolean
   ) => {
     const newSubTasks = [...formData.subTasks]
-    newSubTasks[index] = {
-      ...newSubTasks[index],
-      [field]: value
+
+    // If updating assigneeId, also update assigneeName
+    if (field === 'assigneeId') {
+      const user = MOCK_USERS.find((u) => u.id === value)
+      newSubTasks[index] = {
+        ...newSubTasks[index],
+        assigneeId: value as string,
+        assigneeName: user?.name
+      }
+    } else {
+      newSubTasks[index] = {
+        ...newSubTasks[index],
+        [field]: value
+      }
     }
+
     setFormData({ ...formData, subTasks: newSubTasks })
   }
 
@@ -195,6 +232,25 @@ export default function ScheduleForm({ schedule, onClose, onSuccess }: ScheduleF
                         placeholder='Mô tả (tùy chọn)'
                         rows={2}
                       />
+                      <div className='space-y-1'>
+                        <Label htmlFor={`assignee-${index}`} className='text-xs flex items-center gap-1'>
+                          <User className='w-3 h-3' />
+                          Người thực hiện
+                        </Label>
+                        <select
+                          id={`assignee-${index}`}
+                          value={subTask.assigneeId || ''}
+                          onChange={(e) => updateSubTask(index, 'assigneeId', e.target.value)}
+                          className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+                        >
+                          <option value=''>Chưa chọn</option>
+                          {MOCK_USERS.map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     <Button
                       type='button'

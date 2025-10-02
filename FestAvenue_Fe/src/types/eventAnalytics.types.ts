@@ -57,6 +57,33 @@ export interface KeywordSearchAnalysis {
   color: string
 }
 
+export interface StaffPerformance {
+  staffId: string
+  staffName: string
+  avatar?: string
+  totalTasks: number
+  completedTasks: number
+  lateTasks: number
+  onTimeTasks: number
+  completionRate: number
+  avgCompletionTime: number // in hours
+  performanceScore: number // 0-100
+}
+
+export interface TaskStatusAnalysis {
+  date: string
+  completed: number
+  late: number
+  pending: number
+  inProgress: number
+}
+
+export interface StaffRanking {
+  rank: number
+  staff: StaffPerformance
+  change: number // change in rank from previous period
+}
+
 export interface EventSummary {
   eventId: string
   eventName: string
@@ -72,6 +99,12 @@ export interface EventSummary {
   checkInRate: number
   popularTicketType: string
   peakSalesDate: string
+  // Staff statistics
+  totalStaff: number
+  totalTasks: number
+  completedTasks: number
+  lateTasks: number
+  avgTaskCompletionRate: number
 }
 
 export interface EventAnalytics {
@@ -83,6 +116,9 @@ export interface EventAnalytics {
   eventViews: ViewAnalysis[]
   socialMediaPosts: SocialMediaPost[]
   keywordSearch: KeywordSearchAnalysis[]
+  staffPerformance: StaffPerformance[]
+  taskStatus: TaskStatusAnalysis[]
+  staffRanking: StaffRanking[]
 }
 
 export interface AnalyticsFilter {

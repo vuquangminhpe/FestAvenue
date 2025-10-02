@@ -151,6 +151,15 @@ class ScheduleService {
       updatedAt: new Date().toISOString()
     }
 
+    // If marking as completed, set completedAt timestamp
+    if (updates.isCompleted === true && !schedule.subTasks[subTaskIndex].isCompleted) {
+      updatedSubTask.completedAt = new Date().toISOString()
+    }
+    // If marking as incomplete, clear completedAt timestamp
+    else if (updates.isCompleted === false && schedule.subTasks[subTaskIndex].isCompleted) {
+      updatedSubTask.completedAt = undefined
+    }
+
     schedule.subTasks[subTaskIndex] = updatedSubTask
     schedule.updatedAt = new Date().toISOString()
 

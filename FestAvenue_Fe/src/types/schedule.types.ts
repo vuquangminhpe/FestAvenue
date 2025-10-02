@@ -3,6 +3,9 @@ export interface SubTask {
   title: string
   description?: string
   isCompleted: boolean
+  assigneeId?: string
+  assigneeName?: string
+  completedAt?: string
   createdAt: string
   updatedAt: string
 }
