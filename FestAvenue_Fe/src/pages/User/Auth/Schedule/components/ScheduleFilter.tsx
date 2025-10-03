@@ -91,22 +91,25 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
     onSearch('')
   }
 
+  const hasActiveFilters =
+    searchInput || filter.dateRange || !filter.showCompleted || filter.sortBy !== 'startDate'
+
   return (
     <div className='space-y-4'>
       {/* Search Bar */}
       <div className='flex gap-2'>
-        <div className='relative flex-1'>
-          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+        <div className='relative flex-1 group'>
+          <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 transition-colors duration-200 group-hover:text-blue-500' />
           <Input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder='Tìm kiếm theo tiêu đề, mô tả, hoặc subtask...'
-            className='pl-10 pr-10'
+            className='pl-10 pr-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300'
           />
           {searchInput && (
             <button
               onClick={clearSearch}
-              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600'
+              className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors duration-200 hover:scale-110'
             >
               <X className='w-4 h-4' />
             </button>
@@ -115,22 +118,36 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
         <Button
           variant='outline'
           onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-          className='flex items-center gap-2'
+          className={`flex items-center gap-2 transition-all duration-200 ${
+            hasActiveFilters || isAdvancedOpen
+              ? 'bg-blue-50 text-blue-600 border-blue-300 hover:bg-blue-100'
+              : 'hover:bg-gray-100'
+          }`}
         >
-          <Filter className='w-4 h-4' />
+          <Filter
+            className={`w-4 h-4 transition-transform duration-200 ${isAdvancedOpen ? 'rotate-180' : ''}`}
+          />
           {isAdvancedOpen ? 'Ẩn bộ lọc' : 'Bộ lọc'}
+          {hasActiveFilters && !isAdvancedOpen && (
+            <span className='px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full animate-in fade-in zoom-in duration-200'>
+              !
+            </span>
+          )}
         </Button>
       </div>
 
       {/* Quick Filters */}
       <div className='flex gap-2 flex-wrap'>
-        {QUICK_FILTERS.map((qf) => (
+        {QUICK_FILTERS.map((qf, index) => (
           <Button
             key={qf.value}
             variant='outline'
             size='sm'
             onClick={() => handleQuickFilter(qf.value)}
-            className='text-xs'
+            className='text-xs transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 hover:scale-105'
+            style={{
+              animation: `fadeInUp 0.3s ease-out ${index * 100}ms both`
+            }}
           >
             <Calendar className='w-3 h-3 mr-1' />
             {qf.label}
@@ -139,16 +156,23 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
       </div>
 
       {/* Advanced Filters */}
-      {isAdvancedOpen && (
-        <div className='border border-gray-200 rounded-lg p-4 space-y-4 bg-gray-50'>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isAdvancedOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className='bg-gradient-to-br from-gray-50 to-blue-50/30 border border-gray-200 rounded-lg p-4 space-y-4 shadow-sm'>
           <h3 className='font-semibold text-sm text-gray-700 flex items-center gap-2'>
-            <Filter className='w-4 h-4' />
+            <Filter className='w-4 h-4 text-blue-600' />
             Bộ lọc nâng cao
           </h3>
 
           {/* Date Range */}
           <div className='space-y-2'>
-            <Label className='text-sm'>Khoảng thời gian</Label>
+            <Label className='text-sm font-medium text-gray-600 flex items-center gap-1'>
+              <Calendar className='w-3 h-3' />
+              Khoảng thời gian
+            </Label>
             <div className='grid grid-cols-2 gap-2'>
               <div>
                 <Input
@@ -157,7 +181,7 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
                   onChange={(e) => setLocalDateFrom(e.target.value)}
                   onBlur={handleDateRangeChange}
                   placeholder='Từ ngày'
-                  className='text-sm'
+                  className='text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:border-blue-300'
                 />
               </div>
               <div>
@@ -167,12 +191,17 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
                   onChange={(e) => setLocalDateTo(e.target.value)}
                   onBlur={handleDateRangeChange}
                   placeholder='Đến ngày'
-                  className='text-sm'
+                  className='text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:border-blue-300'
                 />
               </div>
             </div>
             {filter.dateRange && (
-              <Button variant='ghost' size='sm' onClick={clearDateRange} className='text-xs'>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={clearDateRange}
+                className='text-xs transition-all duration-200 hover:bg-red-50 hover:text-red-600'
+              >
                 <X className='w-3 h-3 mr-1' />
                 Xóa khoảng thời gian
               </Button>
@@ -180,11 +209,12 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
           </div>
 
           {/* Show Completed */}
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2 p-2 rounded-lg transition-all duration-200 hover:bg-white'>
             <Checkbox
               id='showCompleted'
               checked={filter.showCompleted}
               onCheckedChange={(checked) => onFilterChange({ showCompleted: checked as boolean })}
+              className='transition-all duration-200'
             />
             <Label htmlFor='showCompleted' className='text-sm cursor-pointer flex items-center gap-1'>
               <CheckCircle2 className='w-4 h-4 text-green-600' />
@@ -195,12 +225,12 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
           {/* Sort Options */}
           <div className='grid grid-cols-2 gap-4'>
             <div className='space-y-2'>
-              <Label className='text-sm'>Sắp xếp theo</Label>
+              <Label className='text-sm font-medium text-gray-600'>Sắp xếp theo</Label>
               <Select
                 value={filter.sortBy}
                 onValueChange={(value) => onFilterChange({ sortBy: value as ScheduleFilterType['sortBy'] })}
               >
-                <SelectTrigger className='text-sm'>
+                <SelectTrigger className='text-sm transition-all duration-200 hover:border-blue-300 focus:ring-2 focus:ring-blue-500'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -213,12 +243,12 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
             </div>
 
             <div className='space-y-2'>
-              <Label className='text-sm'>Thứ tự</Label>
+              <Label className='text-sm font-medium text-gray-600'>Thứ tự</Label>
               <Select
                 value={filter.sortOrder}
                 onValueChange={(value) => onFilterChange({ sortOrder: value as ScheduleFilterType['sortOrder'] })}
               >
-                <SelectTrigger className='text-sm'>
+                <SelectTrigger className='text-sm transition-all duration-200 hover:border-blue-300 focus:ring-2 focus:ring-blue-500'>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -229,7 +259,21 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* CSS Animations */}
+      <style>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }

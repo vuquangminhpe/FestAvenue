@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Calendar, Clock, Edit, Trash2, CheckCircle2, Circle, User, Timer } from 'lucide-react'
+import { X, Calendar, Clock, Edit, Trash2 } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import type { Schedule } from '../../../../../types/schedule.types'
 import { format } from 'date-fns'
@@ -7,7 +7,7 @@ import { vi } from 'date-fns/locale'
 import { scheduleService } from '../../../../../services/schedule.service'
 import { gsap } from 'gsap'
 import BellNotification from './BellNotification'
-import { Checkbox } from '../../../../../components/ui/checkbox'
+import SubTaskList from './SubTaskList'
 
 interface ScheduleDetailProps {
   schedule: Schedule
@@ -101,22 +101,6 @@ export default function ScheduleDetail({
     return 'none'
   }
 
-  // Calculate completion time in hours
-  const getCompletionTime = (createdAt: string, completedAt?: string) => {
-    if (!completedAt) return null
-    const created = new Date(createdAt)
-    const completed = new Date(completedAt)
-    const diffMs = completed.getTime() - created.getTime()
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-    if (diffHours > 0) {
-      return `${diffHours}h ${diffMinutes}m`
-    } else {
-      return `${diffMinutes}m`
-    }
-  }
-
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
       <div ref={modalRef} className='bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'>
@@ -203,76 +187,11 @@ export default function ScheduleDetail({
           )}
 
           {/* SubTasks */}
-          <div className='space-y-3'>
-            <div className='flex items-center justify-between'>
-              <h3 className='font-semibold text-gray-900 flex items-center gap-2'>
-                <CheckCircle2 className='w-5 h-5 text-gray-600' />
-                Subtasks ({totalCount})
-              </h3>
-            </div>
-
-            {totalCount === 0 ? (
-              <div className='text-center py-8 text-gray-500'>
-                <Circle className='w-12 h-12 mx-auto mb-2 opacity-50' />
-                <p>Chưa có subtask nào</p>
-              </div>
-            ) : (
-              <div className='space-y-2'>
-                {schedule.subTasks.map((subTask) => (
-                  <div
-                    key={subTask.id}
-                    className={`border rounded-lg p-4 transition-all ${
-                      subTask.isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-                    }`}
-                  >
-                    <div className='flex items-start gap-3'>
-                      <Checkbox
-                        id={subTask.id}
-                        checked={subTask.isCompleted}
-                        onCheckedChange={() => handleToggleSubTask(subTask.id, subTask.isCompleted)}
-                        className='mt-1'
-                      />
-                      <div className='flex-1'>
-                        <label
-                          htmlFor={subTask.id}
-                          className={`font-medium cursor-pointer block ${
-                            subTask.isCompleted ? 'text-green-700 line-through' : 'text-gray-900'
-                          }`}
-                        >
-                          {subTask.title}
-                        </label>
-                        {subTask.description && (
-                          <p className={`text-sm mt-1 ${subTask.isCompleted ? 'text-green-600' : 'text-gray-600'}`}>
-                            {subTask.description}
-                          </p>
-                        )}
-                        <div className='flex flex-wrap gap-3 mt-2'>
-                          {subTask.assigneeName && (
-                            <div className='flex items-center gap-1 text-xs text-blue-600'>
-                              <User className='w-3 h-3' />
-                              <span>{subTask.assigneeName}</span>
-                            </div>
-                          )}
-                          {subTask.isCompleted && subTask.completedAt && (
-                            <div className='flex items-center gap-1 text-xs text-green-600'>
-                              <Timer className='w-3 h-3' />
-                              <span>Hoàn thành trong: {getCompletionTime(subTask.createdAt, subTask.completedAt)}</span>
-                            </div>
-                          )}
-                        </div>
-                        <p className='text-xs text-gray-500 mt-2'>
-                          Cập nhật:{' '}
-                          {format(new Date(subTask.updatedAt), 'dd/MM/yyyy HH:mm', {
-                            locale: vi
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <SubTaskList
+            subTasks={schedule.subTasks}
+            onToggleSubTask={handleToggleSubTask}
+            scheduleColor={schedule.color}
+          />
 
           {/* Metadata */}
           <div className='pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1'>
