@@ -35,6 +35,9 @@ import AccountManagement from './pages/Admin/Process/Accounts'
 import Analytics from './pages/Admin/Process/Analytics'
 import SeatMapEditor from './components/custom/EditorSeat'
 import CinemaTemplate from './components/custom/Template/CinemaExperience'
+import { Template1, Template2, Template3, Template4, Template5, Template6 } from './components/custom/landing_template'
+import { sampleLandingData } from './components/custom/landing_template/sampleData'
+
 const Loader = () => (
   <div
     className='flex flex-col items-center justify-center h-screen'
@@ -440,6 +443,55 @@ export default function useRouteElement() {
           )
         }
       ]
+    },
+    // Landing Template Routes
+    {
+      path: path.landing.template1,
+      element: (
+        <SuspenseWrapper>
+          <Template1 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.landing.template2,
+      element: (
+        <SuspenseWrapper>
+          <Template2 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.landing.template3,
+      element: (
+        <SuspenseWrapper>
+          <Template3 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.landing.template4,
+      element: (
+        <SuspenseWrapper>
+          <Template4 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.landing.template5,
+      element: (
+        <SuspenseWrapper>
+          <Template5 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.landing.template6,
+      element: (
+        <SuspenseWrapper>
+          <Template6 {...sampleLandingData} />
+        </SuspenseWrapper>
+      )
     },
     {
       path: path.admin.process.root,

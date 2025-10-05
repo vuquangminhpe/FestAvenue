@@ -88,6 +88,15 @@ const path = {
       accounts: '/process/admin/accounts',
       analytics: '/process/admin/analytics'
     }
+  },
+  landing: {
+    root: '/landing',
+    template1: '/landing/template1',
+    template2: '/landing/template2',
+    template3: '/landing/template3',
+    template4: '/landing/template4',
+    template5: '/landing/template5',
+    template6: '/landing/template6'
   }
 } as const
 export default path
