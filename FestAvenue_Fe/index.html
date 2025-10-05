@@ -1,6 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-JS3326D9FZ"></script>
     <script>
@@ -18,16 +22,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Discover, create, and manage amazing events with FestAvenue. The premier platform for event organizers and attendees to connect and create memorable experiences."
+      content="Khám phá, tạo và quản lý sự kiện tuyệt vời cùng FestAvenue. Nền tảng hàng đầu dành cho ban tổ chức và người tham dự sự kiện để kết nối và tạo nên những trải nghiệm đáng nhớ."
     />
-    <meta name="keywords" content="events, festival, event management, tickets, venue, organization, FestAvenue" />
+    <meta name="keywords" content="sự kiện, lễ hội, quản lý sự kiện, vé sự kiện, địa điểm, tổ chức sự kiện, FestAvenue, event, festival, tickets" />
     <meta name="author" content="FestAvenue Team" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="English" />
-    <meta name="revisit-after" content="7 days" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="language" content="Vietnamese" />
+    <meta name="revisit-after" content="3 days" />
+    <meta name="geo.region" content="VN" />
+    <meta name="geo.placename" content="Vietnam" />
 
     <!-- Title -->
-    <title>FestAvenue - Your Ultimate Event Management Platform</title>
+    <title>FestAvenue - Nền Tảng Quản Lý Sự Kiện Hàng Đầu Việt Nam</title>
 
     <!-- Favicon and Icons -->
     <link rel="icon" type="image/png" href="/Images/Fest.png" />
@@ -36,22 +42,25 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="FestAvenue - Your Ultimate Event Management Platform" />
+    <meta property="og:title" content="FestAvenue - Nền Tảng Quản Lý Sự Kiện Hàng Đầu Việt Nam" />
     <meta
       property="og:description"
-      content="Discover, create, and manage amazing events with FestAvenue. The premier platform for event organizers and attendees to connect and create memorable experiences."
+      content="Khám phá, tạo và quản lý sự kiện tuyệt vời cùng FestAvenue. Nền tảng hàng đầu dành cho ban tổ chức và người tham dự sự kiện để kết nối và tạo nên những trải nghiệm đáng nhớ."
     />
     <meta property="og:image" content="https://festavenue.site/Images/Fest.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="https://festavenue.site" />
     <meta property="og:site_name" content="FestAvenue" />
-    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:locale:alternate" content="en_US" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="FestAvenue - Your Ultimate Event Management Platform" />
+    <meta name="twitter:title" content="FestAvenue - Nền Tảng Quản Lý Sự Kiện Hàng Đầu Việt Nam" />
     <meta
       name="twitter:description"
-      content="Discover, create, and manage amazing events with FestAvenue. The premier platform for event organizers and attendees to connect and create memorable experiences."
+      content="Khám phá, tạo và quản lý sự kiện tuyệt vời cùng FestAvenue. Nền tảng hàng đầu dành cho ban tổ chức và người tham dự sự kiện."
     />
     <meta name="twitter:image" content="https://festavenue.site/Images/Fest.png" />
     <meta name="twitter:site" content="@festavenue" />
@@ -61,15 +70,17 @@
     <link rel="canonical" href="https://festavenue.site" />
     <meta name="theme-color" content="#667eea" />
 
-    <!-- Structured Data -->
+    <!-- Structured Data - Organization -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": "FestAvenue",
-        "description": "Your Ultimate Event Management Platform",
+        "alternateName": "FestAvenue Vietnam",
+        "description": "Nền tảng quản lý sự kiện hàng đầu Việt Nam",
         "url": "https://festavenue.site",
         "logo": "https://festavenue.site/Images/Fest.png",
+        "image": "https://festavenue.site/Images/Fest.png",
         "sameAs": [
           "https://facebook.com/festavenue",
           "https://twitter.com/festavenue",
@@ -77,14 +88,52 @@
         ],
         "contactPoint": {
           "@type": "ContactPoint",
-          "contactType": "Customer Service",
-          "email": "support@festavenue.site"
+          "contactType": "Dịch vụ khách hàng",
+          "email": "support@festavenue.site",
+          "availableLanguage": ["vi", "en"]
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "VN",
+          "addressLocality": "Vietnam"
         }
       }
     </script>
+
+    <!-- Structured Data - WebSite -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "FestAvenue",
+        "url": "https://festavenue.site",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://festavenue.site/search?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+
+    <!-- Performance optimizations -->
+    <link rel="modulepreload" href="/src/main.tsx" />
   </head>
   <body>
-    <div id="root"></div>
+    <!-- App loading skeleton for better perceived performance -->
+    <div id="root">
+      <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div style="text-align: center; color: white;">
+          <div style="width: 60px; height: 60px; margin: 0 auto 20px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <h1 style="font-size: 28px; font-weight: 300; letter-spacing: 3px; margin: 0;">FEST AVENUE</h1>
+          <p style="font-size: 14px; opacity: 0.9; margin-top: 8px;">Đang tải nền tảng sự kiện...</p>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
