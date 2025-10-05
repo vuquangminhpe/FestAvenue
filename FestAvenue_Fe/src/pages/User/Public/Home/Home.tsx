@@ -36,27 +36,55 @@ const useIntersectionObserver = (threshold = 0.1) => {
   return [ref, isVisible] as const
 }
 
-// Image loading component with skeleton
+// Image loading component with skeleton and performance optimizations
 const ImageWithLoading: React.FC<{
   src: string
   alt: string
   className?: string
   aspectRatio?: string
-}> = ({ src, alt, className = '', aspectRatio = 'aspect-video' }) => {
+  priority?: boolean
+}> = ({ src, alt, className = '', aspectRatio = 'aspect-video', priority = false }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
+  const [isInView, setIsInView] = useState(priority)
+  const imgRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (priority) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.disconnect()
+        }
+      },
+      {
+        rootMargin: '100px' // Load images 100px before they enter viewport
+      }
+    )
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [priority])
 
   return (
-    <div className={`relative overflow-hidden rounded-xl ${aspectRatio} ${className}`}>
-      {isLoading && (
+    <div ref={imgRef} className={`relative overflow-hidden rounded-xl ${aspectRatio} ${className}`}>
+      {isLoading && isInView && (
         <div className='absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse'>
           <div className='w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer'></div>
         </div>
       )}
-      {!hasError ? (
+      {!hasError && isInView ? (
         <img
           src={src}
           alt={alt}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding='async'
+          fetchPriority={priority ? 'high' : 'low'}
           className={`w-full h-full object-cover transition-opacity duration-500 ${
             isLoading ? 'opacity-0' : 'opacity-100'
           }`}
@@ -66,14 +94,14 @@ const ImageWithLoading: React.FC<{
             setIsLoading(false)
           }}
         />
-      ) : (
+      ) : hasError ? (
         <div className='w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center'>
           <div className='text-center text-gray-500'>
             <div className='w-12 h-12 mx-auto mb-2 bg-gray-300 rounded-full flex items-center justify-center'>📷</div>
             <p className='text-sm'>Image not available</p>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -563,6 +591,7 @@ const Home = () => {
                         alt={category.name}
                         className='h-32 w-full'
                         aspectRatio=''
+                        priority={index < 8}
                       />
                       <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent'></div>
                       <div className='absolute bottom-0 left-0 right-0 p-4 text-center'>
@@ -628,7 +657,7 @@ const Home = () => {
                     } stagger-${(index % 4) + 1}`}
                   >
                     <div className='relative'>
-                      <ImageWithLoading src={event.image} alt={event.title} className='h-48 w-full' />
+                      <ImageWithLoading src={event.image} alt={event.title} className='h-48 w-full' priority={index < 4} />
                       <button className='absolute top-4 right-4 p-2 glass rounded-full hover:bg-white transition-colors duration-200'>
                         <Heart className='w-5 h-5 text-gray-600' />
                       </button>

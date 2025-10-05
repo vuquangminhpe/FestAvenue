@@ -317,7 +317,7 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
             <div className='space-y-2 max-h-[400px] overflow-y-auto pr-1'>
               {filteredSubTasks.map((subTask, index) => (
                 <div
-                  key={subTask.id}
+                  key={`${subTask.id}-${subTask.isCompleted}-${subTask.updatedAt}`}
                   className={`border rounded-lg p-3 transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${
                     subTask.isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
                   }`}
