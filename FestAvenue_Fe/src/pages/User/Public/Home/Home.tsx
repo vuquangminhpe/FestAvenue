@@ -9,6 +9,8 @@ import categoryApis from '@/apis/categories.api'
 import CarouselBanner from '@/components/custom/CarouselBanner'
 import SmartSEO from '@/components/SEO/SmartSEO'
 import { pageSEO } from '@/components/SEO/SEO'
+import OptimizedImage from '@/components/custom/OptimizedImage'
+import ImagePreloader from '@/components/custom/ImagePreloader'
 
 // Animation hook for scroll-triggered animations
 const useIntersectionObserver = (threshold = 0.1) => {
@@ -549,6 +551,19 @@ const Home = () => {
       `}</style>
 
       <div className='min-h-screen bg-gray-50 relative overflow-hidden'>
+        {/* Preload critical images for better LCP */}
+        <ImagePreloader
+          images={
+            categories?.data
+              ?.slice(0, 8)
+              .map((cat) => ({
+                href: cat.imageUrl,
+                type: 'image/webp',
+                fetchPriority: 'high' as const
+              })) || []
+          }
+        />
+
         {/* Mouse Animation Background */}
         <MouseAnimate number_point={viewportWidth >= 800 ? 100 : 20} className='pointer-events-none w-full  z-50' />
 
@@ -586,12 +601,15 @@ const Home = () => {
                     } stagger-${(index % 8) + 1}`}
                   >
                     <div className='relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300'>
-                      <ImageWithLoading
+                      <OptimizedImage
                         src={category.imageUrl}
                         alt={category.name}
+                        width={400}
+                        height={320}
                         className='h-32 w-full'
                         aspectRatio=''
                         priority={index < 8}
+                        sizes='(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 12.5vw'
                       />
                       <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent'></div>
                       <div className='absolute bottom-0 left-0 right-0 p-4 text-center'>
@@ -657,7 +675,15 @@ const Home = () => {
                     } stagger-${(index % 4) + 1}`}
                   >
                     <div className='relative'>
-                      <ImageWithLoading src={event.image} alt={event.title} className='h-48 w-full' priority={index < 4} />
+                      <OptimizedImage
+                        src={event.image}
+                        alt={event.title}
+                        width={600}
+                        height={400}
+                        className='h-48 w-full'
+                        priority={index < 4}
+                        sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
+                      />
                       <button className='absolute top-4 right-4 p-2 glass rounded-full hover:bg-white transition-colors duration-200'>
                         <Heart className='w-5 h-5 text-gray-600' />
                       </button>
