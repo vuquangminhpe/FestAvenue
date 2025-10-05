@@ -38,6 +38,8 @@ import type {
   Section,
   ShapeType
 } from '@/types/seat.types'
+import EmailLockModal from './EmailLockModal'
+import { TICKET_TYPES, getTicketTypePrice } from './TicketTypeConfig'
 
 class SeatInteractionManager {
   private animationQueue: Map<string, any> = new Map()
@@ -334,6 +336,12 @@ export default function AdvancedSeatMapDesigner() {
   const [splitFirstPoint, setSplitFirstPoint] = useState<Point | null>(null)
   const [editingPoints, setEditingPoints] = useState<{ sectionId: string; points: Point[] } | null>(null)
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
+  const [emailLockModal, setEmailLockModal] = useState<{
+    seatId: string
+    seatLabel: string
+    currentEmail?: string
+  } | null>(null)
+  const [seatEmails, setSeatEmails] = useState<Map<string, string>>(new Map())
 
   useEffect(() => {
     const loadGSAP = () => {
@@ -1281,9 +1289,10 @@ export default function AdvancedSeatMapDesigner() {
           }
 
           if (mode === 'review-check') {
+            const seatLabel = `${section.name} R${seat.row}S${seat.number}`
             hitboxGroup.on('click', (event) => {
               event.stopPropagation()
-              handleSeatLockToggle(seat.id, status)
+              handleSeatLockToggle(seat.id, status, seatLabel)
             })
             hitboxGroup.on('dblclick', (event) => {
               event.stopPropagation()
@@ -1466,10 +1475,31 @@ export default function AdvancedSeatMapDesigner() {
     seatManagerRef.current.setSeatStatus(seatId, newStatus)
   }
 
-  const handleSeatLockToggle = (seatId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'locked' ? 'available' : 'locked'
-    setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
-    seatManagerRef.current.setSeatStatus(seatId, newStatus)
+  const handleSeatLockToggle = (seatId: string, currentStatus: string, seatLabel: string) => {
+    if (currentStatus === 'locked') {
+      // Unlock seat
+      setSeatStatuses((prev) => new Map(prev).set(seatId, 'available'))
+      seatManagerRef.current.setSeatStatus(seatId, 'available')
+      setSeatEmails((prev) => {
+        const newMap = new Map(prev)
+        newMap.delete(seatId)
+        return newMap
+      })
+    } else {
+      // Open modal to enter email and lock seat
+      setEmailLockModal({
+        seatId,
+        seatLabel,
+        currentEmail: seatEmails.get(seatId)
+      })
+    }
+  }
+
+  const handleEmailLockConfirm = (seatId: string, email: string) => {
+    setSeatStatuses((prev) => new Map(prev).set(seatId, 'locked'))
+    seatManagerRef.current.setSeatStatus(seatId, 'locked')
+    setSeatEmails((prev) => new Map(prev).set(seatId, email))
+    setEmailLockModal(null)
   }
 
   const openCinema3DView = (section: Section) => {
@@ -1505,7 +1535,7 @@ export default function AdvancedSeatMapDesigner() {
     screen.style.cssText = `
       width: 600px;
       height: 100px;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(90deg, #22d3ee 0%, #93c5fd 100%);
       border-radius: 10px;
       margin-bottom: 80px;
       display: flex;
@@ -1514,7 +1544,10 @@ export default function AdvancedSeatMapDesigner() {
       color: white;
       font-size: 24px;
       font-weight: bold;
-      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 20px 60px rgba(34, 211, 238, 0.4);
+      pointer-events: none;
+      position: relative;
+      z-index: 1;
     `
     screen.textContent = (section.displayName || section.name).toUpperCase()
     cinemaContainer.appendChild(screen)
@@ -1525,6 +1558,8 @@ export default function AdvancedSeatMapDesigner() {
       flex-direction: column;
       gap: 20px;
       align-items: center;
+      position: relative;
+      z-index: 10;
     `
 
     for (let row = 0; row < section.rows; row++) {
@@ -1567,6 +1602,8 @@ export default function AdvancedSeatMapDesigner() {
     seatWrapper.style.cssText = `
       position: relative;
       cursor: ${isLocked ? 'not-allowed' : 'pointer'};
+      z-index: 100;
+      pointer-events: auto;
     `
     seatWrapper.dataset.seatId = seatId
     seatWrapper.dataset.row = String(row)
@@ -1747,12 +1784,12 @@ export default function AdvancedSeatMapDesigner() {
   }
 
   return (
-    <div className='w-full h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4'>
+    <div className='w-full h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 text-gray-900 p-4'>
       <div className='max-w-7xl mx-auto h-full flex flex-col gap-4'>
-        <Card className='bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl'>
+        <Card className='bg-white/90 backdrop-blur-xl border-blue-200 shadow-2xl'>
           <CardHeader className='pb-3'>
             <div className='flex items-center justify-between'>
-              <CardTitle className='text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 bg-clip-text text-transparent'>
+              <CardTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-blue-300 bg-clip-text text-transparent'>
                 🎬 Advanced Cinema Seat Map Designer {mode === 'review-check' && '- Review & Check'}{' '}
                 {mode === 'preview' && `- Total: $${totalPrice.toFixed(2)}`}
               </CardTitle>
@@ -1761,7 +1798,9 @@ export default function AdvancedSeatMapDesigner() {
                   onClick={() => setMode('edit')}
                   variant={mode === 'edit' ? 'default' : 'outline'}
                   size='sm'
-                  className={mode === 'edit' ? 'bg-gradient-to-r from-purple-600 to-pink-600' : ''}
+                  className={
+                    mode === 'edit' ? 'bg-gradient-to-r from-cyan-500 to-blue-400 text-white' : 'border-gray-300'
+                  }
                 >
                   <Edit className='w-4 h-4 mr-1' />
                   Design
@@ -1770,7 +1809,9 @@ export default function AdvancedSeatMapDesigner() {
                   onClick={() => setMode('preview')}
                   variant={mode === 'preview' ? 'default' : 'outline'}
                   size='sm'
-                  className={mode === 'preview' ? 'bg-gradient-to-r from-green-600 to-emerald-600' : ''}
+                  className={
+                    mode === 'preview' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'border-gray-300'
+                  }
                 >
                   <Eye className='w-4 h-4 mr-1' />
                   Preview
@@ -1779,7 +1820,11 @@ export default function AdvancedSeatMapDesigner() {
                   onClick={() => setMode('review-check')}
                   variant={mode === 'review-check' ? 'default' : 'outline'}
                   size='sm'
-                  className={mode === 'review-check' ? 'bg-gradient-to-r from-orange-600 to-red-600' : ''}
+                  className={
+                    mode === 'review-check'
+                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                      : 'border-gray-300'
+                  }
                 >
                   <DollarSign className='w-4 h-4 mr-1' />
                   Review & Check
@@ -2265,48 +2310,43 @@ export default function AdvancedSeatMapDesigner() {
                       💰 <strong>Review & Check Mode</strong>
                       <br />
                       <br />
-                      • Set section pricing
+                      • Chọn loại vé cho section
                       <br />
-                      • Lock seats for invited guests
+                      • Click ghế để khóa & nhập email
                       <br />
-                      • Edit individual seat prices
+                      • Double-click để chỉnh giá riêng
                       <br />
-                      <br />
-                      Click seats to lock/unlock them
                     </AlertDescription>
                   </Alert>
 
                   <div className='space-y-2'>
                     <h3 className='text-sm font-semibold text-orange-300 flex items-center gap-2'>
                       <DollarSign className='w-4 h-4' />
-                      Section Pricing
+                      Loại Vé Cho Section
                     </h3>
                     <div className='space-y-2 max-h-60 overflow-y-auto'>
                       {mapData.sections.map((section) => (
-                        <div key={section.id} className='bg-slate-700/50 p-3 rounded border'>
+                        <div key={section.id} className='bg-white p-3 rounded border border-gray-200 shadow-sm'>
                           <div className='flex items-center justify-between mb-2'>
-                            <span className='text-sm font-medium'>{section.name}</span>
-                            <div className='flex items-center gap-2'>
-                              <span className='text-xs text-gray-400'>
-                                {section.seats?.length || section.rows * section.seatsPerRow} seats
-                              </span>
-                            </div>
+                            <span className='text-sm font-medium text-gray-900'>{section.name}</span>
+                            <span className='text-xs text-gray-500'>
+                              {section.seats?.length || section.rows * section.seatsPerRow} ghế
+                            </span>
                           </div>
-                          <div className='flex items-center gap-2'>
-                            <DollarSign className='w-3 h-3' />
-                            <input
-                              type='number'
-                              value={section.price || 0}
+                          <div className='space-y-2'>
+                            <select
+                              value={section.ticketType || 'standard'}
                               onChange={(e) => {
-                                const price = parseFloat(e.target.value) || 0
+                                const ticketType = e.target.value as 'vip' | 'premium' | 'standard' | 'economy'
+                                const price = getTicketTypePrice(ticketType)
                                 const updatedSections = mapData.sections.map((s) => {
                                   if (s.id === section.id) {
-                                    const updatedSection = { ...s, price }
-                                    // Update all seats in this section with new price
+                                    const updatedSection = { ...s, ticketType, price }
                                     if (updatedSection.seats) {
                                       updatedSection.seats = updatedSection.seats.map((seat) => ({
                                         ...seat,
-                                        price: price
+                                        ticketType,
+                                        price: seat.price || price
                                       }))
                                     }
                                     return updatedSection
@@ -2315,29 +2355,24 @@ export default function AdvancedSeatMapDesigner() {
                                 })
                                 setMapData({ ...mapData, sections: updatedSections })
                               }}
-                              placeholder='0.00'
-                              className='w-full px-2 py-1 bg-slate-600 rounded text-sm'
-                              step='0.01'
-                              min='0'
-                            />
+                              className='w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                            >
+                              {TICKET_TYPES.map((ticket) => (
+                                <option key={ticket.id} value={ticket.id}>
+                                  {ticket.displayName} - ${ticket.price}
+                                </option>
+                              ))}
+                            </select>
+                            <div className='flex items-center gap-1 text-xs text-gray-600 bg-gray-50 p-2 rounded'>
+                              <span>Giá:</span>
+                              <span className='font-semibold text-blue-600'>
+                                ${section.price || getTicketTypePrice(section.ticketType || 'standard')}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                    <Button
-                      onClick={() => {
-                        // Force regenerate all seats with updated prices
-                        const updatedSections = mapData.sections.map((section) => ({
-                          ...section,
-                          seats: generateSeatsForSection(section)
-                        }))
-                        setMapData({ ...mapData, sections: updatedSections })
-                      }}
-                      className='w-full bg-orange-600 hover:bg-orange-700 mt-2'
-                      size='sm'
-                    >
-                      🔄 Update All Seat Prices
-                    </Button>
                   </div>
                 </>
               )}
@@ -2502,12 +2537,12 @@ export default function AdvancedSeatMapDesigner() {
         {/* Seat Price Edit Modal */}
         {editingSeatPrice && (
           <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
-            <div className='bg-slate-800 border border-orange-500/30 rounded-lg p-6 min-w-[300px]'>
-              <h3 className='text-lg font-semibold text-white mb-4'>Edit Seat Price</h3>
+            <div className='bg-white border border-blue-300 rounded-lg p-6 min-w-[300px]'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Chỉnh Giá Ghế</h3>
               <div className='space-y-4'>
                 <div>
-                  <Label htmlFor='price-input' className='text-sm text-gray-300'>
-                    Seat Price ($)
+                  <Label htmlFor='price-input' className='text-sm text-gray-700'>
+                    Giá Ghế ($)
                   </Label>
                   <Input
                     id='price-input'
@@ -2515,7 +2550,7 @@ export default function AdvancedSeatMapDesigner() {
                     value={seatPrice}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeatPrice(e.target.value)}
                     placeholder='0.00'
-                    className='mt-1 bg-slate-700 border-slate-600 text-white'
+                    className='mt-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                     step='0.01'
                     min='0'
                     autoFocus
@@ -2529,16 +2564,32 @@ export default function AdvancedSeatMapDesigner() {
                       setSeatPrice('')
                     }}
                     size='sm'
+                    className='border-gray-300 text-gray-700'
                   >
-                    Cancel
+                    Hủy
                   </Button>
-                  <Button onClick={updateSeatPrice} size='sm' className='bg-orange-600 hover:bg-orange-700'>
-                    Update
+                  <Button
+                    onClick={updateSeatPrice}
+                    size='sm'
+                    className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400'
+                  >
+                    Cập Nhật
                   </Button>
                 </div>
               </div>
             </div>
           </div>
+        )}
+
+        {/* Email Lock Modal */}
+        {emailLockModal && (
+          <EmailLockModal
+            seatId={emailLockModal.seatId}
+            seatLabel={emailLockModal.seatLabel}
+            currentEmail={emailLockModal.currentEmail}
+            onConfirm={(email) => handleEmailLockConfirm(emailLockModal.seatId, email)}
+            onCancel={() => setEmailLockModal(null)}
+          />
         )}
       </div>
     </div>

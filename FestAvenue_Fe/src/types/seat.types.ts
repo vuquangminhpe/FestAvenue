@@ -13,6 +13,16 @@ export interface Seat {
   section: string
   category?: 'vip' | 'premium' | 'standard'
   price?: number
+  email?: string
+  ticketType?: 'vip' | 'premium' | 'standard' | 'economy'
+}
+
+export interface TicketType {
+  id: string
+  name: string
+  displayName: string
+  price: number
+  color: string
 }
 
 export interface Section {
@@ -35,6 +45,7 @@ export interface Section {
   angle?: number
   labelPosition?: { x: number; y: number }
   price?: number
+  ticketType?: 'vip' | 'premium' | 'standard' | 'economy'
 }
 
 export interface SeatMapData {
