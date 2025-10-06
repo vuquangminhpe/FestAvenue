@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import * as d3 from 'd3'
 import { useMutation } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Download,
-  Eye,
   Edit,
   Trash2,
   Move,
@@ -23,7 +22,6 @@ import {
   Palette,
   MousePointer,
   Sparkles,
-  DollarSign,
   Loader2,
   Scissors,
   GitBranch
@@ -33,243 +31,17 @@ import type {
   EditTool,
   ExtractionResult,
   Point,
-  Seat,
   SeatMapData,
   Section,
   ShapeType
 } from '@/types/seat.types'
 import EmailLockModal from './EmailLockModal'
-import { TICKET_TYPES, getTicketTypePrice } from './TicketTypeConfig'
 
-class SeatInteractionManager {
-  private animationQueue: Map<string, any> = new Map()
-  private seatStates: Map<string, 'available' | 'occupied' | 'locked'> = new Map()
-
-  toggleSeat(
-    seatElement: HTMLElement,
-    seatId: string,
-    onStatusChange: (seatId: string, newStatus: 'available' | 'occupied') => void
-  ): boolean {
-    const currentStatus = this.seatStates.get(seatId) || 'available'
-
-    if (currentStatus === 'locked') {
-      this.showLockedFeedback(seatElement)
-      return false
-    }
-
-    if (this.animationQueue.has(seatId)) {
-      return false
-    }
-
-    this.animationQueue.set(seatId, true)
-
-    if (currentStatus === 'occupied') {
-      this.animateCharacterLeaving(seatElement, seatId, () => {
-        this.seatStates.set(seatId, 'available')
-        onStatusChange(seatId, 'available')
-        this.animationQueue.delete(seatId)
-      })
-    } else {
-      this.animateCharacterEntering(seatElement, seatId, () => {
-        this.seatStates.set(seatId, 'occupied')
-        onStatusChange(seatId, 'occupied')
-        this.animationQueue.delete(seatId)
-      })
-    }
-
-    return true
-  }
-
-  setSeatStatus(seatId: string, status: 'available' | 'occupied' | 'locked') {
-    this.seatStates.set(seatId, status)
-  }
-
-  getSeatStatus(seatId: string): 'available' | 'occupied' | 'locked' {
-    return this.seatStates.get(seatId) || 'available'
-  }
-
-  private animateCharacterLeaving(seatElement: HTMLElement, _seatId: string, onComplete: () => void) {
-    if (!window.gsap) {
-      onComplete()
-      return
-    }
-
-    const character = seatElement.querySelector('.seated-character')
-    if (!character) {
-      onComplete()
-      return
-    }
-
-    const seat = seatElement.querySelector('.cinema-seat') as HTMLElement
-    const col = parseInt(seatElement.dataset.col || '0')
-
-    const tl = window.gsap.timeline({
-      onComplete: () => {
-        character.remove()
-        if (seat) {
-          seat.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-          const seatBack = seat.querySelector('.seat-back') as HTMLElement
-          if (seatBack) {
-            seatBack.style.background = 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)'
-          }
-        }
-        onComplete()
-      }
-    })
-
-    tl.to(character, {
-      y: -20,
-      scale: 1.1,
-      duration: 0.3,
-      ease: 'power2.out'
-    }).to(character, {
-      x: col < 6 ? -250 : 250,
-      opacity: 0,
-      duration: 0.6,
-      ease: 'power2.in'
-    })
-  }
-
-  private animateCharacterEntering(seatElement: HTMLElement, _seatId: string, onComplete: () => void) {
-    if (!window.gsap) {
-      onComplete()
-      return
-    }
-
-    const col = parseInt(seatElement.dataset.col || '0')
-
-    const character = document.createElement('div')
-    character.className = 'walking-character'
-    character.style.cssText = `
-      position: absolute;
-      bottom: 10px;
-      left: ${col < 6 ? '-150px' : 'calc(100% + 150px)'};
-      width: 40px;
-      height: 60px;
-      z-index: 100;
-    `
-
-    character.innerHTML = this.getCharacterSVG(false)
-    seatElement.appendChild(character)
-
-    const seat = seatElement.querySelector('.cinema-seat') as HTMLElement
-
-    const tl = window.gsap.timeline({
-      onComplete: () => {
-        character.remove()
-
-        const seatedChar = document.createElement('div')
-        seatedChar.className = 'seated-character'
-        seatedChar.style.cssText = `
-          position: absolute;
-          bottom: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 40px;
-          height: 50px;
-          pointer-events: none;
-          z-index: 5;
-        `
-        seatedChar.innerHTML = this.getCharacterSVG(true)
-        seatElement.appendChild(seatedChar)
-
-        if (seat) {
-          seat.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-          const seatBack = seat.querySelector('.seat-back') as HTMLElement
-          if (seatBack) {
-            seatBack.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
-          }
-        }
-
-        window.gsap.fromTo(
-          seatedChar,
-          { opacity: 0, scale: 0.5, y: -10 },
-          { opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'back.out(1.7)' }
-        )
-
-        onComplete()
-      }
-    })
-
-    tl.to(character, {
-      left: '50%',
-      x: '-50%',
-      duration: 0.8,
-      ease: 'power2.inOut'
-    }).to(character, {
-      y: 5,
-      scale: 0.9,
-      duration: 0.2,
-      ease: 'power2.out'
-    })
-  }
-
-  private getCharacterSVG(isSeated: boolean): string {
-    if (isSeated) {
-      return `
-        <svg width="40" height="50" viewBox="0 0 40 50">
-          <ellipse cx="20" cy="12" rx="10" ry="12" fill="#fdbcb4"/>
-          <rect x="12" y="20" width="16" height="20" fill="#3b82f6" rx="2"/>
-          <rect x="14" y="40" width="5" height="8" fill="#1f2937"/>
-          <rect x="21" y="40" width="5" height="8" fill="#1f2937"/>
-          <circle cx="16" cy="10" r="1.5" fill="#000"/>
-          <circle cx="24" cy="10" r="1.5" fill="#000"/>
-          <path d="M 16 14 Q 20 16 24 14" stroke="#000" stroke-width="1" fill="none"/>
-        </svg>
-      `
-    } else {
-      return `
-        <svg width="40" height="60" viewBox="0 0 40 60">
-          <ellipse cx="20" cy="15" rx="12" ry="15" fill="#fdbcb4"/>
-          <rect x="10" y="25" width="20" height="25" fill="#3b82f6" rx="2"/>
-          <rect class="leg" x="12" y="50" width="6" height="10" fill="#1f2937"/>
-          <rect class="leg" x="22" y="50" width="6" height="10" fill="#1f2937"/>
-          <circle cx="15" cy="12" r="2" fill="#000"/>
-          <circle cx="25" cy="12" r="2" fill="#000"/>
-        </svg>
-      `
-    }
-  }
-
-  private showLockedFeedback(seatElement: HTMLElement) {
-    if (!window.gsap) return
-
-    window.gsap.to(seatElement, {
-      x: -2,
-      duration: 0.05,
-      repeat: 5,
-      yoyo: true,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        window.gsap.set(seatElement, { x: 0 })
-      }
-    })
-
-    const lockIcon = document.createElement('div')
-    lockIcon.innerHTML = '🔒'
-    lockIcon.style.cssText = `
-      position: absolute;
-      top: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 20px;
-      z-index: 1000;
-    `
-    seatElement.appendChild(lockIcon)
-
-    window.gsap.to(lockIcon, {
-      y: -10,
-      opacity: 0,
-      duration: 1,
-      onComplete: () => lockIcon.remove()
-    })
-  }
-
-  clearState() {
-    this.animationQueue.clear()
-    this.seatStates.clear()
-  }
-}
+// Import từ các modules đã tách
+import { SeatInteractionManager } from './classes/SeatInteractionManager'
+import { calculateBounds, lineIntersection, getPolygonColor } from './utils/geometry'
+import { generateShapePath } from './utils/shapes'
+import { generateSeatsForSection } from './utils/seats'
 
 // Main Component
 export default function AdvancedSeatMapDesigner() {
@@ -279,7 +51,7 @@ export default function AdvancedSeatMapDesigner() {
 
   const seatManagerRef = useRef(new SeatInteractionManager())
 
-  const [mode, setMode] = useState<'edit' | 'preview' | 'review-check'>('edit')
+  const [mode] = useState<'edit'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
   const [selectedShape, setSelectedShape] = useState<ShapeType>('polygon')
   const [drawingPoints, setDrawingPoints] = useState<Point[]>([])
@@ -296,7 +68,6 @@ export default function AdvancedSeatMapDesigner() {
   })
   const [is3DView, setIs3DView] = useState(false)
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
-  const [totalPrice, setTotalPrice] = useState(0)
   const [layoutParams, setLayoutParams] = useState({
     rows: 15,
     seatsPerRow: 20,
@@ -361,38 +132,6 @@ export default function AdvancedSeatMapDesigner() {
       seatManagerRef.current.setSeatStatus(seatId, status)
     })
   }, [seatStatuses])
-
-  // Update total price when seat statuses or map data changes
-  useEffect(() => {
-    let total = 0
-    let occupiedSeatsDebug: any[] = []
-
-    // Debug: Show what's in seatStatuses Map
-
-    mapData.sections.forEach((section) => {
-      const sectionPrice = section.price || 0
-
-      // Use the same logic as renderMap to get seats
-      const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
-
-      seats?.forEach((seat) => {
-        const seatStatus = seatStatuses.get(seat.id) || seat.status
-        if (seatStatus === 'occupied') {
-          const seatPrice = seat.price || sectionPrice
-
-          total += seatPrice
-          occupiedSeatsDebug.push({
-            seatId: seat.id,
-            seatPrice: seat.price,
-            sectionPrice: sectionPrice,
-            finalPrice: seatPrice
-          })
-        }
-      })
-    })
-
-    setTotalPrice(total)
-  }, [seatStatuses, mapData])
 
   // API Mutation for image polygon extraction
   const extractPolygonsMutation = useMutation({
@@ -472,7 +211,7 @@ export default function AdvancedSeatMapDesigner() {
         price: 10
       }
 
-      section.seats = generateSeatsForSection(section)
+      section.seats = generateSeatsForSection(section, seatStatuses)
       return section
     })
 
@@ -481,12 +220,6 @@ export default function AdvancedSeatMapDesigner() {
       stage: { x: 0, y: 0, width: 0, height: 0 }, // Hide stage in image import mode
       aisles: []
     })
-  }
-
-  // Color generator for imported polygons
-  const getPolygonColor = (index: number, total: number): string => {
-    const hue = (index * 360) / total
-    return `hsl(${hue}, 70%, 50%)`
   }
 
   // Handle image file upload
@@ -586,8 +319,8 @@ export default function AdvancedSeatMapDesigner() {
       }
     }
 
-    section1.seats = generateSeatsForSection(section1)
-    section2.seats = generateSeatsForSection(section2)
+    section1.seats = generateSeatsForSection(section1, seatStatuses)
+    section2.seats = generateSeatsForSection(section2, seatStatuses)
 
     // Replace original section with two new sections
     setMapData((prev) => ({
@@ -596,37 +329,6 @@ export default function AdvancedSeatMapDesigner() {
     }))
 
     alert(`Successfully split ${section.name} into ${section1.name} and ${section2.name}!`)
-  }
-
-  // Line intersection helper
-  const lineIntersection = (l1p1: Point, l1p2: Point, l2p1: Point, l2p2: Point): Point | null => {
-    const x1 = l1p1.x,
-      y1 = l1p1.y
-    const x2 = l1p2.x,
-      y2 = l1p2.y
-    const x3 = l2p1.x,
-      y3 = l2p1.y
-    const x4 = l2p2.x,
-      y4 = l2p2.y
-
-    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-
-    if (Math.abs(denom) < 0.0001) {
-      return null
-    }
-
-    const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom
-    const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom
-
-    if (u >= 0 && u <= 1) {
-      const intersection = {
-        x: x1 + t * (x2 - x1),
-        y: y1 + t * (y2 - y1)
-      }
-      return intersection
-    }
-
-    return null
   }
 
   const startEditingPoints = (section: Section) => {
@@ -661,7 +363,7 @@ export default function AdvancedSeatMapDesigner() {
               y: bounds.minY + (bounds.maxY - bounds.minY) / 2
             }
           }
-          updatedSection.seats = generateSeatsForSection(updatedSection)
+          updatedSection.seats = generateSeatsForSection(updatedSection, seatStatuses)
           return updatedSection
         }
         return section
@@ -673,46 +375,8 @@ export default function AdvancedSeatMapDesigner() {
     setEditTool('select')
   }
 
-  const generateShapePath = useCallback((type: ShapeType, center: Point, size: number = 100): string => {
-    const path = d3.path()
-
-    switch (type) {
-      case 'rectangle':
-        path.rect(center.x - size / 2, center.y - size / 2, size, size * 0.7)
-        break
-      case 'circle':
-        path.arc(center.x, center.y, size / 2, 0, 2 * Math.PI)
-        break
-      case 'star':
-        const outerRadius = size / 2
-        const innerRadius = size / 4
-        const points = 5
-        for (let i = 0; i < points * 2; i++) {
-          const angle = (Math.PI * i) / points - Math.PI / 2
-          const radius = i % 2 === 0 ? outerRadius : innerRadius
-          const x = center.x + Math.cos(angle) * radius
-          const y = center.y + Math.sin(angle) * radius
-          i === 0 ? path.moveTo(x, y) : path.lineTo(x, y)
-        }
-        path.closePath()
-        break
-      case 'crescent':
-        path.arc(center.x, center.y, size / 2, Math.PI * 0.3, Math.PI * 1.7)
-        path.arc(center.x + size / 4, center.y, size / 2.5, Math.PI * 1.5, Math.PI * 0.5, true)
-        break
-      case 'arc':
-        path.arc(center.x, center.y, size / 2, Math.PI, 0)
-        path.lineTo(center.x + size / 3, center.y)
-        path.arc(center.x, center.y, size / 3, 0, Math.PI, true)
-        path.closePath()
-        break
-    }
-
-    return path.toString()
-  }, [])
-
   const createShapeSection = (center: Point) => {
-    const path = generateShapePath(selectedShape, center)
+    const path = generateShapePath(selectedShape, center, 100)
     const newSection: Section = {
       id: `section-${Date.now()}`,
       name: sectionConfig.name || `${selectedShape} ${mapData.sections.length + 1}`,
@@ -729,7 +393,7 @@ export default function AdvancedSeatMapDesigner() {
       price: 10 // Default price
     }
 
-    newSection.seats = generateSeatsForSection(newSection)
+    newSection.seats = generateSeatsForSection(newSection, seatStatuses)
 
     setMapData({
       ...mapData,
@@ -758,78 +422,11 @@ export default function AdvancedSeatMapDesigner() {
       price: 10 // Default price
     }
 
-    newSection.seats = generateSeatsForSection(newSection)
+    newSection.seats = generateSeatsForSection(newSection, seatStatuses)
     setMapData({
       ...mapData,
       sections: [...mapData.sections, newSection]
     })
-  }
-
-  const generateSeatsForSection = useCallback(
-    (section: Section): Seat[] => {
-      const seats: Seat[] = []
-
-      if (section.bounds || section.points.length > 0) {
-        const bounds = section.bounds || calculateBounds(section.points)
-        const { minX, minY, maxX, maxY } = bounds
-        const width = maxX - minX
-        const height = maxY - minY
-
-        const seatSpacingX = width / section.seatsPerRow
-        const seatSpacingY = height / section.rows
-
-        for (let row = 0; row < section.rows; row++) {
-          for (let col = 0; col < section.seatsPerRow; col++) {
-            const x = minX + col * seatSpacingX + seatSpacingX / 2
-            const y = minY + row * seatSpacingY + seatSpacingY / 2
-
-            if (!section.points.length || isPointInPolygon({ x, y }, section.points)) {
-              const seatId = `${section.id}-R${row + 1}-S${col + 1}`
-              const status = seatStatuses.get(seatId) || 'available'
-              const seatPrice = section.price || 10
-              seats.push({
-                id: seatId,
-                x,
-                y,
-                row: row + 1,
-                number: col + 1,
-                section: section.id,
-                status: status,
-                category: section.category === 'vip' ? 'vip' : 'standard',
-                price: seatPrice
-              })
-            }
-          }
-        }
-      }
-
-      return seats
-    },
-    [seatStatuses]
-  )
-
-  const calculateBounds = (points: Point[]) => {
-    const xs = points.map((p) => p.x)
-    const ys = points.map((p) => p.y)
-    return {
-      minX: Math.min(...xs),
-      maxX: Math.max(...xs),
-      minY: Math.min(...ys),
-      maxY: Math.max(...ys)
-    }
-  }
-
-  const isPointInPolygon = (point: Point, polygon: Point[]): boolean => {
-    let inside = false
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].x,
-        yi = polygon[i].y
-      const xj = polygon[j].x,
-        yj = polygon[j].y
-      const intersect = yi > point.y !== yj > point.y && point.x < ((xj - xi) * (point.y - yi)) / (yj - yi) + xi
-      if (intersect) inside = !inside
-    }
-    return inside
   }
 
   useEffect(() => {
@@ -839,17 +436,6 @@ export default function AdvancedSeatMapDesigner() {
     svg.selectAll('*').remove()
 
     const g = svg.append('g').attr('class', 'main-group')
-
-    const zoom = d3
-      .zoom()
-      .scaleExtent([0.3, 5])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform)
-      })
-
-    if (mode === 'preview' || mode === 'review-check') {
-      svg.call(zoom as any)
-    }
 
     if (mode === 'edit') {
       if (editTool === 'draw' && isDrawing) {
@@ -1231,18 +817,18 @@ export default function AdvancedSeatMapDesigner() {
           .style('pointer-events', 'none')
       }
 
-      if (mode === 'preview' || mode === 'review-check') {
-        const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
-
-        seats.forEach((seat) => {
+      // Render seats for this section in edit mode
+      if (mode === 'edit' && section.seats && section.seats.length > 0) {
+        section.seats.forEach((seat) => {
           const status = seatStatuses.get(seat.id) || seat.status
 
-          const hitboxGroup = sectionGroup
+          const seatGroup = sectionGroup
             .append('g')
             .attr('class', `seat-group seat-${seat.id}`)
-            .style('cursor', status === 'locked' ? 'not-allowed' : 'pointer')
+            .style('cursor', 'pointer')
 
-          hitboxGroup
+          // Invisible hitbox for better click area
+          seatGroup
             .append('circle')
             .attr('cx', seat.x)
             .attr('cy', seat.y)
@@ -1250,7 +836,8 @@ export default function AdvancedSeatMapDesigner() {
             .attr('fill', 'transparent')
             .attr('pointer-events', 'all')
 
-          hitboxGroup
+          // Visible seat circle
+          seatGroup
             .append('circle')
             .attr('cx', seat.x)
             .attr('cy', seat.y)
@@ -1269,8 +856,9 @@ export default function AdvancedSeatMapDesigner() {
             .attr('stroke-width', 1)
             .attr('pointer-events', 'none')
 
+          // Lock icon for locked seats
           if (status === 'locked') {
-            hitboxGroup
+            seatGroup
               .append('text')
               .attr('x', seat.x)
               .attr('y', seat.y + 1)
@@ -1281,62 +869,127 @@ export default function AdvancedSeatMapDesigner() {
               .text('🔒')
           }
 
-          if (mode === 'preview') {
-            hitboxGroup.on('click', (event) => {
-              event.stopPropagation()
-              handleQuickSeatToggle(seat.id, status)
-            })
-          }
+          // Context menu on right-click for Lock and Edit Price
+          seatGroup.on('contextmenu', (event) => {
+            event.preventDefault()
+            event.stopPropagation()
 
-          if (mode === 'review-check') {
-            const seatLabel = `${section.name} R${seat.row}S${seat.number}`
-            hitboxGroup.on('click', (event) => {
-              event.stopPropagation()
-              handleSeatLockToggle(seat.id, status, seatLabel)
-            })
-            hitboxGroup.on('dblclick', (event) => {
-              event.stopPropagation()
-              setEditingSeatPrice(seat.id)
-              setSeatPrice((seat.price || 0).toString())
-            })
-          }
+            // Create context menu
+            const menu = document.createElement('div')
+            menu.style.cssText = `
+              position: fixed;
+              left: ${event.clientX}px;
+              top: ${event.clientY}px;
+              background: #1f2937;
+              border: 1px solid #374151;
+              border-radius: 8px;
+              padding: 8px;
+              z-index: 10000;
+              box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+              min-width: 180px;
+            `
 
-          hitboxGroup
+            const seatLabel = `${section.displayName || section.name} R${seat.row}S${seat.number}`
+
+            const menuItems = [
+              {
+                label: status === 'locked' ? '🔓 Unlock Seat' : '🔒 Lock Seat',
+                action: () => handleSeatLockToggle(seat.id, status, seatLabel)
+              },
+              {
+                label: '💵 Edit Price',
+                action: () => {
+                  setEditingSeatPrice(seat.id)
+                  setSeatPrice(String(seat.price || section.price || 0))
+                }
+              }
+            ]
+
+            menuItems.forEach((item, idx) => {
+              const menuItem = document.createElement('div')
+              menuItem.style.cssText = `
+                padding: 8px 12px;
+                color: white;
+                cursor: pointer;
+                border-radius: 4px;
+                font-size: 14px;
+                ${idx > 0 ? 'margin-top: 4px;' : ''}
+              `
+              menuItem.textContent = item.label
+              menuItem.onmouseenter = () => {
+                menuItem.style.background = '#374151'
+              }
+              menuItem.onmouseleave = () => {
+                menuItem.style.background = 'transparent'
+              }
+              menuItem.onclick = () => {
+                item.action()
+                menu.remove()
+              }
+              menu.appendChild(menuItem)
+            })
+
+            // Add seat info header
+            const header = document.createElement('div')
+            header.style.cssText = `
+              padding: 8px 12px;
+              color: #9ca3af;
+              font-size: 12px;
+              border-bottom: 1px solid #374151;
+              margin-bottom: 4px;
+              font-weight: bold;
+            `
+            header.textContent = seatLabel
+            menu.insertBefore(header, menu.firstChild)
+
+            document.body.appendChild(menu)
+
+            // Close menu on click outside
+            const closeMenu = (e: MouseEvent) => {
+              if (!menu.contains(e.target as Node)) {
+                menu.remove()
+                document.removeEventListener('click', closeMenu)
+              }
+            }
+            setTimeout(() => document.addEventListener('click', closeMenu), 0)
+          })
+
+          // Hover effects
+          seatGroup
             .on('mouseover', function () {
-              if (status !== 'locked') {
-                d3.select(this).select('circle').attr('r', 7)
+              d3.select(this).select('circle:nth-child(2)').attr('r', 7)
 
-                const tooltip = g.append('g').attr('class', 'tooltip')
-                tooltip
-                  .append('rect')
-                  .attr('x', seat.x - 35)
-                  .attr('y', seat.y - 30)
-                  .attr('width', 70)
-                  .attr('height', 20)
-                  .attr('fill', 'rgba(0,0,0,0.9)')
-                  .attr('rx', 3)
+              const tooltip = g.append('g').attr('class', 'seat-tooltip')
+              const tooltipText = `${section.displayName || section.name} R${seat.row}S${seat.number}\n$${
+                seat.price || section.price || 0
+              }`
+              const lines = tooltipText.split('\n')
 
+              tooltip
+                .append('rect')
+                .attr('x', seat.x - 50)
+                .attr('y', seat.y - 40)
+                .attr('width', 100)
+                .attr('height', 30)
+                .attr('fill', 'rgba(0,0,0,0.9)')
+                .attr('rx', 4)
+
+              lines.forEach((line, i) => {
                 tooltip
                   .append('text')
                   .attr('x', seat.x)
-                  .attr('y', seat.y - 15)
+                  .attr('y', seat.y - 30 + i * 12)
                   .attr('text-anchor', 'middle')
                   .attr('fill', 'white')
                   .attr('font-size', '11px')
-                  .text(`${section.name} R${seat.row}S${seat.number}`)
-              }
+                  .text(line)
+              })
             })
             .on('mouseout', function () {
-              if (status !== 'locked') {
-                d3.select(this).select('circle').attr('r', 5)
-              }
-              g.selectAll('.tooltip').remove()
+              d3.select(this).select('circle:nth-child(2)').attr('r', 5)
+              g.selectAll('.seat-tooltip').remove()
             })
         })
-
-        if (mode === 'preview' && sectionElement) {
-          sectionElement.on('click', () => openCinema3DView(section))
-        }
       }
     })
 
@@ -1467,14 +1120,6 @@ export default function AdvancedSeatMapDesigner() {
     }
   }
 
-  const handleQuickSeatToggle = (seatId: string, currentStatus: string) => {
-    if (currentStatus === 'locked') return
-
-    const newStatus = currentStatus === 'occupied' ? 'available' : 'occupied'
-    setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
-    seatManagerRef.current.setSeatStatus(seatId, newStatus)
-  }
-
   const handleSeatLockToggle = (seatId: string, currentStatus: string, seatLabel: string) => {
     if (currentStatus === 'locked') {
       // Unlock seat
@@ -1500,12 +1145,6 @@ export default function AdvancedSeatMapDesigner() {
     seatManagerRef.current.setSeatStatus(seatId, 'locked')
     setSeatEmails((prev) => new Map(prev).set(seatId, email))
     setEmailLockModal(null)
-  }
-
-  const openCinema3DView = (section: Section) => {
-    setSelectedSection(section)
-    setIs3DView(true)
-    setTimeout(() => createCinema3DSeats(section), 100)
   }
 
   const createCinema3DSeats = (section: Section) => {
@@ -1790,46 +1429,8 @@ export default function AdvancedSeatMapDesigner() {
           <CardHeader className='pb-3'>
             <div className='flex items-center justify-between'>
               <CardTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-blue-300 bg-clip-text text-transparent'>
-                🎬 Advanced Cinema Seat Map Designer {mode === 'review-check' && '- Review & Check'}{' '}
-                {mode === 'preview' && `- Total: $${totalPrice.toFixed(2)}`}
+                🎬 Advanced Cinema Seat Map Designer
               </CardTitle>
-              <div className='flex gap-2'>
-                <Button
-                  onClick={() => setMode('edit')}
-                  variant={mode === 'edit' ? 'default' : 'outline'}
-                  size='sm'
-                  className={
-                    mode === 'edit' ? 'bg-gradient-to-r from-cyan-500 to-blue-400 text-white' : 'border-gray-300'
-                  }
-                >
-                  <Edit className='w-4 h-4 mr-1' />
-                  Design
-                </Button>
-                <Button
-                  onClick={() => setMode('preview')}
-                  variant={mode === 'preview' ? 'default' : 'outline'}
-                  size='sm'
-                  className={
-                    mode === 'preview' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'border-gray-300'
-                  }
-                >
-                  <Eye className='w-4 h-4 mr-1' />
-                  Preview
-                </Button>
-                <Button
-                  onClick={() => setMode('review-check')}
-                  variant={mode === 'review-check' ? 'default' : 'outline'}
-                  size='sm'
-                  className={
-                    mode === 'review-check'
-                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-                      : 'border-gray-300'
-                  }
-                >
-                  <DollarSign className='w-4 h-4 mr-1' />
-                  Review & Check
-                </Button>
-              </div>
             </div>
           </CardHeader>
         </Card>
@@ -2303,114 +1904,6 @@ export default function AdvancedSeatMapDesigner() {
                 </>
               )}
 
-              {mode === 'review-check' && (
-                <>
-                  <Alert className='bg-orange-600/20 border-orange-600/50'>
-                    <AlertDescription className='text-sm'>
-                      💰 <strong>Review & Check Mode</strong>
-                      <br />
-                      <br />
-                      • Chọn loại vé cho section
-                      <br />
-                      • Click ghế để khóa & nhập email
-                      <br />
-                      • Double-click để chỉnh giá riêng
-                      <br />
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className='space-y-2'>
-                    <h3 className='text-sm font-semibold text-orange-300 flex items-center gap-2'>
-                      <DollarSign className='w-4 h-4' />
-                      Loại Vé Cho Section
-                    </h3>
-                    <div className='space-y-2 max-h-60 overflow-y-auto'>
-                      {mapData.sections.map((section) => (
-                        <div key={section.id} className='bg-white p-3 rounded border border-gray-200 shadow-sm'>
-                          <div className='flex items-center justify-between mb-2'>
-                            <span className='text-sm font-medium text-gray-900'>{section.name}</span>
-                            <span className='text-xs text-gray-500'>
-                              {section.seats?.length || section.rows * section.seatsPerRow} ghế
-                            </span>
-                          </div>
-                          <div className='space-y-2'>
-                            <select
-                              value={section.ticketType || 'standard'}
-                              onChange={(e) => {
-                                const ticketType = e.target.value as 'vip' | 'premium' | 'standard' | 'economy'
-                                const price = getTicketTypePrice(ticketType)
-                                const updatedSections = mapData.sections.map((s) => {
-                                  if (s.id === section.id) {
-                                    const updatedSection = { ...s, ticketType, price }
-                                    if (updatedSection.seats) {
-                                      updatedSection.seats = updatedSection.seats.map((seat) => ({
-                                        ...seat,
-                                        ticketType,
-                                        price: seat.price || price
-                                      }))
-                                    }
-                                    return updatedSection
-                                  }
-                                  return s
-                                })
-                                setMapData({ ...mapData, sections: updatedSections })
-                              }}
-                              className='w-full px-2 py-1.5 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                            >
-                              {TICKET_TYPES.map((ticket) => (
-                                <option key={ticket.id} value={ticket.id}>
-                                  {ticket.displayName} - ${ticket.price}
-                                </option>
-                              ))}
-                            </select>
-                            <div className='flex items-center gap-1 text-xs text-gray-600 bg-gray-50 p-2 rounded'>
-                              <span>Giá:</span>
-                              <span className='font-semibold text-blue-600'>
-                                ${section.price || getTicketTypePrice(section.ticketType || 'standard')}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {mode === 'preview' && (
-                <>
-                  <Alert className='bg-green-600/20 border-green-600/50'>
-                    <AlertDescription className='text-sm'>
-                      🎬 <strong>Preview Mode</strong>
-                      <br />
-                      <br />
-                      • Click any seat to book/unbook
-                      <br />
-                      • Green = Available
-                      <br />
-                      • Red = Occupied
-                      <br />
-                      • Gray 🔒 = Locked
-                      <br />
-                      • Click section for 3D view
-                      <br />
-                      <br />
-                      Use scroll to zoom
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className='bg-green-600/20 border border-green-600/50 rounded-lg p-4'>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-2'>
-                        <DollarSign className='w-5 h-5 text-green-400' />
-                        <span className='text-lg font-semibold text-green-400'>Total:</span>
-                      </div>
-                      <span className='text-2xl font-bold text-green-400'>${totalPrice.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </>
-              )}
-
               <div className='space-y-2 pt-4 border-t border-purple-500/30'>
                 <h3 className='text-sm font-semibold text-purple-300'>Statistics</h3>
                 <div className='text-xs space-y-1 text-gray-400'>
@@ -2472,14 +1965,6 @@ export default function AdvancedSeatMapDesigner() {
                     <X className='w-4 h-4 mr-2' />
                     Back to Map
                   </Button>
-
-                  {/* Total Price Display in 3D View */}
-                  <div className='absolute top-4 right-4 z-50 bg-slate-800/90 backdrop-blur border border-green-500/30 rounded-lg p-3'>
-                    <div className='flex items-center gap-2'>
-                      <DollarSign className='w-5 h-5 text-green-400' />
-                      <span className='text-green-400 font-semibold'>Total: ${totalPrice.toFixed(2)}</span>
-                    </div>
-                  </div>
 
                   <div
                     ref={seat3DRef}
