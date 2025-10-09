@@ -1,12 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { Calendar, MapPin, Clock, Users, Share2, Bookmark, Heart, Tag } from 'lucide-react'
+import { Calendar, MapPin, Clock, Users, Share2, Bookmark, Heart, Tag, Navigation } from 'lucide-react'
+import { FacebookShareButton, TwitterShareButton, FacebookIcon, XIcon } from 'react-share'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import LeafletMap from '@/components/custom/MapLeaflet'
+import { getUserLocation, getDirections } from '@/services/openrouteservice'
 import type { Event } from '@/types/event.types'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -153,6 +166,14 @@ const eventPosts = [
 const EventDetails: React.FC = () => {
   const [event] = useState<Event>(mockEventData)
   const [isBookmarked, setIsBookmarked] = useState(false)
+  const [showLocationAlert, setShowLocationAlert] = useState(false)
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false)
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null)
+  const [routeData, setRouteData] = useState<{
+    coordinates: [number, number][]
+    distance: number
+    duration: number
+  } | null>(null)
 
   const heroRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -255,6 +276,47 @@ const EventDetails: React.FC = () => {
     }).format(price)
   }
 
+  const handleGetDirections = async () => {
+    setShowLocationAlert(true)
+  }
+
+  const handleConfirmLocation = async () => {
+    setShowLocationAlert(false)
+    setIsLoadingRoute(true)
+
+    try {
+      // Get user's current location
+      const location = await getUserLocation()
+
+      if (!location) {
+        alert('Không thể lấy vị trí của bạn. Vui lòng bật GPS và cho phép truy cập vị trí.')
+        setIsLoadingRoute(false)
+        return
+      }
+
+      setUserPosition(location)
+
+      // Get route from user location to event location
+      const eventLocation = {
+        lat: event.location.coordinates.latitude,
+        lng: event.location.coordinates.longitude
+      }
+
+      const directions = await getDirections(location, eventLocation)
+
+      setRouteData({
+        coordinates: directions.coordinates,
+        distance: directions.distance,
+        duration: directions.duration
+      })
+    } catch (error) {
+      console.error('Error getting directions:', error)
+      alert('Không thể tính toán đường đi. Vui lòng thử lại sau.')
+    } finally {
+      setIsLoadingRoute(false)
+    }
+  }
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-white'>
       {/* Hero Section */}
@@ -290,14 +352,47 @@ const EventDetails: React.FC = () => {
                 <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
                 Lưu
               </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
-              >
-                <Share2 className='w-4 h-4 mr-2' />
-                Chia sẻ
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    size='lg'
+                    variant='outline'
+                    className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
+                  >
+                    <Share2 className='w-4 h-4 mr-2' />
+                    Chia sẻ
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className='sm:max-w-md'>
+                  <DialogHeader>
+                    <DialogTitle>Chia sẻ sự kiện</DialogTitle>
+                  </DialogHeader>
+                  <div className='flex flex-col gap-4 py-4'>
+                    <div className='text-sm text-gray-600 mb-2'>Chia sẻ sự kiện này đến:</div>
+                    <div className='flex gap-4 justify-center'>
+                      <FacebookShareButton
+                        url={window.location.href}
+                        hashtag={event.hashtags[0]}
+                        className='hover:opacity-80 transition-opacity'
+                      >
+                        <FacebookIcon size={48} round />
+                      </FacebookShareButton>
+
+                      <TwitterShareButton
+                        url={window.location.href}
+                        title={`${event.name} - ${event.shortDescription}`}
+                        hashtags={event.hashtags.map((tag) => tag.replace('#', ''))}
+                        className='hover:opacity-80 transition-opacity'
+                      >
+                        <XIcon size={48} round />
+                      </TwitterShareButton>
+                    </div>
+                    <div className='text-xs text-gray-500 text-center mt-2'>
+                      * Instagram không hỗ trợ chia sẻ từ web
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -341,7 +436,7 @@ const EventDetails: React.FC = () => {
               <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg hover:shadow-xl transition-shadow'>
                 <CardContent className='p-4 text-center'>
                   <Users className='w-8 h-8 mx-auto mb-2 text-purple-600' />
-                  <p className='text-sm text-gray-600'>Sĩ lượng chỗ</p>
+                  <p className='text-sm text-gray-600'>Số lượng chỗ</p>
                   <p className='font-semibold text-gray-900'>{event.capacity} người</p>
                 </CardContent>
               </Card>
@@ -462,10 +557,19 @@ const EventDetails: React.FC = () => {
                       lat: event.location.coordinates.latitude,
                       lng: event.location.coordinates.longitude
                     }}
+                    userPosition={userPosition || undefined}
+                    routeCoordinates={routeData?.coordinates}
+                    routeDistance={routeData?.distance}
+                    routeDuration={routeData?.duration}
                   />
                 </div>
-                <Button className='w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'>
-                  Xem chỉ đường
+                <Button
+                  className='w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+                  onClick={handleGetDirections}
+                  disabled={isLoadingRoute}
+                >
+                  <Navigation className='w-4 h-4 mr-2' />
+                  {isLoadingRoute ? 'Đang tính toán...' : routeData ? 'Cập nhật chỉ đường' : 'Xem chỉ đường'}
                 </Button>
               </CardContent>
             </Card>
@@ -505,6 +609,23 @@ const EventDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Location Permission Alert Dialog */}
+      <AlertDialog open={showLocationAlert} onOpenChange={setShowLocationAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cho phép truy cập vị trí</AlertDialogTitle>
+            <AlertDialogDescription>
+              Chúng tôi cần truy cập vị trí hiện tại của bạn để tính toán đường đi tới địa điểm sự kiện. Bạn có muốn
+              chia sẻ vị trí của mình không?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLocation}>Đồng ý</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

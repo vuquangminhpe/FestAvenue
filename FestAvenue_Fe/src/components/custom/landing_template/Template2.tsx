@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
 import CommentModal from './CommentModal'
-
+import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Share2, MapPin, Calendar, ExternalLink } from 'lucide-react'
 
@@ -135,9 +135,11 @@ export default function Template2(props: LandingTemplateProps) {
           </div>
           <div className='header-item flex gap-4'>
             <Button onClick={props.onRegister}>Đăng Ký Ngay</Button>
-            <Button variant='outline' onClick={props.onShare}>
-              <Share2 className='w-4 h-4' />
-            </Button>
+            <ShareDialog title={props.title} description={props.description}>
+              <Button variant='outline'>
+                <Share2 className='w-4 h-4' />
+              </Button>
+            </ShareDialog>
           </div>
         </div>
       </header>

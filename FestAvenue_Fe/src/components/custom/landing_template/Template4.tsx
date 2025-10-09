@@ -3,6 +3,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
 import CommentModal from './CommentModal'
+import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Share2, MapPin, Calendar, Sparkles, ArrowRight } from 'lucide-react'
 
@@ -284,15 +285,16 @@ export default function Template4(props: LandingTemplateProps) {
               <Sparkles className='w-6 h-6 mr-2' />
               Tham Gia Sự Kiện
             </Button>
-            <Button
-              size='lg'
-              variant='outline'
-              className='border-2 border-white text-white hover:bg-white hover:text-purple-900 text-lg px-12 py-6 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110'
-              onClick={props.onShare}
-            >
-              <Share2 className='w-6 h-6 mr-2' />
-              Chia Sẻ
-            </Button>
+            <ShareDialog title={props.title} description={props.description}>
+              <Button
+                size='lg'
+                variant='outline'
+                className='border-2 border-white text-white hover:bg-white hover:text-purple-900 text-lg px-12 py-6 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-110'
+              >
+                <Share2 className='w-6 h-6 mr-2' />
+                Chia Sẻ
+              </Button>
+            </ShareDialog>
           </div>
         </div>
       </div>
