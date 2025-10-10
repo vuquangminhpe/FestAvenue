@@ -42,6 +42,12 @@ const items = [
     preloadKey: 'messages-page'
   },
   {
+    title: 'Sự kiện của tôi',
+    url: path.user.my.events,
+    icon: <CustomIcon name='Calendar' className='w-4 h-4' />,
+    preloadKey: 'events-page'
+  },
+  {
     title: 'Tín dụng',
     url: path.user.my.credit,
     icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,

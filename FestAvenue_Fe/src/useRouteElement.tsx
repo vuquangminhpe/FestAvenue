@@ -20,6 +20,8 @@ import CreateOrganization from './pages/User/Auth/Organization/CreateOrganizatio
 import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
 import MyOrganization from './pages/User/Auth/My/MyOrganization'
 import MyPayment from './pages/User/Auth/My/MyPayment'
+import MyEvents from './pages/User/Auth/My/MyEvents'
+import CreateEvent from './pages/User/Auth/Event/CreateEvent/CreateEvent'
 import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
 import ScheduleManagement from './pages/User/Auth/Schedule'
 import EventAnalyticsDashboard from './pages/User/Auth/EventAnalytics'
@@ -29,6 +31,7 @@ import AdminLogin from './pages/Admin/Auth/Login'
 import StaffLayout from './layouts/StaffLayout'
 import AdminLayout from './layouts/AdminLayout'
 import StaffMessages from './pages/Staff/Process/Messages'
+import StaffEventManagement from './pages/Staff/Process/EventManagement'
 import Dashboard from './pages/Admin/Process/Dashboard'
 import Category from './pages/Admin/Process/Category'
 import Packages from './pages/Admin/Process/Packages'
@@ -369,6 +372,16 @@ export default function useRouteElement() {
               )
             },
             {
+              path: path.user.my.events,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <MyEvents />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
               path: path.user.schedule.view,
               element: (
                 <SuspenseWrapper>
@@ -389,6 +402,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <CreateOrganization />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.event.create_event,
+              element: (
+                <SuspenseWrapper>
+                  <CreateEvent />
                 </SuspenseWrapper>
               )
             },
@@ -432,6 +453,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <StaffMessages />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.staff.events,
+              element: (
+                <SuspenseWrapper>
+                  <StaffEventManagement />
                 </SuspenseWrapper>
               )
             }

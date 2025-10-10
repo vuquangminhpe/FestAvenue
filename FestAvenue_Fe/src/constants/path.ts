@@ -12,7 +12,8 @@ const path = {
     root: '/staff',
     messages: '/staff/messages',
     users: '/staff/users',
-    settings: '/staff/settings'
+    settings: '/staff/settings',
+    events: '/staff/events'
   },
   auth: {
     root: '/auth',
@@ -44,6 +45,7 @@ const path = {
       profile: '/user/my/profile',
       messages: '/user/my/messages',
       organization: '/user/my/organization',
+      events: '/user/my/events',
       credit: '/user/my/credit',
       payment: '/user/my/payment',
       schedule: '/user/my/schedule',

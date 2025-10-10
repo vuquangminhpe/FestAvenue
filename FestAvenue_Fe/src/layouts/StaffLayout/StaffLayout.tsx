@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
-import { MessageCircle, Menu, X, Users, Settings, LogOut } from 'lucide-react'
+import { MessageCircle, Menu, X, Users, Settings, LogOut, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStaffStore } from '@/contexts/app.context'
 import path from '@/constants/path'
@@ -20,6 +20,12 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
       icon: MessageCircle,
       path: path.staff.messages,
       description: 'Quản lý tin nhắn và group chat'
+    },
+    {
+      label: 'Event Management',
+      icon: Calendar,
+      path: path.staff.events,
+      description: 'Quản lý và phê duyệt sự kiện'
     },
     {
       label: 'Users',
