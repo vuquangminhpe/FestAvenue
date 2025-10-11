@@ -71,7 +71,7 @@ export default function MyEvents() {
   const statusFilter = getStatusFilter(activeTab)
   const searchFilter: EventSearchFilter = {
     search: searchQuery,
-    categoryId: '',
+    categoryId: undefined,
     ...(statusFilter !== undefined && { statuses: statusFilter }),
     pagination: {
       orderBy: 'createdAt',

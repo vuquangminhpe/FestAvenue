@@ -137,7 +137,7 @@ interface Pagination {
 
 export interface EventSearchFilter {
   search: string
-  categoryId: string
+  categoryId?: string
   statuses: EventStatusValue
   pagination: Pagination
 }
