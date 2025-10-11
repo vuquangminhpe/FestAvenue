@@ -46,7 +46,7 @@ export default function StaffEventManagement() {
 
   const searchFilter: EventSearchFilter = {
     search: searchQuery,
-    categoryId: '',
+    categoryId: undefined,
     statuses: getStatusFilter(activeTab) as any,
     pagination: {
       orderBy: 'createdAt',
