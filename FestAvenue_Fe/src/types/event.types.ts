@@ -138,7 +138,13 @@ interface Pagination {
 export interface EventSearchFilter {
   search: string
   categoryId?: string
-  statuses: EventStatusValue
+  statuses: EventStatusValue[]
+  pagination: Pagination
+}
+export interface EventSearchStaffFilter {
+  search: string
+  categoryId?: string
+  eventStatuses: EventStatusValue[]
   pagination: Pagination
 }
 export const EventStatusValues = {
@@ -195,7 +201,10 @@ export interface EventTempList {
   result: EventTemp[]
   pagination: PaginationInfo
 }
-
+export interface EventFilterList {
+  result: createEvent[]
+  pagination: PaginationInfo
+}
 export interface EventTempResponse {
   data: EventTempList
   statusCode: number

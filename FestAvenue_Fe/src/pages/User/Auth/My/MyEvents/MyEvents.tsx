@@ -7,13 +7,27 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
 import { EventStatusValues } from '@/types/event.types'
-import type { EventSearchFilter, EventStatusValue, EventTemp } from '@/types/event.types'
-import { Plus, Search, Calendar, MapPin, Users, Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react'
+import type { EventSearchFilter, EventStatusValue, createEvent } from '@/types/event.types'
+import {
+  Plus,
+  Search,
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  Send
+} from 'lucide-react'
 import path from '@/constants/path'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Helmet } from 'react-helmet-async'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { generateNameId } from '@/utils/utils'
 
 const statusConfig = {
   [EventStatusValues.Draft]: {
@@ -50,8 +64,33 @@ const statusConfig = {
 
 export default function MyEvents() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('all')
+
+  // Mutation for sending event approval
+  const sendApproveEventMutation = useMutation({
+    mutationFn: (eventData: createEvent & { id?: string }) => {
+      if (!eventData.id) {
+        throw new Error('Event ID is required')
+      }
+      return eventApis.sendApproveEvent({
+        ...eventData,
+        eventId: eventData.id
+      })
+    },
+    onSuccess: () => {
+      toast.success('Gửi thông tin sự kiện thành công! Đang chờ staff xét duyệt.')
+      queryClient.invalidateQueries({ queryKey: ['myEvents'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi gửi thông tin sự kiện')
+    }
+  })
+
+  const handleSendApproveEvent = (eventData: createEvent & { id?: string }) => {
+    sendApproveEventMutation.mutate(eventData)
+  }
 
   const getStatusFilter = (tab: string): EventStatusValue | undefined => {
     switch (tab) {
@@ -70,7 +109,7 @@ export default function MyEvents() {
 
   const statusFilter = getStatusFilter(activeTab)
   const searchFilter: EventSearchFilter = {
-    search: searchQuery,
+    search: searchQuery?.length > 0 ? searchQuery : undefined,
     categoryId: undefined,
     ...(statusFilter !== undefined && { statuses: statusFilter }),
     pagination: {
@@ -83,19 +122,20 @@ export default function MyEvents() {
 
   const { data: eventsData, isLoading } = useQuery({
     queryKey: ['myEvents', searchQuery, activeTab],
-    queryFn: () => eventApis.getEventTempWithFilterPagingForEventOwner(searchFilter)
+    queryFn: () => eventApis.getEventWithFilterPaging(searchFilter)
   })
 
-  const events = eventsData?.data || []
-  const totalEvents = eventsData?.pagination?.total || 0
+  const events = (eventsData?.data as any)?.result || []
+  console.log(eventsData)
 
-  const renderEventCard = (eventTemp: EventTemp) => {
-    const status = statusConfig[eventTemp.eventTempStatus as keyof typeof statusConfig]
+  const totalEvents = (eventsData?.data as any)?.data?.pagination?.total || 0
+
+  const renderEventCard = (eventData: createEvent & { id?: string; createdAt?: string }) => {
+    const status = statusConfig[eventData.status as keyof typeof statusConfig]
     const StatusIcon = status?.icon || AlertCircle
-    const eventData = eventTemp.eventData
 
     return (
-      <Card key={eventTemp.id} className='p-6 hover:shadow-lg transition-shadow duration-300 border border-slate-200'>
+      <Card key={eventData.id} className='p-6 hover:shadow-lg transition-shadow duration-300 border border-slate-200'>
         <div className='flex gap-6'>
           {/* Event Image */}
           <div className='w-48 h-32 flex-shrink-0'>
@@ -138,17 +178,19 @@ export default function MyEvents() {
                 <Users className='w-4 h-4' />
                 <span>{eventData.capacity} người</span>
               </div>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Clock className='w-4 h-4' />
-                <span>Tạo: {format(new Date(eventTemp.createdAt), 'dd/MM/yyyy', { locale: vi })}</span>
-              </div>
+              {eventData.createdAt && (
+                <div className='flex items-center gap-2 text-sm text-slate-600'>
+                  <Clock className='w-4 h-4' />
+                  <span>Tạo: {format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi })}</span>
+                </div>
+              )}
             </div>
 
             {/* Message Response */}
-            {eventTemp.messageResponse && (
+            {eventData.messageResponse && (
               <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
                 <p className='text-sm text-blue-800'>
-                  <strong>Phản hồi từ staff:</strong> {eventTemp.messageResponse}
+                  <strong>Phản hồi từ staff:</strong> {eventData.messageResponse}
                 </p>
               </div>
             )}
@@ -158,24 +200,51 @@ export default function MyEvents() {
               <Button
                 size='sm'
                 variant='outline'
-                onClick={() => navigate(`${path.user.event.root}/${eventTemp.eventId}`)}
+                onClick={() =>
+                  navigate(
+                    `${path.user.event.root}/${generateNameId({
+                      id: eventData?.id as string,
+                      name: `${eventData?.organization.name}_${eventData?.name}`
+                    })}`
+                  )
+                }
               >
                 Xem chi tiết
               </Button>
-              {eventTemp.eventTempStatus === EventStatusValues.Draft && (
-                <Button
-                  size='sm'
-                  className='bg-blue-600 hover:bg-blue-700'
-                  onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventTemp.id}`)}
-                >
-                  Tiếp tục chỉnh sửa
-                </Button>
+              {eventData.status === EventStatusValues.Draft && (
+                <>
+                  <Button
+                    size='sm'
+                    className='bg-blue-600 hover:bg-blue-700'
+                    onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventData.id}`)}
+                  >
+                    Tiếp tục chỉnh sửa
+                  </Button>
+                  <Button
+                    size='sm'
+                    className='bg-cyan-600 hover:bg-cyan-700'
+                    onClick={() => handleSendApproveEvent(eventData)}
+                    disabled={sendApproveEventMutation.isPending}
+                  >
+                    {sendApproveEventMutation.isPending ? (
+                      <>
+                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                        Đang gửi...
+                      </>
+                    ) : (
+                      <>
+                        <Send className='w-4 h-4 mr-2' />
+                        Gửi thông tin sự kiện
+                      </>
+                    )}
+                  </Button>
+                </>
               )}
-              {eventTemp.eventTempStatus === EventStatusValues.ContinueSetup && (
+              {eventData.status === EventStatusValues.ContinueSetup && (
                 <Button
                   size='sm'
                   className='bg-green-600 hover:bg-green-700'
-                  onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventTemp.eventId}`)}
+                  onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventData.id}`)}
                 >
                   Chọn gói sự kiện
                 </Button>
@@ -250,7 +319,7 @@ export default function MyEvents() {
               </Button>
             </Card>
           ) : (
-            <div className='space-y-4'>{events.map((eventTemp) => renderEventCard(eventTemp))}</div>
+            <div className='space-y-4'>{events?.map((eventTemp: any) => renderEventCard(eventTemp))}</div>
           )}
         </TabsContent>
       </Tabs>

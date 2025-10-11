@@ -1,7 +1,14 @@
 import type { APIResponse } from '@/types/API.types'
-import type { bodyApproveEventForStaff, createEvent, EventSearchFilter, EventTemp } from '@/types/event.types'
+import type {
+  bodyApproveEventForStaff,
+  createEvent,
+  EventFilterList,
+  EventSearchFilter,
+  EventSearchStaffFilter,
+  EventTemp
+} from '@/types/event.types'
 import http from '@/utils/http'
-type sendApproveEventWithOrg = createEvent & {
+export type sendApproveEventWithOrg = createEvent & {
   eventId: string
 }
 type updateEventWithOrg = createEvent & {
@@ -28,6 +35,10 @@ const eventApis = {
     )
     return data?.data
   },
+  getEventWithFilterPaging: async (body: EventSearchFilter) => {
+    const data = await http.post<APIResponse<EventFilterList[]>>('/event/get-event-with-filter-paging', body)
+    return data?.data
+  },
   deleteEventTempForEventOwner: async (eventTempId: string) => {
     const data = await http.delete<APIResponse<{ messages: string }>>(`/event/delete-event-temp/${eventTempId}`)
     return data?.data
@@ -39,7 +50,7 @@ const eventApis = {
 }
 
 const staffEventApis = {
-  getEventTempWithFilterPagingForStaff: async (body: EventSearchFilter) => {
+  getEventTempWithFilterPagingForStaff: async (body: EventSearchStaffFilter) => {
     const data = await http.post<APIResponse<EventTemp[]>>('/event/get-event-temp-with-filter-paging-for-staff', body)
     return data?.data
   },

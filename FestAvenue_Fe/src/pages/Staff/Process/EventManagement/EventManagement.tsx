@@ -13,52 +13,71 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { staffEventApis } from '@/apis/event.api'
+import { staffEventApis, type sendApproveEventWithOrg } from '@/apis/event.api'
 import { EventStatusValues } from '@/types/event.types'
-import type { EventSearchFilter, EventTemp } from '@/types/event.types'
-import { Search, Calendar, MapPin, Users, Eye, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
+import type { EventSearchStaffFilter } from '@/types/event.types'
+import {
+  Search,
+  Calendar,
+  MapPin,
+  Users,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  AlertTriangle,
+  Mail,
+  Phone,
+  Globe
+} from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
+import LeafletMap from '@/components/custom/MapLeaflet/MapLeadflet'
 
 export default function StaffEventManagement() {
   const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('pending')
-  const [selectedEvent, setSelectedEvent] = useState<EventTemp | null>(null)
+  const [selectedEvent, setSelectedEvent] = useState<sendApproveEventWithOrg | null>(null)
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showApproveDialog, setShowApproveDialog] = useState(false)
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [approveMessage, setApproveMessage] = useState('')
   const [rejectMessage, setRejectMessage] = useState('')
 
-  const getStatusFilter = (tab: string) => {
+  const getStatusFilter = (tab: string): number[] => {
     switch (tab) {
       case 'pending':
-        return EventStatusValues.Draft
+        return [EventStatusValues.Draft]
       case 'approved':
-        return EventStatusValues.ContinueSetup
+        return [EventStatusValues.ContinueSetup]
+      case 'all':
+        return [] // Trả về mảng rỗng cho tất cả
       default:
-        return 0
-    }
-  }
-
-  const searchFilter: EventSearchFilter = {
-    search: searchQuery,
-    categoryId: undefined,
-    statuses: getStatusFilter(activeTab) as any,
-    pagination: {
-      orderBy: 'createdAt',
-      pageIndex: 1,
-      isPaging: true,
-      pageSize: 50
+        return []
     }
   }
 
   const { data: eventsData, isLoading } = useQuery({
     queryKey: ['staffEvents', searchQuery, activeTab],
-    queryFn: () => staffEventApis.getEventTempWithFilterPagingForStaff(searchFilter)
+    queryFn: () => {
+      const searchFilter: EventSearchStaffFilter = {
+        search: searchQuery,
+        categoryId: undefined,
+        eventStatuses: getStatusFilter(activeTab) as any,
+        pagination: {
+          orderBy: 'createdAt',
+          pageIndex: 1,
+          isPaging: true,
+          pageSize: 50
+        }
+      }
+      return staffEventApis.getEventTempWithFilterPagingForStaff(searchFilter)
+    }
   })
 
   const approveMutation = useMutation({
@@ -89,8 +108,8 @@ export default function StaffEventManagement() {
     }
   })
 
-  const events = eventsData?.data || []
-  const totalEvents = eventsData?.pagination?.total || 0
+  const events = (eventsData?.data as any)?.result || []
+  const totalEvents = (eventsData?.data as any)?.pagination?.total || 0
 
   const handleApprove = () => {
     if (!selectedEvent) return
@@ -100,7 +119,7 @@ export default function StaffEventManagement() {
     }
 
     approveMutation.mutate({
-      eventTempId: selectedEvent.id,
+      eventTempId: (selectedEvent as any).id,
       message: approveMessage
     })
   }
@@ -113,113 +132,62 @@ export default function StaffEventManagement() {
     }
 
     rejectMutation.mutate({
-      eventTempId: selectedEvent.id,
+      eventTempId: (selectedEvent as any).id,
       message: rejectMessage
     })
   }
 
-  const renderEventCard = (eventTemp: EventTemp) => {
-    const eventData = eventTemp.eventData
+  const parseEventData = (eventTemp: sendApproveEventWithOrg) => {
+    // Parse eventData if it's a JSON string
+    let eventData
+    try {
+      eventData =
+        typeof (eventTemp as any).eventData === 'string'
+          ? JSON.parse((eventTemp as any).eventData)
+          : (eventTemp as any).eventData
+    } catch (error) {
+      console.error('Error parsing eventData:', error)
+      eventData = {}
+    }
 
-    return (
-      <Card key={eventTemp.id} className='p-6 hover:shadow-lg transition-shadow duration-300'>
-        <div className='flex gap-6'>
-          {/* Event Image */}
-          <div className='w-48 h-32 flex-shrink-0'>
-            {eventData.bannerUrl ? (
-              <img src={eventData.bannerUrl} alt={eventData.name} className='w-full h-full object-cover rounded-lg' />
-            ) : (
-              <div className='w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center'>
-                <Calendar className='w-12 h-12 text-slate-400' />
-              </div>
-            )}
-          </div>
-
-          {/* Event Info */}
-          <div className='flex-1'>
-            <div className='flex items-start justify-between mb-3'>
-              <div className='flex-1'>
-                <h3 className='text-xl font-bold text-slate-800 mb-1'>{eventData.name}</h3>
-                <p className='text-sm text-slate-600 line-clamp-2'>{eventData.shortDescription}</p>
-              </div>
-              <Badge
-                className={`${
-                  eventTemp.eventTempStatus === EventStatusValues.Draft
-                    ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                    : 'bg-green-100 text-green-700 border-green-300'
-                } border ml-4`}
-              >
-                {eventTemp.eventTempStatus === EventStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
-              </Badge>
-            </div>
-
-            <div className='grid grid-cols-3 gap-4 mb-4'>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Calendar className='w-4 h-4' />
-                <span>
-                  {eventData.startDate
-                    ? format(new Date(eventData.startDate), 'dd MMM yyyy', { locale: vi })
-                    : 'Chưa có'}
-                </span>
-              </div>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <MapPin className='w-4 h-4' />
-                <span className='truncate'>{eventData.location?.address?.city || 'Chưa có'}</span>
-              </div>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Users className='w-4 h-4' />
-                <span>{eventData.capacity} người</span>
-              </div>
-            </div>
-
-            {/* Organization Info */}
-            <div className='mb-4 p-3 bg-slate-50 rounded-lg'>
-              <p className='text-xs text-slate-500 mb-1'>Tổ chức:</p>
-              <p className='text-sm font-medium text-slate-700'>{eventData.organization?.name}</p>
-            </div>
-
-            {/* Actions - Only show for pending events */}
-            {eventTemp.eventTempStatus === EventStatusValues.Draft && (
-              <div className='flex gap-2'>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => {
-                    setSelectedEvent(eventTemp)
-                    // Show detail dialog here if needed
-                  }}
-                >
-                  <Eye className='w-4 h-4 mr-1' />
-                  Xem chi tiết
-                </Button>
-                <Button
-                  size='sm'
-                  className='bg-green-600 hover:bg-green-700 text-white'
-                  onClick={() => {
-                    setSelectedEvent(eventTemp)
-                    setShowApproveDialog(true)
-                  }}
-                >
-                  <CheckCircle2 className='w-4 h-4 mr-1' />
-                  Phê duyệt
-                </Button>
-                <Button
-                  size='sm'
-                  variant='destructive'
-                  onClick={() => {
-                    setSelectedEvent(eventTemp)
-                    setShowRejectDialog(true)
-                  }}
-                >
-                  <XCircle className='w-4 h-4 mr-1' />
-                  Từ chối
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
-    )
+    // Map the parsed data to proper structure
+    return {
+      id: eventData.Id || '',
+      name: eventData.Name || '',
+      description: eventData.Description || '',
+      shortDescription: eventData.ShortDescription || '',
+      eventType: eventData.EventType || 0,
+      categoryId: eventData.CategoryId || '',
+      status: eventData.Status || 0,
+      visibility: eventData.Visibility || 0,
+      capacity: eventData.Capacity || 0,
+      startDate: eventData.StartDate || '',
+      endDate: eventData.EndDate || '',
+      registrationStartDate: eventData.RegistrationStartDate || '',
+      registrationEndDate: eventData.RegistrationEndDate || '',
+      logoUrl: eventData.LogoUrl || '',
+      bannerUrl: eventData.BannerUrl || '',
+      trailerUrl: eventData.TrailerUrl || '',
+      website: eventData.Website || '',
+      publicContactEmail: eventData.PublicContactEmail || '',
+      publicContactPhone: eventData.PublicContactPhone || '',
+      location: {
+        address: {
+          street: eventData.Location?.Address?.Street || '',
+          city: eventData.Location?.Address?.City || '',
+          state: eventData.Location?.Address?.State || '',
+          postalCode: eventData.Location?.Address?.PostalCode || '',
+          country: eventData.Location?.Address?.Country || ''
+        },
+        coordinates: {
+          latitude: eventData.Location?.Coordinates?.Latitude || 0,
+          longitude: eventData.Location?.Coordinates?.Longitude || 0
+        }
+      },
+      hashtags: eventData.Hashtags || [],
+      createBy: eventData.CreateBy || '',
+      organization: eventData.organization
+    }
   }
 
   return (
@@ -275,10 +243,354 @@ export default function StaffEventManagement() {
               <p className='text-slate-500'>Chưa có sự kiện cần xét duyệt</p>
             </Card>
           ) : (
-            <div className='space-y-4'>{events.map((eventTemp) => renderEventCard(eventTemp))}</div>
+            <div className='border rounded-lg overflow-hidden'>
+              <Table>
+                <TableHeader>
+                  <TableRow className='bg-slate-50'>
+                    <TableHead className='w-20'>Banner</TableHead>
+                    <TableHead className='min-w-[200px]'>Tên sự kiện</TableHead>
+                    <TableHead>Tổ chức</TableHead>
+                    <TableHead className='w-40'>Email liên hệ</TableHead>
+                    <TableHead className='w-32'>Ngày bắt đầu</TableHead>
+                    <TableHead className='w-32'>Địa điểm</TableHead>
+                    <TableHead className='w-24'>Sức chứa</TableHead>
+                    <TableHead className='w-28'>Trạng thái</TableHead>
+                    <TableHead className='w-48 text-center'>Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events?.map((eventTemp: any) => {
+                    const mappedEventData = parseEventData(eventTemp)
+                    const eventStatus = eventTemp.eventTempStatus ?? eventTemp.status
+
+                    return (
+                      <TableRow key={eventTemp.eventId} className='hover:bg-slate-50'>
+                        {/* Banner */}
+                        <TableCell>
+                          {mappedEventData.bannerUrl ? (
+                            <img
+                              src={mappedEventData.bannerUrl}
+                              alt={mappedEventData.name}
+                              className='w-16 h-12 object-cover rounded'
+                            />
+                          ) : (
+                            <div className='w-16 h-12 bg-slate-200 rounded flex items-center justify-center'>
+                              <Calendar className='w-6 h-6 text-slate-400' />
+                            </div>
+                          )}
+                        </TableCell>
+
+                        {/* Event Name */}
+                        <TableCell>
+                          <div>
+                            <p className='font-semibold text-slate-800'>{mappedEventData.name}</p>
+                            <p className='text-sm text-slate-500 line-clamp-1'>{mappedEventData.shortDescription}</p>
+                          </div>
+                        </TableCell>
+
+                        {/* Organization */}
+                        <TableCell>
+                          <p className='text-sm text-slate-700'>
+                            {mappedEventData?.organization?.name || 'Chưa có thông tin'}
+                          </p>
+                        </TableCell>
+
+                        {/* Email */}
+                        <TableCell>
+                          <p className='text-sm text-slate-600 truncate'>
+                            {mappedEventData.publicContactEmail || 'Chưa có'}
+                          </p>
+                        </TableCell>
+
+                        {/* Start Date */}
+                        <TableCell>
+                          <div className='flex items-center gap-1 text-sm text-slate-600'>
+                            <Calendar className='w-4 h-4' />
+                            <span>
+                              {mappedEventData.startDate
+                                ? format(new Date(mappedEventData.startDate), 'dd/MM/yyyy', { locale: vi })
+                                : 'Chưa có'}
+                            </span>
+                          </div>
+                        </TableCell>
+
+                        {/* Location */}
+                        <TableCell>
+                          <div className='flex items-center gap-1 text-sm text-slate-600'>
+                            <MapPin className='w-4 h-4 flex-shrink-0' />
+                            <span className='truncate'>{mappedEventData.location?.address?.city || 'Chưa có'}</span>
+                          </div>
+                        </TableCell>
+
+                        {/* Capacity */}
+                        <TableCell>
+                          <div className='flex items-center gap-1 text-sm text-slate-600'>
+                            <Users className='w-4 h-4' />
+                            <span>{mappedEventData.capacity}</span>
+                          </div>
+                        </TableCell>
+
+                        {/* Status */}
+                        <TableCell>
+                          <Badge
+                            className={`${
+                              eventStatus === EventStatusValues.Draft
+                                ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                : 'bg-green-100 text-green-700 border-green-300'
+                            } border`}
+                          >
+                            {eventStatus === EventStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Actions */}
+                        <TableCell>
+                          <div className='flex gap-1 justify-center'>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              onClick={() => {
+                                setSelectedEvent(eventTemp)
+                                setShowDetailDialog(true)
+                              }}
+                            >
+                              <Eye className='w-4 h-4' />
+                            </Button>
+                            {eventStatus === EventStatusValues.Draft && (
+                              <>
+                                <Button
+                                  size='sm'
+                                  className='bg-green-600 hover:bg-green-700 text-white'
+                                  onClick={() => {
+                                    setSelectedEvent(eventTemp)
+                                    setShowApproveDialog(true)
+                                  }}
+                                >
+                                  <CheckCircle2 className='w-4 h-4' />
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  variant='destructive'
+                                  onClick={() => {
+                                    setSelectedEvent(eventTemp)
+                                    setShowRejectDialog(true)
+                                  }}
+                                >
+                                  <XCircle className='w-4 h-4' />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className='w-[90vw] !max-w-[750px] max-h-[90vh] overflow-y-auto'>
+          <DialogHeader>
+            <DialogTitle>Xem chi tiết sự kiện</DialogTitle>
+            <DialogDescription>Thông tin chi tiết về sự kiện</DialogDescription>
+          </DialogHeader>
+
+          {selectedEvent &&
+            (() => {
+              const mappedEventData = parseEventData(selectedEvent)
+              const eventStatus = (selectedEvent as any).eventTempStatus ?? (selectedEvent as any).status
+              return (
+                <div className='space-y-6'>
+                  {/* Banner Image */}
+                  {mappedEventData.bannerUrl && (
+                    <div className='w-full h-48 rounded-lg overflow-hidden'>
+                      <img
+                        src={mappedEventData.bannerUrl}
+                        alt={mappedEventData.name}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                  )}
+
+                  {/* Basic Info */}
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div>
+                      <label className='text-sm font-medium text-slate-500'>Tên sự kiện</label>
+                      <p className='text-base font-semibold text-slate-800'>{mappedEventData.name}</p>
+                    </div>
+                    <div>
+                      <label className='text-sm font-medium text-slate-500'>Tổ chức</label>
+                      <p className='text-base text-slate-800'>{mappedEventData.organization?.name || 'Chưa có'}</p>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className='text-sm font-medium text-slate-500'>Mô tả ngắn</label>
+                    <p className='text-base text-slate-800'>{mappedEventData.shortDescription}</p>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className='grid grid-cols-2 gap-4'>
+                    <div className='flex items-center gap-2'>
+                      <Mail className='w-4 h-4 text-slate-400' />
+                      <div className='flex-1'>
+                        <label className='text-sm font-medium text-slate-500'>Email liên hệ</label>
+                        <p className='text-base text-slate-800'>{mappedEventData.publicContactEmail || 'Chưa có'}</p>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Phone className='w-4 h-4 text-slate-400' />
+                      <div className='flex-1'>
+                        <label className='text-sm font-medium text-slate-500'>Số điện thoại</label>
+                        <p className='text-base text-slate-800'>{mappedEventData.publicContactPhone || 'Chưa có'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Event Details */}
+                  <div className='grid grid-cols-3 gap-4'>
+                    <div className='flex items-center gap-2'>
+                      <Calendar className='w-4 h-4 text-slate-400' />
+                      <div>
+                        <label className='text-sm font-medium text-slate-500'>Ngày bắt đầu</label>
+                        <p className='text-base text-slate-800'>
+                          {mappedEventData.startDate
+                            ? format(new Date(mappedEventData.startDate), 'dd/MM/yyyy', { locale: vi })
+                            : 'Chưa có'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <MapPin className='w-4 h-4 text-slate-400' />
+                      <div>
+                        <label className='text-sm font-medium text-slate-500'>Địa điểm</label>
+                        <p className='text-base text-slate-800'>
+                          {mappedEventData.location?.address?.city || 'Chưa có'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Users className='w-4 h-4 text-slate-400' />
+                      <div>
+                        <label className='text-sm font-medium text-slate-500'>Sức chứa</label>
+                        <p className='text-base text-slate-800'>{mappedEventData.capacity} người</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Full Address */}
+                  {mappedEventData.location?.address && (
+                    <div>
+                      <label className='text-sm font-medium text-slate-500'>Địa chỉ đầy đủ</label>
+                      <p className='text-base text-slate-800'>
+                        {[
+                          mappedEventData.location.address.street,
+                          mappedEventData.location.address.city,
+                          mappedEventData.location.address.state,
+                          mappedEventData.location.address.country
+                        ]
+                          .filter(Boolean)
+                          .join(', ') || 'Chưa có'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Website */}
+                  {mappedEventData.website && (
+                    <div className='flex items-center gap-2'>
+                      <Globe className='w-4 h-4 text-slate-400' />
+                      <div className='flex-1'>
+                        <label className='text-sm font-medium text-slate-500'>Website</label>
+                        <a
+                          href={mappedEventData.website}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='text-base text-blue-600 hover:underline'
+                        >
+                          {mappedEventData.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Map */}
+                  {mappedEventData.location?.coordinates?.latitude &&
+                    mappedEventData.location?.coordinates?.longitude && (
+                      <div>
+                        <label className='text-sm font-medium text-slate-500 mb-2 block'>Bản đồ</label>
+                        <LeafletMap
+                          center={{
+                            lat: mappedEventData.location.coordinates.latitude,
+                            lng: mappedEventData.location.coordinates.longitude
+                          }}
+                          zoom={15}
+                          markerPosition={{
+                            lat: mappedEventData.location.coordinates.latitude,
+                            lng: mappedEventData.location.coordinates.longitude
+                          }}
+                        />
+                      </div>
+                    )}
+
+                  {/* Status */}
+                  <div>
+                    <label className='text-sm font-medium text-slate-500 mb-2 block'>Trạng thái</label>
+                    <Badge
+                      className={`${
+                        eventStatus === EventStatusValues.Draft
+                          ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                          : 'bg-green-100 text-green-700 border-green-300'
+                      } border`}
+                    >
+                      {eventStatus === EventStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
+                    </Badge>
+                  </div>
+                </div>
+              )
+            })()}
+
+          <DialogFooter className='gap-2'>
+            <Button variant='outline' onClick={() => setShowDetailDialog(false)}>
+              Đóng
+            </Button>
+            {(() => {
+              const eventStatus = (selectedEvent as any)?.eventTempStatus ?? (selectedEvent as any)?.status
+              return (
+                eventStatus === EventStatusValues.Draft && (
+                  <>
+                    <Button
+                      className='bg-green-600 hover:bg-green-700 text-white'
+                      onClick={() => {
+                        setShowDetailDialog(false)
+                        setShowApproveDialog(true)
+                      }}
+                    >
+                      <CheckCircle2 className='w-4 h-4 mr-2' />
+                      Phê duyệt
+                    </Button>
+                    <Button
+                      variant='destructive'
+                      onClick={() => {
+                        setShowDetailDialog(false)
+                        setShowRejectDialog(true)
+                      }}
+                    >
+                      <XCircle className='w-4 h-4 mr-2' />
+                      Từ chối
+                    </Button>
+                  </>
+                )
+              )
+            })()}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Approve Dialog */}
       <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
@@ -290,7 +602,7 @@ export default function StaffEventManagement() {
 
           <div className='space-y-4'>
             <div>
-              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {selectedEvent?.eventData?.name}</p>
+              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {parseEventData(selectedEvent as any)?.name}</p>
             </div>
 
             <div>
@@ -340,7 +652,7 @@ export default function StaffEventManagement() {
 
           <div className='space-y-4'>
             <div>
-              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {selectedEvent?.eventData?.name}</p>
+              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {parseEventData(selectedEvent as any)?.name}</p>
             </div>
 
             <div>

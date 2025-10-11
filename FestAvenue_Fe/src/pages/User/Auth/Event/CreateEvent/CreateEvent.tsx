@@ -109,11 +109,6 @@ function CreateEvent() {
   }
 
   const handleSubmit = async (data: EventFormData) => {
-    console.log('🚀 handleSubmit called')
-    console.log('📋 Form data:', data)
-    console.log('🔍 Is detecting:', isDetecting())
-    console.log('✅ Can proceed:', canProceed())
-
     if (isDetecting()) {
       toast.error('Vui lòng đợi kiểm tra AI hoàn tất')
       return
@@ -124,7 +119,6 @@ function CreateEvent() {
       return
     }
 
-    console.log('✅ Validation passed, calling onSubmit...')
     await onSubmit(data)
   }
 
