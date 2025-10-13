@@ -185,7 +185,7 @@ export default function CalendarDay({
                 onDragEnd={(e) => {
                   e.stopPropagation()
                 }}
-                className='flex-shrink-0 px-0.5 cursor-move opacity-0 group-hover:opacity-100 transition-opacity'
+                className='flex-shrink-0 px-0.5 cursor-move opacity-70 hover:opacity-100 transition-opacity'
                 title='Kéo để di chuyển'
               >
                 <GripVertical className='w-3 h-3 text-white' />

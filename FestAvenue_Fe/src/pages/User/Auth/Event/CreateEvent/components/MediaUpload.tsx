@@ -148,8 +148,6 @@ export function MediaUpload({
       // Step 2: Upload to storage (only if AI passed)
       const uploadResult = await userApi.uploadsStorage(logoFile)
       const url = (uploadResult as any)?.data || ''
-      console.log(url)
-
       form.setValue('logoUrl', url)
       await onDetectLogo(logoFile, url, true) // Pass isSafe = true
       toast.success('Tải logo lên thành công!')

@@ -16,7 +16,6 @@ interface FinalReviewProps {
 
 export function FinalReview({ form }: FinalReviewProps) {
   const values = form.getValues()
-  console.log(values)
 
   const eventType = eventTypeOptions.find((opt) => opt.value === values.eventType)
   const visibility = visibilityOptions.find((opt) => opt.value === values.visibility)

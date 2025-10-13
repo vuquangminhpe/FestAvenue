@@ -126,7 +126,6 @@ export default function MyEvents() {
   })
 
   const events = (eventsData?.data as any)?.result || []
-  console.log(eventsData)
 
   const totalEvents = (eventsData?.data as any)?.data?.pagination?.total || 0
 

@@ -98,16 +98,6 @@ export const useAIDetection = () => {
     const bannerOk = !bannerDetection || (bannerDetection.detectionResult !== null && bannerDetection.isSafe)
     const trailerOk = !trailerDetection || (trailerDetection.detectionResult !== null && trailerDetection.isSafe)
 
-    console.log('🔍 canProceed check:', {
-      logoDetection,
-      bannerDetection,
-      trailerDetection,
-      logoOk,
-      bannerOk,
-      trailerOk,
-      result: logoOk && bannerOk && trailerOk
-    })
-
     return logoOk && bannerOk && trailerOk
   }
 
