@@ -1,46 +1,52 @@
 /* eslint-disable prefer-const */
 /* eslint-disable react-refresh/only-export-components */
 import { Navigate, Outlet, useLocation, useRoutes } from 'react-router'
-import { Suspense } from 'react'
+import { Suspense, lazy } from 'react'
 import path from './constants/path'
 import { useAdminStore, useUsersStore, useStaffStore } from './contexts/app.context'
-import MainLayout from './layouts/MainLayout'
-import Home from './pages/User/Public/Home'
-import MyLayout from './layouts/MyLayout'
-import Login from './pages/User/Public/Login'
-import NotAuthLayout from './layouts/Not_Auth_Layout'
 import IMG_LOGIN from '../public/Images/Login_Page.png'
 import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
-import SignUp from './pages/User/Public/Signup/Signup'
-import VerifyEmail from './pages/User/Public/VerifyEmail/VerifyEmail'
-import UserProfile from './pages/User/Auth/My/MyProfile/UserProfile'
-import ForgotPassword from './pages/User/Public/ForgotPassword'
-import ResetPassword from './pages/User/Public/ResetPassword/ResetPassword'
-import CreateOrganization from './pages/User/Auth/Organization/CreateOrganization'
-import ChatMyMessagesSystem from './pages/User/Auth/My/MyMessages'
-import MyOrganization from './pages/User/Auth/My/MyOrganization'
-import MyPayment from './pages/User/Auth/My/MyPayment'
-import MyEvents from './pages/User/Auth/My/MyEvents'
-import CreateEvent from './pages/User/Auth/Event/CreateEvent/CreateEvent'
-import CreatePaymentWithOrganization from './pages/User/Auth/Payment/CreatePaymentWithOrganization'
-import ScheduleManagement from './pages/User/Auth/Schedule'
-import EventAnalyticsDashboard from './pages/User/Auth/EventAnalytics'
-import EventDetails from './pages/User/Auth/EventDetails/EventDetails'
-import StaffLogin from './pages/Staff/Auth/Login'
-import AdminLogin from './pages/Admin/Auth/Login'
-import StaffLayout from './layouts/StaffLayout'
-import AdminLayout from './layouts/AdminLayout'
-import StaffMessages from './pages/Staff/Process/Messages'
-import StaffEventManagement from './pages/Staff/Process/EventManagement'
-import Dashboard from './pages/Admin/Process/Dashboard'
-import Category from './pages/Admin/Process/Category'
-import Packages from './pages/Admin/Process/Packages'
-import AccountManagement from './pages/Admin/Process/Accounts'
-import Analytics from './pages/Admin/Process/Analytics'
-import SeatMapEditor from './components/custom/EditorSeat'
-import CinemaTemplate from './components/custom/Template/CinemaExperience'
-import { Template1, Template2, Template3, Template4, Template5, Template6 } from './components/custom/landing_template'
 import { sampleLandingData } from './components/custom/landing_template/sampleData'
+
+const MainLayout = lazy(() => import('./layouts/MainLayout'))
+const Home = lazy(() => import('./pages/User/Public/Home'))
+const MyLayout = lazy(() => import('./layouts/MyLayout'))
+const Login = lazy(() => import('./pages/User/Public/Login'))
+const NotAuthLayout = lazy(() => import('./layouts/Not_Auth_Layout'))
+const SignUp = lazy(() => import('./pages/User/Public/Signup/Signup'))
+const VerifyEmail = lazy(() => import('./pages/User/Public/VerifyEmail/VerifyEmail'))
+const UserProfile = lazy(() => import('./pages/User/Auth/My/MyProfile/UserProfile'))
+const ForgotPassword = lazy(() => import('./pages/User/Public/ForgotPassword'))
+const ResetPassword = lazy(() => import('./pages/User/Public/ResetPassword/ResetPassword'))
+const CreateOrganization = lazy(() => import('./pages/User/Auth/Organization/CreateOrganization'))
+const ChatMyMessagesSystem = lazy(() => import('./pages/User/Auth/My/MyMessages'))
+const MyOrganization = lazy(() => import('./pages/User/Auth/My/MyOrganization'))
+const MyPayment = lazy(() => import('./pages/User/Auth/My/MyPayment'))
+const MyEvents = lazy(() => import('./pages/User/Auth/My/MyEvents'))
+const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
+const CreatePaymentWithOrganization = lazy(() => import('./pages/User/Auth/Payment/CreatePaymentWithOrganization'))
+const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule'))
+const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/EventAnalytics'))
+const EventDetails = lazy(() => import('./pages/User/Auth/EventDetails/EventDetails'))
+const StaffLogin = lazy(() => import('./pages/Staff/Auth/Login'))
+const AdminLogin = lazy(() => import('./pages/Admin/Auth/Login'))
+const StaffLayout = lazy(() => import('./layouts/StaffLayout'))
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'))
+const StaffMessages = lazy(() => import('./pages/Staff/Process/Messages'))
+const StaffEventManagement = lazy(() => import('./pages/Staff/Process/EventManagement'))
+const Dashboard = lazy(() => import('./pages/Admin/Process/Dashboard'))
+const Category = lazy(() => import('./pages/Admin/Process/Category'))
+const Packages = lazy(() => import('./pages/Admin/Process/Packages'))
+const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
+const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
+const SeatMapEditor = lazy(() => import('./components/custom/EditorSeat'))
+const CinemaTemplate = lazy(() => import('./components/custom/Template/CinemaExperience'))
+const Template1 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template1 })))
+const Template2 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template2 })))
+const Template3 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template3 })))
+const Template4 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template4 })))
+const Template5 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template5 })))
+const Template6 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template6 })))
 
 const Loader = () => (
   <div

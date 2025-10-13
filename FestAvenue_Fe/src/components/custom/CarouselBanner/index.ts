@@ -1,3 +1,3 @@
-import CarouselBanner from './CarouselBanner'
+import CarouselBannerOptimized from './CarouselBannerOptimized'
 
-export default CarouselBanner
+export default CarouselBannerOptimized

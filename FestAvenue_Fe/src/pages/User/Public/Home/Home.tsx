@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from 'react'
 
 import { Heart, MapPin, Calendar, Clock, Star, X, ArrowRight, Loader2, Filter } from 'lucide-react'
-import MouseAnimate from '@/components/custom/MouseAnimate'
+// import MouseAnimate from '@/components/custom/MouseAnimate'
 import { useQuery } from '@tanstack/react-query'
 import categoryApis from '@/apis/categories.api'
-import CarouselBanner from '@/components/custom/CarouselBanner'
+import CarouselBannerOptimized from '@/components/custom/CarouselBanner/CarouselBannerOptimized'
 import SmartSEO from '@/components/SEO/SmartSEO'
 import { pageSEO } from '@/components/SEO/SEO'
 import OptimizedImage from '@/components/custom/OptimizedImage'
@@ -161,7 +161,7 @@ const Home = () => {
   const [currentFilter, setCurrentFilter] = useState('All')
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [visibleEvents, setVisibleEvents] = useState(8)
-  const [viewportWidth, setViewportWidth] = useState<number>(window.innerWidth)
+  const [, setViewportWidth] = useState<number>(window.innerWidth)
 
   // Animation refs
   const [heroRef, heroVisible] = useIntersectionObserver(0.2)
@@ -554,18 +554,16 @@ const Home = () => {
         {/* Preload critical images for better LCP */}
         <ImagePreloader
           images={
-            categories?.data
-              ?.slice(0, 8)
-              .map((cat) => ({
-                href: cat.imageUrl,
-                type: 'image/webp',
-                fetchPriority: 'high' as const
-              })) || []
+            categories?.data?.slice(0, 8).map((cat) => ({
+              href: cat.imageUrl,
+              type: 'image/webp',
+              fetchPriority: 'high' as const
+            })) || []
           }
         />
 
         {/* Mouse Animation Background */}
-        <MouseAnimate number_point={viewportWidth >= 800 ? 100 : 20} className='pointer-events-none w-full  z-50' />
+        {/* <MouseAnimate number_point={viewportWidth >= 800 ? 100 : 20} className='pointer-events-none w-full  z-50' /> */}
 
         <div className='relative z-10'>
           {/* Hero Section with Banner */}
@@ -578,7 +576,7 @@ const Home = () => {
             <div className='w-full'>
               {/* Main Banner */}
               <div className='relative  overflow-hidden shadow-2xl mb-12 h-auto bg-gradient-to-r from-purple-200 via-blue-300 to-indigo-200'>
-                <CarouselBanner />
+                <CarouselBannerOptimized />
               </div>
             </div>
           </section>
