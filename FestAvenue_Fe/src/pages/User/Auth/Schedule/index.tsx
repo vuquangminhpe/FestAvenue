@@ -13,7 +13,7 @@ import { scheduleService } from '../../../../services/schedule.service'
 
 export default function ScheduleManagement() {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([])
   const [currentScheduleIndex, setCurrentScheduleIndex] = useState(0)
   const [showForm, setShowForm] = useState(false)
@@ -53,7 +53,9 @@ export default function ScheduleManagement() {
     }
   }
 
-  const handleScheduleClick = (schedule: Schedule) => {
+  const handleScheduleClick = (schedule: Schedule, clickedDate?: Date) => {
+    // If clicked from calendar day, use that date. Otherwise use null
+    setSelectedDate(clickedDate || null)
     setDetailSchedule(schedule)
     setSelectedSchedules([schedule])
     setCurrentScheduleIndex(0)
@@ -320,6 +322,7 @@ export default function ScheduleManagement() {
           schedule={detailSchedule}
           schedules={selectedSchedules}
           currentIndex={currentScheduleIndex}
+          selectedDate={selectedDate}
           onClose={() => {
             setShowDetail(false)
             setDetailSchedule(null)

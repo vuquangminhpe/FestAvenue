@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { ChevronDown, ChevronUp, Search, Filter, User, Calendar, CheckCircle2, Circle, Timer, X, Clock } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { ChevronDown, ChevronUp, Search, Filter, User, CheckCircle2, Circle, Timer, X, Clock } from 'lucide-react'
 import { Checkbox } from '../../../../../components/ui/checkbox'
 import { Input } from '../../../../../components/ui/input'
 import { Button } from '../../../../../components/ui/button'
@@ -12,12 +12,13 @@ interface SubTaskListProps {
   onToggleSubTask?: (subTaskId: string, currentStatus: boolean) => void
   readOnly?: boolean
   scheduleColor?: string
+  selectedDate?: Date | null
 }
 
 type FilterStatus = 'all' | 'completed' | 'pending'
 type SortBy = 'time_asc' | 'time_desc' | 'name_asc' | 'name_desc'
 
-export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = false }: SubTaskListProps) {
+export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = false, selectedDate }: SubTaskListProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
@@ -26,6 +27,36 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
   const [showFilters, setShowFilters] = useState(false)
   const [timeRangeStart, setTimeRangeStart] = useState('')
   const [timeRangeEnd, setTimeRangeEnd] = useState('')
+  const [animatingTasks, setAnimatingTasks] = useState<Set<string>>(new Set())
+  const previousCompletionState = useRef<Map<string, boolean>>(new Map())
+  const taskOrderRef = useRef<string[]>([])
+  const isUserInteracting = useRef(false)
+
+  // Track completion state changes and trigger animations
+  useEffect(() => {
+    const newAnimatingTasks = new Set<string>()
+
+    subTasks.forEach((task) => {
+      const prevState = previousCompletionState.current.get(task.id)
+      if (prevState !== undefined && prevState !== task.isCompleted) {
+        // State changed, trigger animation only once
+        newAnimatingTasks.add(task.id)
+        // Mark as user interacting to preserve order
+        isUserInteracting.current = true
+      }
+      previousCompletionState.current.set(task.id, task.isCompleted)
+    })
+
+    if (newAnimatingTasks.size > 0) {
+      setAnimatingTasks(newAnimatingTasks)
+      // Clear animation state and interaction flag after animation completes
+      const timer = setTimeout(() => {
+        setAnimatingTasks(new Set())
+        isUserInteracting.current = false
+      }, 1000) // Give enough time for both animation and re-render
+      return () => clearTimeout(timer)
+    }
+  }, [subTasks])
 
   // Get unique assignees
   const uniqueAssignees = useMemo(() => {
@@ -43,6 +74,33 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
   // Filter and sort subtasks
   const filteredSubTasks = useMemo(() => {
     let filtered = [...subTasks]
+
+    // Filter by selected date if provided
+    if (selectedDate) {
+      filtered = filtered.filter((st) => {
+        if (!st.startDate || !st.endDate) {
+          return true // Show subtasks without dates
+        }
+
+        try {
+          const subTaskStart = new Date(st.startDate)
+          const subTaskEnd = new Date(st.endDate)
+
+          // Normalize dates to compare only date parts (ignore time)
+          const selectedDateOnly = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate())
+          const subTaskStartOnly = new Date(subTaskStart.getFullYear(), subTaskStart.getMonth(), subTaskStart.getDate())
+          const subTaskEndOnly = new Date(subTaskEnd.getFullYear(), subTaskEnd.getMonth(), subTaskEnd.getDate())
+
+          const isInRange = selectedDateOnly >= subTaskStartOnly && selectedDateOnly <= subTaskEndOnly
+
+          // Check if selectedDate is within the subtask date range (inclusive)
+          return isInRange
+        } catch (e) {
+          console.error(` Error filtering subtask "${st.title}":`, e)
+          return true // Show if date parsing fails
+        }
+      })
+    }
 
     // Search filter
     if (searchQuery.trim()) {
@@ -84,24 +142,37 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
       })
     }
 
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'time_asc':
-          return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
-        case 'time_desc':
-          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        case 'name_asc':
-          return a.title.localeCompare(b.title, 'vi')
-        case 'name_desc':
-          return b.title.localeCompare(a.title, 'vi')
-        default:
-          return 0
-      }
-    })
+    // If user is interacting and we have a saved order, preserve it
+    if (isUserInteracting.current && taskOrderRef.current.length > 0) {
+      // Keep existing order
+      const orderMap = new Map(taskOrderRef.current.map((id, idx) => [id, idx]))
+      filtered.sort((a, b) => {
+        const orderA = orderMap.get(a.id) ?? 9999
+        const orderB = orderMap.get(b.id) ?? 9999
+        return orderA - orderB
+      })
+    } else {
+      // Normal sort
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'time_asc':
+            return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()
+          case 'time_desc':
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          case 'name_asc':
+            return a.title.localeCompare(b.title, 'vi')
+          case 'name_desc':
+            return b.title.localeCompare(a.title, 'vi')
+          default:
+            return 0
+        }
+      })
+      // Save this order
+      taskOrderRef.current = filtered.map((t) => t.id)
+    }
 
     return filtered
-  }, [subTasks, searchQuery, filterStatus, filterAssignee, sortBy, timeRangeStart, timeRangeEnd])
+  }, [subTasks, searchQuery, filterStatus, filterAssignee, sortBy, timeRangeStart, timeRangeEnd, selectedDate])
 
   const completedCount = subTasks.filter((st) => st.isCompleted).length
   const totalCount = subTasks.length
@@ -121,7 +192,34 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
     return `${diffMinutes}m`
   }
 
-  const hasActiveFilters = searchQuery || filterStatus !== 'all' || filterAssignee !== 'all' || timeRangeStart || timeRangeEnd
+  // Get time slot for the selected date
+  const getTimeSlotForDate = (subTask: SubTask, date: Date | null) => {
+    if (!date || !subTask.dailyTimeSlots || subTask.dailyTimeSlots.length === 0) {
+      console.log(`  ⚠️ getTimeSlotForDate: Cannot get time slot`, {
+        hasDate: !!date,
+        hasDailyTimeSlots: !!subTask.dailyTimeSlots,
+        slotsLength: subTask.dailyTimeSlots?.length || 0
+      })
+      return null
+    }
+
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd')
+      console.log(`  🔎 Looking for time slot:`, {
+        lookingFor: dateStr,
+        availableSlots: subTask.dailyTimeSlots.map((s) => s.date)
+      })
+      const timeSlot = subTask.dailyTimeSlots.find((slot) => slot.date === dateStr)
+      console.log(`  ${timeSlot ? '✅' : '❌'} Found time slot:`, timeSlot)
+      return timeSlot
+    } catch (e) {
+      console.error(`  ❌ Error in getTimeSlotForDate:`, e)
+      return null
+    }
+  }
+
+  const hasActiveFilters =
+    searchQuery || filterStatus !== 'all' || filterAssignee !== 'all' || timeRangeStart || timeRangeEnd
 
   const clearFilters = () => {
     setSearchQuery('')
@@ -158,19 +256,14 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
             hasActiveFilters ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-100'
           }`}
         >
-          <Filter
-            className={`w-4 h-4 mr-1 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
-          />
+          <Filter className={`w-4 h-4 mr-1 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
           Lọc
           {hasActiveFilters && (
             <span className='ml-1 px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full animate-in fade-in zoom-in duration-200'>
               {
-                [
-                  searchQuery,
-                  filterStatus !== 'all',
-                  filterAssignee !== 'all',
-                  timeRangeStart && timeRangeEnd
-                ].filter(Boolean).length
+                [searchQuery, filterStatus !== 'all', filterAssignee !== 'all', timeRangeStart && timeRangeEnd].filter(
+                  Boolean
+                ).length
               }
             </span>
           )}
@@ -315,75 +408,103 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
             </div>
           ) : (
             <div className='space-y-2 max-h-[400px] overflow-y-auto pr-1'>
-              {filteredSubTasks.map((subTask, index) => (
-                <div
-                  key={`${subTask.id}-${subTask.isCompleted}-${subTask.updatedAt}`}
-                  className={`border rounded-lg p-3 transition-all duration-200 hover:shadow-md hover:scale-[1.01] ${
-                    subTask.isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-                  }`}
-                  style={{
-                    animation: `slideInFromLeft 0.3s ease-out ${index * 50}ms both`
-                  }}
-                >
-                  <div className='flex items-start gap-3'>
-                    {!readOnly && (
-                      <Checkbox
-                        id={subTask.id}
-                        checked={subTask.isCompleted}
-                        onCheckedChange={() => onToggleSubTask?.(subTask.id, subTask.isCompleted)}
-                        className='mt-0.5'
-                      />
-                    )}
-                    <div className='flex-1 min-w-0'>
-                      {/* Title */}
-                      <label
-                        htmlFor={subTask.id}
-                        className={`font-medium cursor-pointer block transition-all duration-300 ${
-                          subTask.isCompleted ? 'text-green-700 line-through decoration-2' : 'text-gray-900'
-                        }`}
-                      >
-                        {subTask.title}
-                      </label>
+              {filteredSubTasks.map((subTask, index) => {
+                const isAnimating = animatingTasks.has(subTask.id)
+                const timeSlot = selectedDate ? getTimeSlotForDate(subTask, selectedDate) : null
 
-                      {/* Description */}
-                      {subTask.description && (
-                        <p
-                          className={`text-sm mt-1 line-clamp-2 ${
-                            subTask.isCompleted ? 'text-green-600' : 'text-gray-600'
+                console.log(`🕐 TimeSlot Debug for "${subTask.title}":`, {
+                  selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : 'none',
+                  hasTimeSlots: !!subTask.dailyTimeSlots,
+                  timeSlotsCount: subTask.dailyTimeSlots?.length || 0,
+                  timeSlots: subTask.dailyTimeSlots,
+                  foundTimeSlot: timeSlot
+                })
+
+                return (
+                  <div
+                    key={subTask.id}
+                    className={`border rounded-lg p-3 transition-all duration-500 ease-in-out hover:shadow-md hover:scale-[1.01] ${
+                      subTask.isCompleted ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                    } ${isAnimating ? 'animate-statusChange' : ''}`}
+                    style={{
+                      animation: isAnimating ? undefined : `slideInFromLeft 0.3s ease-out ${index * 50}ms both`
+                    }}
+                  >
+                    <div className='flex items-start gap-3'>
+                      {!readOnly && (
+                        <Checkbox
+                          id={subTask.id}
+                          checked={subTask.isCompleted}
+                          onCheckedChange={() => onToggleSubTask?.(subTask.id, subTask.isCompleted)}
+                          className='mt-0.5'
+                        />
+                      )}
+                      <div className='flex-1 min-w-0'>
+                        {/* Title */}
+                        <label
+                          htmlFor={subTask.id}
+                          className={`font-medium cursor-pointer block transition-all duration-300 ${
+                            subTask.isCompleted ? 'text-green-700 line-through decoration-2' : 'text-gray-900'
                           }`}
                         >
-                          {subTask.description}
-                        </p>
-                      )}
+                          {subTask.title}
+                        </label>
 
-                      {/* Meta info */}
-                      <div className='flex flex-wrap gap-3 mt-2'>
-                        {/* Assignee */}
-                        {subTask.assigneeName && (
-                          <div className='flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-blue-100'>
-                            <User className='w-3 h-3' />
-                            <span>{subTask.assigneeName}</span>
-                          </div>
+                        {/* Description */}
+                        {subTask.description && (
+                          <p
+                            className={`text-sm mt-1 line-clamp-2 ${
+                              subTask.isCompleted ? 'text-green-600' : 'text-gray-600'
+                            }`}
+                          >
+                            {subTask.description}
+                          </p>
                         )}
 
-                        {/* Completion time */}
-                        {subTask.isCompleted && subTask.completedAt && (
-                          <div className='flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-green-100'>
-                            <Timer className='w-3 h-3' />
-                            <span>{getCompletionTime(subTask.createdAt, subTask.completedAt)}</span>
-                          </div>
-                        )}
+                        {/* Meta info */}
+                        <div className='flex flex-wrap gap-3 mt-2'>
+                          {/* Assignee */}
+                          {subTask.assigneeName && (
+                            <div className='flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-blue-100'>
+                              <User className='w-3 h-3' />
+                              <span>{subTask.assigneeName}</span>
+                            </div>
+                          )}
 
-                        {/* Update time */}
-                        <div className='flex items-center gap-1 text-xs text-gray-500 transition-all duration-200 hover:text-gray-700'>
-                          <Calendar className='w-3 h-3' />
-                          <span>{format(new Date(subTask.updatedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</span>
+                          {/* Subtask Date/Time - show time slot for selected date if available */}
+                          {subTask.startDate && subTask.endDate && (
+                            <div className='flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-purple-100'>
+                              <Clock className='w-3 h-3' />
+                              {timeSlot && selectedDate ? (
+                                // Show specific time slot for the selected date
+                                <span>
+                                  {format(selectedDate, 'dd/MM', { locale: vi })} ({timeSlot.startTime} →{' '}
+                                  {timeSlot.endTime})
+                                </span>
+                              ) : (
+                                // Show full date range
+                                <span>
+                                  {format(new Date(subTask.startDate), 'dd/MM HH:mm', { locale: vi })}
+                                  {' → '}
+                                  {format(new Date(subTask.endDate), 'dd/MM HH:mm', { locale: vi })}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Completion time */}
+                          {subTask.isCompleted && subTask.completedAt && (
+                            <div className='flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-green-100'>
+                              <Timer className='w-3 h-3' />
+                              <span>{getCompletionTime(subTask.createdAt, subTask.completedAt)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -400,6 +521,25 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
             opacity: 1;
             transform: translateX(0);
           }
+        }
+
+        @keyframes statusChange {
+          0% {
+            transform: scale(1);
+          }
+          25% {
+            transform: scale(1.03);
+          }
+          50% {
+            transform: scale(0.98);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+
+        .animate-statusChange {
+          animation: statusChange 0.4s ease-in-out;
         }
       `}</style>
     </div>

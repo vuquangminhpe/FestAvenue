@@ -68,37 +68,6 @@ class ScheduleService {
       updatedAt: new Date().toISOString()
     }
 
-    // Log the created schedule data
-    console.log(' Schedule created successfully:')
-    console.log(' Basic Info:', {
-      id: newSchedule.id,
-      title: newSchedule.title,
-      description: newSchedule.description,
-      startDate: newSchedule.startDate,
-      endDate: newSchedule.endDate,
-      color: newSchedule.color,
-      isNotified: newSchedule.isNotified,
-      createdAt: newSchedule.createdAt,
-      updatedAt: newSchedule.updatedAt
-    })
-    console.log(
-      ' SubTasks:',
-      newSchedule.subTasks.map((st, idx) => ({
-        index: idx + 1,
-        id: st.id,
-        title: st.title,
-        description: st.description,
-        isCompleted: st.isCompleted,
-        assigneeId: st.assigneeId,
-        assigneeName: st.assigneeName,
-        startDate: st.startDate,
-        endDate: st.endDate,
-        dailyTimeSlots: st.dailyTimeSlots,
-        completedAt: st.completedAt,
-        createdAt: st.createdAt,
-        updatedAt: st.updatedAt
-      }))
-    )
     console.log('Complete Schedule Object:', newSchedule)
 
     this.schedules.push(newSchedule)

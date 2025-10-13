@@ -17,7 +17,7 @@ interface CalendarDayProps {
   onMouseEnter?: () => void
   onScheduleDragStart?: (scheduleId: string) => void
   onScheduleDrop?: () => void
-  onScheduleClick?: (schedule: Schedule) => void
+  onScheduleClick?: (schedule: Schedule, date: Date) => void
 }
 
 export default function CalendarDay({
@@ -195,10 +195,12 @@ export default function CalendarDay({
               <div
                 onClick={(e) => {
                   e.stopPropagation()
-                  onScheduleClick?.(schedule)
+                  onScheduleClick?.(schedule, date)
                 }}
                 className='flex-1 truncate px-2 py-1 text-white font-medium cursor-pointer hover:brightness-110 transition-all flex items-center gap-1'
-                title={`${schedule.title}${schedule.subTasks.some((st) => st.assigneeId) ? ' - Có công việc được phân công' : ''}`}
+                title={`${schedule.title}${
+                  schedule.subTasks.some((st) => st.assigneeId) ? ' - Có công việc được phân công' : ''
+                }`}
               >
                 <span className='truncate'>{schedule.title}</span>
                 {/* Show user icon if subtasks have assignees */}

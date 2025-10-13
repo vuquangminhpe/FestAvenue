@@ -10,7 +10,7 @@ interface CalendarGridProps {
   onDayClick: (date: Date, schedules: Schedule[]) => void
   onDateRangeSelect?: (startDate: Date, endDate: Date) => void
   onScheduleDrop?: (scheduleId: string, newStartDate: Date) => void
-  onScheduleClick?: (schedule: Schedule) => void
+  onScheduleClick?: (schedule: Schedule, date: Date) => void
 }
 
 const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']

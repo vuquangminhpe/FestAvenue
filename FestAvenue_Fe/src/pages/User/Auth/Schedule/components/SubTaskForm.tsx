@@ -72,8 +72,8 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
         title: '',
         description: '',
         isCompleted: false,
-        startDate: parentScheduleStart,
-        endDate: parentScheduleEnd,
+        startDate: undefined,
+        endDate: undefined,
         dailyTimeSlots: []
       }
     ])
@@ -108,11 +108,26 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
           const start = parseISO(updated.startDate)
           const end = parseISO(updated.endDate)
 
+          console.log('📅 Generating time slots:', {
+            startDate: updated.startDate,
+            endDate: updated.endDate,
+            startParsed: start,
+            endParsed: end,
+            isValidStart: isValid(start),
+            isValidEnd: isValid(end)
+          })
+
           if (isValid(start) && isValid(end) && start <= end) {
             const days = eachDayOfInterval({ start, end })
             const existingSlots = updated.dailyTimeSlots || []
 
-            // Merge existing slots with new dates
+            console.log(
+              '  Days in interval:',
+              days.map((d) => format(d, 'yyyy-MM-dd'))
+            )
+
+            // Only keep existing slots that are within the new date range
+            // and create new slots for dates that don't have slots yet
             updated.dailyTimeSlots = days.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd')
               const existing = existingSlots.find((slot) => slot.date === dateStr)
@@ -124,9 +139,11 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                 }
               )
             })
+
+            console.log('  ✅ Generated time slots:', updated.dailyTimeSlots)
           }
         } catch (e) {
-          console.error('Error generating time slots:', e)
+          console.error('❌ Error generating time slots:', e)
         }
       }
 
@@ -239,6 +256,23 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
 
   const completedCount = subTasks.filter((st) => st.isCompleted).length
 
+  // Helper to convert ISO string to datetime-local format (YYYY-MM-DDTHH:mm)
+  const toDateTimeLocal = (isoString: string | undefined) => {
+    if (!isoString) return ''
+    try {
+      const date = new Date(isoString)
+      // Format: YYYY-MM-DDTHH:mm
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    } catch {
+      return ''
+    }
+  }
+
   // Helper to check if dates span multiple days
   const isMultiDay = (subTask: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>) => {
     if (!subTask.startDate || !subTask.endDate) return false
@@ -280,9 +314,7 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                 hasActiveFilters ? 'text-blue-600 bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-100'
               }`}
             >
-              <Filter
-                className={`w-4 h-4 mr-1 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}
-              />
+              <Filter className={`w-4 h-4 mr-1 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
               Lọc
               {hasActiveFilters && (
                 <span className='ml-1 px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full animate-in fade-in zoom-in duration-200'>
@@ -440,8 +472,13 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                             </Label>
                             <Input
                               type='datetime-local'
-                              value={subTask.startDate ? new Date(subTask.startDate).toISOString().slice(0, 16) : ''}
-                              onChange={(e) => updateSubTask(index, 'startDate', new Date(e.target.value).toISOString())}
+                              value={toDateTimeLocal(subTask.startDate)}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  const date = new Date(e.target.value)
+                                  updateSubTask(index, 'startDate', date.toISOString())
+                                }
+                              }}
                               min={parentStartLocal}
                               max={parentEndLocal}
                               className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
@@ -454,9 +491,14 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                             </Label>
                             <Input
                               type='datetime-local'
-                              value={subTask.endDate ? new Date(subTask.endDate).toISOString().slice(0, 16) : ''}
-                              onChange={(e) => updateSubTask(index, 'endDate', new Date(e.target.value).toISOString())}
-                              min={subTask.startDate ? new Date(subTask.startDate).toISOString().slice(0, 16) : parentStartLocal}
+                              value={toDateTimeLocal(subTask.endDate)}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  const date = new Date(e.target.value)
+                                  updateSubTask(index, 'endDate', date.toISOString())
+                                }
+                              }}
+                              min={toDateTimeLocal(subTask.startDate) || parentStartLocal}
                               max={parentEndLocal}
                               className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
                             />
@@ -474,7 +516,11 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                               >
                                 <Clock className='w-3 h-3' />
                                 Thời gian theo ngày ({subTask.dailyTimeSlots.length} ngày)
-                                {timeSlotsExpanded ? <ChevronUp className='w-3 h-3' /> : <ChevronDown className='w-3 h-3' />}
+                                {timeSlotsExpanded ? (
+                                  <ChevronUp className='w-3 h-3' />
+                                ) : (
+                                  <ChevronDown className='w-3 h-3' />
+                                )}
                               </button>
                               {subTask.dailyTimeSlots.length > 1 && (
                                 <Button

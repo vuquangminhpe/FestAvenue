@@ -13,6 +13,7 @@ interface ScheduleDetailProps {
   schedule: Schedule
   schedules?: Schedule[]
   currentIndex?: number
+  selectedDate?: Date | null
   onClose: () => void
   onEdit: () => void
   onDelete: () => void
@@ -24,6 +25,7 @@ export default function ScheduleDetail({
   schedule,
   schedules,
   currentIndex = 0,
+  selectedDate,
   onClose,
   onEdit,
   onDelete,
@@ -31,8 +33,20 @@ export default function ScheduleDetail({
   onScheduleChange
 }: ScheduleDetailProps) {
   const [isDeleting, setIsDeleting] = useState(false)
+  const [localSchedule, setLocalSchedule] = useState<Schedule>(schedule)
   const modalRef = useRef<HTMLDivElement>(null)
   const hasMultipleSchedules = schedules && schedules.length > 1
+
+  console.log('📋 ScheduleDetail rendered:', {
+    scheduleTitle: schedule.title,
+    selectedDate,
+    selectedDateFormatted: selectedDate ? format(selectedDate, 'yyyy-MM-dd HH:mm') : 'none'
+  })
+
+  // Update local schedule when prop changes
+  useEffect(() => {
+    setLocalSchedule(schedule)
+  }, [schedule])
 
   useEffect(() => {
     if (modalRef.current) {
@@ -62,24 +76,37 @@ export default function ScheduleDetail({
 
   const handleToggleSubTask = async (subTaskId: string, currentStatus: boolean) => {
     try {
+      // Update local state first for immediate UI feedback
+      setLocalSchedule((prev) => ({
+        ...prev,
+        subTasks: prev.subTasks.map((st) =>
+          st.id === subTaskId ? { ...st, isCompleted: !currentStatus, updatedAt: new Date().toISOString() } : st
+        )
+      }))
+
+      // Then update on server
       await scheduleService.updateSubTask(schedule.id, subTaskId, {
         isCompleted: !currentStatus
       })
+
+      // Refresh to sync with server (but UI already updated)
       onRefresh()
     } catch (error) {
       console.error('Failed to update subtask:', error)
+      // Revert on error
+      setLocalSchedule(schedule)
     }
   }
 
-  const completedCount = schedule.subTasks.filter((st) => st.isCompleted).length
-  const totalCount = schedule.subTasks.length
+  const completedCount = localSchedule.subTasks.filter((st) => st.isCompleted).length
+  const totalCount = localSchedule.subTasks.length
   const progressPercentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0
 
   // Determine notification status
   const getNotificationStatus = (): 'upcoming' | 'overdue' | 'none' => {
     const now = new Date()
-    const scheduleEnd = new Date(schedule.endDate)
-    const scheduleStart = new Date(schedule.startDate)
+    const scheduleEnd = new Date(localSchedule.endDate)
+    const scheduleStart = new Date(localSchedule.startDate)
 
     // Check if all tasks are completed (100%)
     const isFullyCompleted = totalCount > 0 && completedCount === totalCount
@@ -107,14 +134,14 @@ export default function ScheduleDetail({
         {/* Header */}
         <div
           className='sticky top-0 px-6 py-4 border-b border-gray-200 flex items-start justify-between'
-          style={{ backgroundColor: schedule.color }}
+          style={{ backgroundColor: localSchedule.color }}
         >
           <div className='flex-1 pr-4'>
             <div className='flex items-center gap-3 mb-2'>
               <BellNotification status={getNotificationStatus()} size={20} />
-              <h2 className='text-xl font-bold text-white'>{schedule.title}</h2>
+              <h2 className='text-xl font-bold text-white'>{localSchedule.title}</h2>
             </div>
-            {schedule.description && <p className='text-white/90 text-sm'>{schedule.description}</p>}
+            {localSchedule.description && <p className='text-white/90 text-sm'>{localSchedule.description}</p>}
           </div>
           <Button variant='ghost' size='icon' onClick={onClose} className='text-white hover:bg-white/20'>
             <X className='w-5 h-5' />
@@ -148,9 +175,11 @@ export default function ScheduleDetail({
               <div>
                 <p className='text-xs text-gray-500 mb-1'>Bắt đầu</p>
                 <p className='font-medium text-gray-900'>
-                  {format(new Date(schedule.startDate), 'dd MMM yyyy', { locale: vi })}
+                  {format(new Date(localSchedule.startDate), 'dd MMM yyyy', { locale: vi })}
                 </p>
-                <p className='text-sm text-gray-600'>{format(new Date(schedule.startDate), 'HH:mm', { locale: vi })}</p>
+                <p className='text-sm text-gray-600'>
+                  {format(new Date(localSchedule.startDate), 'HH:mm', { locale: vi })}
+                </p>
               </div>
             </div>
             <div className='flex items-start gap-3 p-3 bg-gray-50 rounded-lg'>
@@ -158,9 +187,11 @@ export default function ScheduleDetail({
               <div>
                 <p className='text-xs text-gray-500 mb-1'>Kết thúc</p>
                 <p className='font-medium text-gray-900'>
-                  {format(new Date(schedule.endDate), 'dd MMM yyyy', { locale: vi })}
+                  {format(new Date(localSchedule.endDate), 'dd MMM yyyy', { locale: vi })}
                 </p>
-                <p className='text-sm text-gray-600'>{format(new Date(schedule.endDate), 'HH:mm', { locale: vi })}</p>
+                <p className='text-sm text-gray-600'>
+                  {format(new Date(localSchedule.endDate), 'HH:mm', { locale: vi })}
+                </p>
               </div>
             </div>
           </div>
@@ -179,7 +210,7 @@ export default function ScheduleDetail({
                   className='h-full transition-all duration-500'
                   style={{
                     width: `${progressPercentage}%`,
-                    backgroundColor: schedule.color
+                    backgroundColor: localSchedule.color
                   }}
                 />
               </div>
@@ -188,15 +219,16 @@ export default function ScheduleDetail({
 
           {/* SubTasks */}
           <SubTaskList
-            subTasks={schedule.subTasks}
+            subTasks={localSchedule.subTasks}
             onToggleSubTask={handleToggleSubTask}
-            scheduleColor={schedule.color}
+            scheduleColor={localSchedule.color}
+            selectedDate={selectedDate}
           />
 
           {/* Metadata */}
           <div className='pt-4 border-t border-gray-200 text-xs text-gray-500 space-y-1'>
-            <p>Tạo lúc: {format(new Date(schedule.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</p>
-            <p>Cập nhật lúc: {format(new Date(schedule.updatedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</p>
+            <p>Tạo lúc: {format(new Date(localSchedule.createdAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</p>
+            <p>Cập nhật lúc: {format(new Date(localSchedule.updatedAt), 'dd/MM/yyyy HH:mm', { locale: vi })}</p>
           </div>
 
           {/* Actions */}
@@ -210,7 +242,7 @@ export default function ScheduleDetail({
               <Trash2 className='w-4 h-4 mr-2' />
               {isDeleting ? 'Đang xóa...' : 'Xóa'}
             </Button>
-            <Button onClick={onEdit} style={{ backgroundColor: schedule.color }}>
+            <Button onClick={onEdit} style={{ backgroundColor: localSchedule.color }}>
               <Edit className='w-4 h-4 mr-2' />
               Chỉnh sửa
             </Button>
