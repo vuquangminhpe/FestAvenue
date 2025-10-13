@@ -6,7 +6,7 @@ import userApi from '@/apis/user.api'
 import eventApis from '@/apis/event.api'
 import type { EventFormData } from '../types'
 import path from '@/constants/path'
-import { EventStatusValues } from '@/types/event.types'
+import { EventTempStatusValues } from '@/types/event.types'
 
 interface OrganizationData {
   name: string
@@ -125,7 +125,7 @@ export const useCreateEvent = () => {
         logoUrl: uploadedUrls.logo || data.logoUrl,
         bannerUrl: uploadedUrls.banner || data.bannerUrl,
         trailerUrl: uploadedUrls.trailer || data.trailerUrl,
-        status: EventStatusValues.Draft,
+        status: EventTempStatusValues.Draft,
         organization: {
           name: data.name,
           description: data.description,

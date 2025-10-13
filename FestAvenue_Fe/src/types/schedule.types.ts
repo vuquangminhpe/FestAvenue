@@ -1,3 +1,9 @@
+export interface DailyTimeSlot {
+  date: string // ISO date string (YYYY-MM-DD)
+  startTime: string // HH:mm format
+  endTime: string // HH:mm format
+}
+
 export interface SubTask {
   id: string
   title: string
@@ -6,6 +12,9 @@ export interface SubTask {
   assigneeId?: string
   assigneeName?: string
   completedAt?: string
+  startDate?: string // ISO date string - start date of subtask
+  endDate?: string // ISO date string - end date of subtask
+  dailyTimeSlots?: DailyTimeSlot[] // Time slots for each day
   createdAt: string
   updatedAt: string
 }
@@ -29,7 +38,7 @@ export interface ScheduleFormData {
   startDate: string
   endDate: string
   color: string
-  subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt'>[]
+  subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]
 }
 
 export interface ScheduleFilter {

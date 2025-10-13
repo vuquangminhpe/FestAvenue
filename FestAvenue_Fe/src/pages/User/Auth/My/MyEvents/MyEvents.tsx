@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
-import { EventStatusValues } from '@/types/event.types'
-import type { EventSearchFilter, EventStatusValue, createEvent } from '@/types/event.types'
+import { EventTempStatusValues } from '@/types/event.types'
+import type { EventSearchFilter, EventTempStatusValue, createEvent } from '@/types/event.types'
 import {
   Plus,
   Search,
@@ -30,31 +30,31 @@ import { toast } from 'sonner'
 import { generateNameId } from '@/utils/utils'
 
 const statusConfig = {
-  [EventStatusValues.Draft]: {
+  [EventTempStatusValues.Draft]: {
     label: 'Bản nháp',
     color: 'bg-slate-100 text-slate-700 border-slate-300',
     icon: AlertCircle,
     description: 'Chờ gửi duyệt'
   },
-  [EventStatusValues.ContinueSetup]: {
+  [EventTempStatusValues.ContinueSetup]: {
     label: 'Tiếp tục thiết lập',
     color: 'bg-blue-100 text-blue-700 border-blue-300',
     icon: Clock,
     description: 'Đã được chấp nhận, chờ chọn gói'
   },
-  [EventStatusValues.Active]: {
+  [EventTempStatusValues.Active]: {
     label: 'Đang hoạt động',
     color: 'bg-green-100 text-green-700 border-green-300',
     icon: CheckCircle2,
     description: 'Sự kiện đang hoạt động'
   },
-  [EventStatusValues.Pending]: {
+  [EventTempStatusValues.Pending]: {
     label: 'Chờ duyệt',
     color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
     icon: Clock,
     description: 'Đang chờ staff xét duyệt'
   },
-  [EventStatusValues.Canceled]: {
+  [EventTempStatusValues.Canceled]: {
     label: 'Đã hủy',
     color: 'bg-red-100 text-red-700 border-red-300',
     icon: XCircle,
@@ -92,16 +92,16 @@ export default function MyEvents() {
     sendApproveEventMutation.mutate(eventData)
   }
 
-  const getStatusFilter = (tab: string): EventStatusValue | undefined => {
+  const getStatusFilter = (tab: string): EventTempStatusValue | undefined => {
     switch (tab) {
       case 'draft':
-        return EventStatusValues.Draft
+        return EventTempStatusValues.Draft
       case 'pending':
-        return EventStatusValues.Pending
+        return EventTempStatusValues.Pending
       case 'approved':
-        return EventStatusValues.ContinueSetup
+        return EventTempStatusValues.ContinueSetup
       case 'active':
-        return EventStatusValues.Active
+        return EventTempStatusValues.Active
       default:
         return undefined
     }
@@ -211,7 +211,7 @@ export default function MyEvents() {
               >
                 Xem chi tiết
               </Button>
-              {eventData.status === EventStatusValues.Draft && (
+              {eventData.status === EventTempStatusValues.Draft && (
                 <>
                   <Button
                     size='sm'
@@ -240,7 +240,7 @@ export default function MyEvents() {
                   </Button>
                 </>
               )}
-              {eventData.status === EventStatusValues.ContinueSetup && (
+              {eventData.status === EventTempStatusValues.ContinueSetup && (
                 <Button
                   size='sm'
                   className='bg-green-600 hover:bg-green-700'

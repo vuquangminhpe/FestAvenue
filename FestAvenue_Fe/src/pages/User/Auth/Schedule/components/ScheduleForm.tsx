@@ -40,7 +40,10 @@ export default function ScheduleForm({ schedule, prefilledDateRange, onClose, on
           description: st.description,
           isCompleted: st.isCompleted,
           assigneeId: st.assigneeId,
-          assigneeName: st.assigneeName
+          assigneeName: st.assigneeName,
+          startDate: st.startDate,
+          endDate: st.endDate,
+          dailyTimeSlots: st.dailyTimeSlots
         }))
       })
     } else if (prefilledDateRange) {
@@ -153,6 +156,8 @@ export default function ScheduleForm({ schedule, prefilledDateRange, onClose, on
             <SubTaskForm
               subTasks={formData.subTasks}
               onChange={(subTasks) => setFormData({ ...formData, subTasks })}
+              parentScheduleStart={formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString()}
+              parentScheduleEnd={formData.endDate ? new Date(formData.endDate).toISOString() : new Date().toISOString()}
             />
           </div>
 

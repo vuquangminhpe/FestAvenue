@@ -1,11 +1,26 @@
 import { useState, useMemo } from 'react'
-import { Plus, Trash2, User, ChevronDown, ChevronUp, Search, Filter, X, CheckCircle2 } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  User,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Filter,
+  X,
+  CheckCircle2,
+  Calendar,
+  Clock,
+  Copy
+} from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
 import { Textarea } from '../../../../../components/ui/textarea'
 import { Checkbox } from '../../../../../components/ui/checkbox'
-import type { SubTask } from '../../../../../types/schedule.types'
+import type { SubTask, DailyTimeSlot } from '../../../../../types/schedule.types'
+import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
+import { vi } from 'date-fns/locale'
 
 // Mock users - Replace with real user data from API
 const MOCK_USERS = [
@@ -19,16 +34,36 @@ const MOCK_USERS = [
 interface SubTaskFormProps {
   subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]
   onChange: (subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]) => void
+  parentScheduleStart: string // ISO date string from parent schedule
+  parentScheduleEnd: string // ISO date string from parent schedule
 }
 
 type FilterStatus = 'all' | 'completed' | 'pending'
 
-export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
+export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, parentScheduleEnd }: SubTaskFormProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [expandedTimeSlots, setExpandedTimeSlots] = useState<Record<number, boolean>>({})
+
+  // Get parent schedule date range in local datetime format for input
+  const parentStartLocal = useMemo(() => {
+    try {
+      return new Date(parentScheduleStart).toISOString().slice(0, 16)
+    } catch {
+      return ''
+    }
+  }, [parentScheduleStart])
+
+  const parentEndLocal = useMemo(() => {
+    try {
+      return new Date(parentScheduleEnd).toISOString().slice(0, 16)
+    } catch {
+      return ''
+    }
+  }, [parentScheduleEnd])
 
   const addSubTask = () => {
     onChange([
@@ -36,7 +71,10 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
       {
         title: '',
         description: '',
-        isCompleted: false
+        isCompleted: false,
+        startDate: parentScheduleStart,
+        endDate: parentScheduleEnd,
+        dailyTimeSlots: []
       }
     ])
   }
@@ -44,7 +82,7 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
   const updateSubTask = (
     index: number,
     field: keyof Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>,
-    value: string | boolean
+    value: string | boolean | DailyTimeSlot[] | undefined
   ) => {
     const newSubTasks = [...subTasks]
 
@@ -56,6 +94,43 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
         assigneeId: value as string,
         assigneeName: user?.name
       }
+    }
+    // If updating date range, regenerate time slots
+    else if (field === 'startDate' || field === 'endDate') {
+      const updated = {
+        ...newSubTasks[index],
+        [field]: value
+      }
+
+      // Auto-generate daily time slots if both dates are set
+      if (updated.startDate && updated.endDate) {
+        try {
+          const start = parseISO(updated.startDate)
+          const end = parseISO(updated.endDate)
+
+          if (isValid(start) && isValid(end) && start <= end) {
+            const days = eachDayOfInterval({ start, end })
+            const existingSlots = updated.dailyTimeSlots || []
+
+            // Merge existing slots with new dates
+            updated.dailyTimeSlots = days.map((day) => {
+              const dateStr = format(day, 'yyyy-MM-dd')
+              const existing = existingSlots.find((slot) => slot.date === dateStr)
+              return (
+                existing || {
+                  date: dateStr,
+                  startTime: '08:00',
+                  endTime: '18:00'
+                }
+              )
+            })
+          }
+        } catch (e) {
+          console.error('Error generating time slots:', e)
+        }
+      }
+
+      newSubTasks[index] = updated
     } else {
       newSubTasks[index] = {
         ...newSubTasks[index],
@@ -66,8 +141,47 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
     onChange(newSubTasks)
   }
 
+  const updateTimeSlot = (subTaskIndex: number, slotIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    const newSubTasks = [...subTasks]
+    const subTask = newSubTasks[subTaskIndex]
+
+    if (subTask.dailyTimeSlots) {
+      const newSlots = [...subTask.dailyTimeSlots]
+      newSlots[slotIndex] = {
+        ...newSlots[slotIndex],
+        [field]: value
+      }
+      newSubTasks[subTaskIndex] = {
+        ...subTask,
+        dailyTimeSlots: newSlots
+      }
+      onChange(newSubTasks)
+    }
+  }
+
+  const autoFillTimeSlots = (subTaskIndex: number) => {
+    const subTask = subTasks[subTaskIndex]
+    if (!subTask.dailyTimeSlots || subTask.dailyTimeSlots.length === 0) return
+
+    const firstSlot = subTask.dailyTimeSlots[0]
+    const newSlots = subTask.dailyTimeSlots.map((slot) => ({
+      ...slot,
+      startTime: firstSlot.startTime,
+      endTime: firstSlot.endTime
+    }))
+
+    updateSubTask(subTaskIndex, 'dailyTimeSlots', newSlots)
+  }
+
   const removeSubTask = (index: number) => {
     onChange(subTasks.filter((_, i) => i !== index))
+  }
+
+  const toggleTimeSlots = (index: number) => {
+    setExpandedTimeSlots((prev) => ({
+      ...prev,
+      [index]: !prev[index]
+    }))
   }
 
   // Get unique assignees
@@ -124,6 +238,18 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
   }
 
   const completedCount = subTasks.filter((st) => st.isCompleted).length
+
+  // Helper to check if dates span multiple days
+  const isMultiDay = (subTask: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>) => {
+    if (!subTask.startDate || !subTask.endDate) return false
+    try {
+      const start = parseISO(subTask.startDate)
+      const end = parseISO(subTask.endDate)
+      return format(start, 'yyyy-MM-dd') !== format(end, 'yyyy-MM-dd')
+    } catch {
+      return false
+    }
+  }
 
   return (
     <div className='space-y-3'>
@@ -255,7 +381,7 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
       {/* Subtasks List */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
         <div className='space-y-3'>
@@ -269,9 +395,12 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
               <p className='text-sm'>Không tìm thấy subtask phù hợp</p>
             </div>
           ) : (
-            <div className='space-y-3 max-h-[400px] overflow-y-auto pr-1'>
+            <div className='space-y-3 max-h-[600px] overflow-y-auto pr-1'>
               {filteredIndices.map((index, idx) => {
                 const subTask = subTasks[index]
+                const multiDay = isMultiDay(subTask)
+                const timeSlotsExpanded = expandedTimeSlots[index]
+
                 return (
                   <div
                     key={index}
@@ -301,6 +430,92 @@ export default function SubTaskForm({ subTasks, onChange }: SubTaskFormProps) {
                           rows={2}
                           className='text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500'
                         />
+
+                        {/* Date Range */}
+                        <div className='grid grid-cols-2 gap-2'>
+                          <div className='space-y-1'>
+                            <Label className='text-xs flex items-center gap-1'>
+                              <Calendar className='w-3 h-3' />
+                              Ngày bắt đầu
+                            </Label>
+                            <Input
+                              type='datetime-local'
+                              value={subTask.startDate ? new Date(subTask.startDate).toISOString().slice(0, 16) : ''}
+                              onChange={(e) => updateSubTask(index, 'startDate', new Date(e.target.value).toISOString())}
+                              min={parentStartLocal}
+                              max={parentEndLocal}
+                              className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
+                            />
+                          </div>
+                          <div className='space-y-1'>
+                            <Label className='text-xs flex items-center gap-1'>
+                              <Calendar className='w-3 h-3' />
+                              Ngày kết thúc
+                            </Label>
+                            <Input
+                              type='datetime-local'
+                              value={subTask.endDate ? new Date(subTask.endDate).toISOString().slice(0, 16) : ''}
+                              onChange={(e) => updateSubTask(index, 'endDate', new Date(e.target.value).toISOString())}
+                              min={subTask.startDate ? new Date(subTask.startDate).toISOString().slice(0, 16) : parentStartLocal}
+                              max={parentEndLocal}
+                              className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
+                            />
+                          </div>
+                        </div>
+
+                        {/* Daily Time Slots for Multi-day Tasks */}
+                        {multiDay && subTask.dailyTimeSlots && subTask.dailyTimeSlots.length > 0 && (
+                          <div className='space-y-2 border-t pt-2'>
+                            <div className='flex items-center justify-between'>
+                              <button
+                                type='button'
+                                onClick={() => toggleTimeSlots(index)}
+                                className='text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1'
+                              >
+                                <Clock className='w-3 h-3' />
+                                Thời gian theo ngày ({subTask.dailyTimeSlots.length} ngày)
+                                {timeSlotsExpanded ? <ChevronUp className='w-3 h-3' /> : <ChevronDown className='w-3 h-3' />}
+                              </button>
+                              {subTask.dailyTimeSlots.length > 1 && (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='sm'
+                                  onClick={() => autoFillTimeSlots(index)}
+                                  className='h-6 text-xs hover:bg-blue-50'
+                                  title='Áp dụng giờ của ngày đầu tiên cho tất cả các ngày'
+                                >
+                                  <Copy className='w-3 h-3 mr-1' />
+                                  Auto-fill
+                                </Button>
+                              )}
+                            </div>
+
+                            {timeSlotsExpanded && (
+                              <div className='space-y-1.5 bg-blue-50/50 p-2 rounded max-h-40 overflow-y-auto'>
+                                {subTask.dailyTimeSlots.map((slot, slotIdx) => (
+                                  <div key={slot.date} className='grid grid-cols-3 gap-2 items-center text-xs'>
+                                    <div className='text-gray-700 font-medium'>
+                                      {format(parseISO(slot.date), 'dd/MM (EEE)', { locale: vi })}
+                                    </div>
+                                    <Input
+                                      type='time'
+                                      value={slot.startTime}
+                                      onChange={(e) => updateTimeSlot(index, slotIdx, 'startTime', e.target.value)}
+                                      className='h-7 text-xs'
+                                    />
+                                    <Input
+                                      type='time'
+                                      value={slot.endTime}
+                                      onChange={(e) => updateTimeSlot(index, slotIdx, 'endTime', e.target.value)}
+                                      className='h-7 text-xs'
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Assignee */}
                         <div className='space-y-1'>

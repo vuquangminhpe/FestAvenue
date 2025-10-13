@@ -10,6 +10,7 @@ interface CalendarGridProps {
   onDayClick: (date: Date, schedules: Schedule[]) => void
   onDateRangeSelect?: (startDate: Date, endDate: Date) => void
   onScheduleDrop?: (scheduleId: string, newStartDate: Date) => void
+  onScheduleClick?: (schedule: Schedule) => void
 }
 
 const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
@@ -19,7 +20,8 @@ export default function CalendarGrid({
   schedules,
   onDayClick,
   onDateRangeSelect,
-  onScheduleDrop
+  onScheduleDrop,
+  onScheduleClick
 }: CalendarGridProps) {
   const [dragStartDate, setDragStartDate] = useState<Date | null>(null)
   const [dragEndDate, setDragEndDate] = useState<Date | null>(null)
@@ -142,6 +144,7 @@ export default function CalendarGrid({
               onMouseEnter={() => handleMouseEnter(date)}
               onScheduleDragStart={handleScheduleDragStart}
               onScheduleDrop={() => handleScheduleDrop(date)}
+              onScheduleClick={onScheduleClick}
             />
           )
         })}

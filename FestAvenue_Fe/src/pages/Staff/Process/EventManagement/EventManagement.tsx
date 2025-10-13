@@ -16,7 +16,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { staffEventApis, type sendApproveEventWithOrg } from '@/apis/event.api'
-import { EventStatusValues } from '@/types/event.types'
+import { EventTempStatusValues } from '@/types/event.types'
 import type { EventSearchStaffFilter } from '@/types/event.types'
 import {
   Search,
@@ -52,9 +52,9 @@ export default function StaffEventManagement() {
   const getStatusFilter = (tab: string): number[] => {
     switch (tab) {
       case 'pending':
-        return [EventStatusValues.Draft]
+        return [EventTempStatusValues.Draft]
       case 'approved':
-        return [EventStatusValues.ContinueSetup]
+        return [EventTempStatusValues.ContinueSetup]
       case 'all':
         return [] // Trả về mảng rỗng cho tất cả
       default:
@@ -334,12 +334,12 @@ export default function StaffEventManagement() {
                         <TableCell>
                           <Badge
                             className={`${
-                              eventStatus === EventStatusValues.Draft
+                              eventStatus === EventTempStatusValues.Draft
                                 ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
                                 : 'bg-green-100 text-green-700 border-green-300'
                             } border`}
                           >
-                            {eventStatus === EventStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
+                            {eventStatus === EventTempStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
                           </Badge>
                         </TableCell>
 
@@ -356,7 +356,7 @@ export default function StaffEventManagement() {
                             >
                               <Eye className='w-4 h-4' />
                             </Button>
-                            {eventStatus === EventStatusValues.Draft && (
+                            {eventStatus === EventTempStatusValues.Draft && (
                               <>
                                 <Button
                                   size='sm'
@@ -543,12 +543,12 @@ export default function StaffEventManagement() {
                     <label className='text-sm font-medium text-slate-500 mb-2 block'>Trạng thái</label>
                     <Badge
                       className={`${
-                        eventStatus === EventStatusValues.Draft
+                        eventStatus === EventTempStatusValues.Draft
                           ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
                           : 'bg-green-100 text-green-700 border-green-300'
                       } border`}
                     >
-                      {eventStatus === EventStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
+                      {eventStatus === EventTempStatusValues.Draft ? 'Chờ duyệt' : 'Đã duyệt'}
                     </Badge>
                   </div>
                 </div>
@@ -562,7 +562,7 @@ export default function StaffEventManagement() {
             {(() => {
               const eventStatus = (selectedEvent as any)?.eventTempStatus ?? (selectedEvent as any)?.status
               return (
-                eventStatus === EventStatusValues.Draft && (
+                eventStatus === EventTempStatusValues.Draft && (
                   <>
                     <Button
                       className='bg-green-600 hover:bg-green-700 text-white'

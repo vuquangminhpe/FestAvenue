@@ -32,7 +32,7 @@ const mockEventData: Event = {
     Đây là concert âm nhạc hoành tráng với sự góp mặt của các ca sĩ nổi tiếng. 
     Sự kiện hứa hẹn mang đến những trải nghiệm âm nhạc tuyệt vời và không gian biểu diễn hiện đại, chuyên nghiệp.`,
   shortDescription: 'Concert âm nhạc hoành tráng với sự góp mặt của các ca sĩ nổi tiếng',
-  eventType: 0,
+  eventType: 0 as any,
   categoryId: 'music',
   status: 1,
   visibility: 0,

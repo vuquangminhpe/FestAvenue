@@ -1,4 +1,4 @@
-import type { EventStatus, EventType, EventVisibility } from '@/constants/enum'
+import type { EventStatus, EventVisibility } from '@/constants/enum'
 
 interface Address {
   street: string
@@ -114,7 +114,30 @@ export interface createEvent {
   messageResponse: string
   organization: Organization
 }
-
+export interface EventType {
+  name: string
+  description: string
+  shortDescription: string
+  eventType: number
+  categoryId: string
+  status: number
+  visibility: number
+  capacity: number
+  startDate: string
+  endDate: string
+  registrationStartDate: string
+  registrationEndDate: string
+  logoUrl: string
+  bannerUrl: string
+  trailerUrl: string
+  website: string
+  publicContactEmail: string
+  publicContactPhone: string
+  location: Location
+  hashtags: string[]
+  messageResponse: string
+  organization: Organization
+}
 interface OrganizationContact {
   email: string
   phone: string
@@ -148,6 +171,14 @@ export interface EventSearchStaffFilter {
   pagination: Pagination
 }
 export const EventStatusValues = {
+  Pending: 1,
+  Approved: 2,
+  Rejected: 3
+} as const
+
+export type EventStatusValue = (typeof EventStatusValues)[keyof typeof EventStatusValues]
+
+export const EventTempStatusValues = {
   /**
    * Khi mới tạo sự kiện và gửi duyệt nhưng chưa chọn gói sự kiện
    */
@@ -174,7 +205,7 @@ export const EventStatusValues = {
   Canceled: 5
 } as const
 
-export type EventStatusValue = (typeof EventStatusValues)[keyof typeof EventStatusValues]
+export type EventTempStatusValue = (typeof EventTempStatusValues)[keyof typeof EventTempStatusValues]
 export interface bodyApproveEventForStaff {
   eventTempId: string
   message: string

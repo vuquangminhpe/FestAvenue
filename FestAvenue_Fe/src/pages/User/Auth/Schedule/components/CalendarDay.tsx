@@ -4,7 +4,7 @@ import type { Schedule } from '../../../../../types/schedule.types'
 import BellNotification from './BellNotification'
 import { format, isSameDay, isToday } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, GripVertical, UserCircle2 } from 'lucide-react'
 
 interface CalendarDayProps {
   date: Date
@@ -17,6 +17,7 @@ interface CalendarDayProps {
   onMouseEnter?: () => void
   onScheduleDragStart?: (scheduleId: string) => void
   onScheduleDrop?: () => void
+  onScheduleClick?: (schedule: Schedule) => void
 }
 
 export default function CalendarDay({
@@ -29,7 +30,8 @@ export default function CalendarDay({
   onMouseDown,
   onMouseEnter,
   onScheduleDragStart,
-  onScheduleDrop
+  onScheduleDrop,
+  onScheduleClick
 }: CalendarDayProps) {
   const dayRef = useRef<HTMLDivElement>(null)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -170,22 +172,40 @@ export default function CalendarDay({
           {displayedSchedules.map((schedule) => (
             <div
               key={schedule.id}
-              draggable
-              onDragStart={(e) => {
-                e.stopPropagation()
-                onScheduleDragStart?.(schedule.id)
-              }}
-              onDragEnd={(e) => {
-                e.stopPropagation()
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-              className='text-xs truncate px-2 py-1 rounded text-white font-medium cursor-move hover:opacity-80 transition-opacity'
+              className='group flex items-center gap-1 text-xs rounded transition-all hover:shadow-sm'
               style={{ backgroundColor: schedule.color }}
-              title={schedule.title}
             >
-              {schedule.title}
+              {/* Drag handle */}
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation()
+                  onScheduleDragStart?.(schedule.id)
+                }}
+                onDragEnd={(e) => {
+                  e.stopPropagation()
+                }}
+                className='flex-shrink-0 px-0.5 cursor-move opacity-0 group-hover:opacity-100 transition-opacity'
+                title='Kéo để di chuyển'
+              >
+                <GripVertical className='w-3 h-3 text-white' />
+              </div>
+
+              {/* Schedule title - clickable */}
+              <div
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onScheduleClick?.(schedule)
+                }}
+                className='flex-1 truncate px-2 py-1 text-white font-medium cursor-pointer hover:brightness-110 transition-all flex items-center gap-1'
+                title={`${schedule.title}${schedule.subTasks.some((st) => st.assigneeId) ? ' - Có công việc được phân công' : ''}`}
+              >
+                <span className='truncate'>{schedule.title}</span>
+                {/* Show user icon if subtasks have assignees */}
+                {schedule.subTasks.some((st) => st.assigneeId) && (
+                  <UserCircle2 className='w-3 h-3 flex-shrink-0 opacity-90' />
+                )}
+              </div>
             </div>
           ))}
           {hasMoreThanTwo && (

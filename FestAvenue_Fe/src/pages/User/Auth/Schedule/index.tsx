@@ -53,6 +53,13 @@ export default function ScheduleManagement() {
     }
   }
 
+  const handleScheduleClick = (schedule: Schedule) => {
+    setDetailSchedule(schedule)
+    setSelectedSchedules([schedule])
+    setCurrentScheduleIndex(0)
+    setShowDetail(true)
+  }
+
   const handleScheduleChange = (index: number) => {
     setCurrentScheduleIndex(index)
     setDetailSchedule(selectedSchedules[index])
@@ -106,7 +113,10 @@ export default function ScheduleManagement() {
           description: st.description,
           isCompleted: st.isCompleted,
           assigneeId: st.assigneeId,
-          assigneeName: st.assigneeName
+          assigneeName: st.assigneeName,
+          startDate: st.startDate,
+          endDate: st.endDate,
+          dailyTimeSlots: st.dailyTimeSlots
         }))
       })
 
@@ -270,6 +280,7 @@ export default function ScheduleManagement() {
               onDayClick={handleDayClick}
               onDateRangeSelect={handleDateRangeSelect}
               onScheduleDrop={handleScheduleDrop}
+              onScheduleClick={handleScheduleClick}
             />
           )}
         </div>

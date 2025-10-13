@@ -15,6 +15,15 @@ export const mockSchedules: Schedule[] = [
         title: 'Chuẩn bị tài liệu requirements',
         description: 'Thu thập và tổng hợp yêu cầu từ stakeholders',
         isCompleted: true,
+        assigneeId: 'user_1',
+        assigneeName: 'Nguyễn Văn A',
+        startDate: '2025-10-03T08:00:00',
+        endDate: '2025-10-04T18:00:00',
+        dailyTimeSlots: [
+          { date: '2025-10-03', startTime: '08:00', endTime: '12:00' },
+          { date: '2025-10-04', startTime: '13:00', endTime: '18:00' }
+        ],
+        completedAt: '2025-09-30T14:30:00',
         createdAt: '2025-09-28T10:00:00',
         updatedAt: '2025-09-30T14:30:00'
       },
@@ -23,6 +32,14 @@ export const mockSchedules: Schedule[] = [
         title: 'Chuẩn bị slides thuyết trình',
         description: 'Làm slide giới thiệu về dự án và timeline',
         isCompleted: false,
+        assigneeId: 'user_2',
+        assigneeName: 'Trần Thị B',
+        startDate: '2025-10-04T08:00:00',
+        endDate: '2025-10-05T11:00:00',
+        dailyTimeSlots: [
+          { date: '2025-10-04', startTime: '14:00', endTime: '18:00' },
+          { date: '2025-10-05', startTime: '08:00', endTime: '11:00' }
+        ],
         createdAt: '2025-09-28T10:00:00',
         updatedAt: '2025-09-28T10:00:00'
       },
@@ -31,6 +48,11 @@ export const mockSchedules: Schedule[] = [
         title: 'Book phòng họp',
         description: 'Đặt phòng họp cho 15 người',
         isCompleted: true,
+        assigneeId: 'user_3',
+        assigneeName: 'Lê Văn C',
+        startDate: '2025-10-05T09:00:00',
+        endDate: '2025-10-05T11:00:00',
+        completedAt: '2025-09-29T16:00:00',
         createdAt: '2025-09-28T10:00:00',
         updatedAt: '2025-09-29T16:00:00'
       }
