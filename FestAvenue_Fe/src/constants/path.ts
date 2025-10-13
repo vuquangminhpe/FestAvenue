@@ -74,6 +74,12 @@ const path = {
       create: '/user/schedule/create',
       edit: '/user/schedule/edit/:id',
       detail: '/user/schedule/:id'
+    },
+    event_owner: {
+      root: '/user/event-owner',
+      user_management: '/user/event-owner/user-management',
+      social_media: '/user/event-owner/social-media',
+      ticket_management: '/user/event-owner/ticket-management'
     }
   },
   admin: {

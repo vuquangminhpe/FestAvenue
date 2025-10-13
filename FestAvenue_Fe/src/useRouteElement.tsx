@@ -47,6 +47,7 @@ const Template3 = lazy(() => import('./components/custom/landing_template').then
 const Template4 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template4 })))
 const Template5 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template5 })))
 const Template6 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template6 })))
+const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents'))
 
 const Loader = () => (
   <div
@@ -432,6 +433,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <EventDetails />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.event_owner.user_management,
+              element: (
+                <SuspenseWrapper>
+                  <UserManagementInEvents />
                 </SuspenseWrapper>
               )
             }
