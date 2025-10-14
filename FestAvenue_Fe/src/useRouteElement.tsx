@@ -50,6 +50,7 @@ const Template5 = lazy(() => import('./components/custom/landing_template').then
 const Template6 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template6 })))
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents'))
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement'))
+const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement'))
 
 const Loader = () => (
   <div
@@ -458,6 +459,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <EventOwnerLayout>
                     <SocialMediaManagement />
+                  </EventOwnerLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.event_owner.ticket_management,
+              element: (
+                <SuspenseWrapper>
+                  <EventOwnerLayout>
+                    <TicketManagement />
                   </EventOwnerLayout>
                 </SuspenseWrapper>
               )

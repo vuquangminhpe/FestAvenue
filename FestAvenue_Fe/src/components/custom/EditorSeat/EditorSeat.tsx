@@ -228,7 +228,7 @@ export default function AdvancedSeatMapDesigner() {
     if (!file) return
 
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file')
+      alert('Vui lòng chọn một tệp hình ảnh hợp lệ')
       return
     }
 
@@ -254,7 +254,7 @@ export default function AdvancedSeatMapDesigner() {
 
     // Need exactly 2 intersection points to split
     if (intersections.length !== 2) {
-      alert(`Split line must intersect the section at exactly 2 points. Found ${intersections.length} intersections.`)
+      alert(`Đường chia phải cắt khu vực tại đúng 2 điểm. Tìm thấy ${intersections.length} điểm cắt.`)
       return
     }
 
@@ -285,7 +285,7 @@ export default function AdvancedSeatMapDesigner() {
 
     // Validate polygons have at least 3 points
     if (polygon1Points.length < 3 || polygon2Points.length < 3) {
-      alert('Error: Invalid polygon created after split. Please try a different split line.')
+      alert('Lỗi: Tạo đa giác không hợp lệ sau khi chia. Vui lòng thử một đường chia khác.')
       return
     }
 
@@ -328,7 +328,7 @@ export default function AdvancedSeatMapDesigner() {
       sections: prev.sections.filter((s) => s.id !== section.id).concat([section1, section2])
     }))
 
-    alert(`Successfully split ${section.name} into ${section1.name} and ${section2.name}!`)
+    alert(`Đã chia thành công ${section.name} thành ${section1.name} và ${section2.name}!`)
   }
 
   const startEditingPoints = (section: Section) => {
@@ -679,7 +679,7 @@ export default function AdvancedSeatMapDesigner() {
         .attr('fill', '#fff')
         .attr('font-size', '24px')
         .attr('font-weight', 'bold')
-        .text('STAGE')
+        .text('SÂN KHẤU')
     }
 
     if (mapData.aisles) {
@@ -786,7 +786,7 @@ export default function AdvancedSeatMapDesigner() {
             setLabelText(section.displayName || section.name)
           })
           .append('title')
-          .text('Double-click or right-click to edit section name')
+          .text('Nhấp đúp hoặc chuột phải để sửa tên khu vực')
 
         labelGroup
           .append('text')
@@ -813,7 +813,7 @@ export default function AdvancedSeatMapDesigner() {
             setLabelText(section.displayName || section.name)
           })
           .append('title')
-          .text('Double-click or right-click to edit section name')
+          .text('Nhấp đúp hoặc chuột phải để sửa tên khu vực')
           .style('pointer-events', 'none')
       }
 
@@ -893,11 +893,11 @@ export default function AdvancedSeatMapDesigner() {
 
             const menuItems = [
               {
-                label: status === 'locked' ? '🔓 Unlock Seat' : '🔒 Lock Seat',
+                label: status === 'locked' ? '🔓 Mở Khóa Ghế' : '🔒 Khóa Ghế',
                 action: () => handleSeatLockToggle(seat.id, status, seatLabel)
               },
               {
-                label: '💵 Edit Price',
+                label: '💵 Sửa Giá',
                 action: () => {
                   setEditingSeatPrice(seat.id)
                   setSeatPrice(String(seat.price || section.price || 0))
@@ -971,7 +971,7 @@ export default function AdvancedSeatMapDesigner() {
                 .attr('y', seat.y - 40)
                 .attr('width', 100)
                 .attr('height', 30)
-                .attr('fill', 'rgba(0,0,0,0.9)')
+                .attr('fill', '#FFFF')
                 .attr('rx', 4)
 
               lines.forEach((line, i) => {
@@ -980,7 +980,7 @@ export default function AdvancedSeatMapDesigner() {
                   .attr('x', seat.x)
                   .attr('y', seat.y - 30 + i * 12)
                   .attr('text-anchor', 'middle')
-                  .attr('fill', 'white')
+                  .attr('fill', '#000000')
                   .attr('font-size', '11px')
                   .text(line)
               })
@@ -1212,7 +1212,7 @@ export default function AdvancedSeatMapDesigner() {
           <CardHeader className='pb-3'>
             <div className='flex items-center justify-between'>
               <CardTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-blue-300 bg-clip-text text-transparent'>
-                🎬 Advanced Cinema Seat Map Designer
+                🎬 Thiết Kế Sơ Đồ Chỗ Ngồi Nâng Cao
               </CardTitle>
             </div>
           </CardHeader>
@@ -1224,13 +1224,13 @@ export default function AdvancedSeatMapDesigner() {
               {mode === 'edit' && (
                 <>
                   <Alert className='bg-purple-600/20 border-purple-500/50'>
-                    <AlertDescription className='text-xs'>
-                      💡 <strong>Quick Tips:</strong>
+                    <AlertDescription className='text-xs text-black'>
+                      💡 <strong>Mẹo nhanh:</strong>
                       <br />
-                      • Double-click or right-click section labels to rename
+                      • Nhấp đúp hoặc chuột phải vào nhãn khu vực để đổi tên
                       <br />
-                      • Or use Label tool + click section
-                      <br />• Draw/Shape tools create new sections
+                      • Hoặc dùng công cụ Nhãn + nhấp vào khu vực
+                      <br />• Công cụ Vẽ/Hình dạng tạo khu vực mới
                     </AlertDescription>
                   </Alert>
 
@@ -1238,9 +1238,9 @@ export default function AdvancedSeatMapDesigner() {
                   <div className='space-y-2 pb-3 border-b border-purple-500/30'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                       <Sparkles className='w-4 h-4' />
-                      AI Seat Detection
+                      Phát Hiện Ghế Bằng AI
                     </h3>
-                    <p className='text-xs text-slate-400'>Upload an image and let AI automatically detect seats</p>
+                    <p className='text-xs text-slate-400'>Tải ảnh lên và để AI tự động phát hiện ghế ngồi</p>
                     <input
                       ref={imageInputRef}
                       type='file'
@@ -1257,19 +1257,19 @@ export default function AdvancedSeatMapDesigner() {
                       {extractPolygonsMutation.isPending ? (
                         <>
                           <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                          AI Detecting Seats...
+                          AI Đang Phát Hiện...
                         </>
                       ) : (
                         <>
                           <Sparkles className='w-4 h-4 mr-2' />
-                          AI Detect Seats from Image
+                          Phát Hiện Ghế Bằng AI
                         </>
                       )}
                     </Button>
                     {isImageImportMode && (
                       <Alert className='bg-cyan-600/20 border-cyan-500/50'>
-                        <AlertDescription className='text-xs'>
-                          ✅ AI detected {mapData.sections.length} seat sections! You can now edit them.
+                        <AlertDescription className='text-xs text-black'>
+                          AI đã phát hiện {mapData.sections.length} khu vực ghế! Bạn có thể chỉnh sửa ngay.
                         </AlertDescription>
                       </Alert>
                     )}
@@ -1278,7 +1278,7 @@ export default function AdvancedSeatMapDesigner() {
                   <div className='space-y-3'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                       <Edit className='w-4 h-4' />
-                      Edit Tools
+                      Công Cụ Chỉnh Sửa
                     </h3>
                     <div className='grid grid-cols-2 gap-2'>
                       <Button
@@ -1288,7 +1288,7 @@ export default function AdvancedSeatMapDesigner() {
                         className={editTool === 'select' ? 'bg-purple-600' : ''}
                       >
                         <MousePointer className='w-3 h-3 mr-1' />
-                        Select
+                        Chọn
                       </Button>
                       <Button
                         onClick={() => setEditTool('move')}
@@ -1297,7 +1297,7 @@ export default function AdvancedSeatMapDesigner() {
                         className={editTool === 'move' ? 'bg-blue-600' : ''}
                       >
                         <Move className='w-3 h-3 mr-1' />
-                        Move
+                        Di Chuyển
                       </Button>
                       <Button
                         onClick={() => setEditTool('draw')}
@@ -1306,7 +1306,7 @@ export default function AdvancedSeatMapDesigner() {
                         className={editTool === 'draw' ? 'bg-green-600' : ''}
                       >
                         <PenTool className='w-3 h-3 mr-1' />
-                        Draw
+                        Vẽ
                       </Button>
                       <Button
                         onClick={() => setEditTool('shape')}
@@ -1315,7 +1315,7 @@ export default function AdvancedSeatMapDesigner() {
                         className={editTool === 'shape' ? 'bg-orange-600' : ''}
                       >
                         <Hexagon className='w-3 h-3 mr-1' />
-                        Shape
+                        Hình Dạng
                       </Button>
                       <Button
                         onClick={() => setEditTool('label')}
@@ -1324,13 +1324,13 @@ export default function AdvancedSeatMapDesigner() {
                         className={editTool === 'label' ? 'bg-red-600' : ''}
                       >
                         <Edit className='w-3 h-3 mr-1' />
-                        Label
+                        Nhãn
                       </Button>
                       <Button
                         onClick={() => {
                           setEditTool('split')
                           if (!selectedSection) {
-                            alert('Please select a section first to split')
+                            alert('Vui lòng chọn một khu vực trước để chia')
                           }
                         }}
                         variant={editTool === 'split' ? 'default' : 'outline'}
@@ -1339,14 +1339,14 @@ export default function AdvancedSeatMapDesigner() {
                         disabled={!selectedSection}
                       >
                         <Scissors className='w-3 h-3 mr-1' />
-                        Split
+                        Chia Cắt
                       </Button>
                       <Button
                         onClick={() => {
                           if (selectedSection) {
                             startEditingPoints(selectedSection)
                           } else {
-                            alert('Please select a section first to edit points')
+                            alert('Vui lòng chọn một khu vực trước để sửa điểm')
                           }
                         }}
                         variant={editTool === 'edit-points' ? 'default' : 'outline'}
@@ -1355,29 +1355,29 @@ export default function AdvancedSeatMapDesigner() {
                         disabled={!selectedSection}
                       >
                         <GitBranch className='w-3 h-3 mr-1' />
-                        Edit Points
+                        Sửa Điểm
                       </Button>
                     </div>
                   </div>
 
                   {editTool === 'split' && selectedSection && (
                     <Alert className='bg-yellow-600/20 border-yellow-600/50'>
-                      <AlertDescription className='text-xs'>
-                        ✂️ <strong>Split Mode - {selectedSection.displayName}</strong>
+                      <AlertDescription className='text-xs text-black'>
+                        ✂️ <strong>Chế Độ Chia Cắt - {selectedSection.displayName}</strong>
                         <br />
                         {!splitFirstPoint ? (
                           <>
-                            📍 Click on the section to set the <strong>first point</strong> of the split line.
+                            📍 Nhấp vào khu vực để đặt <strong>điểm đầu</strong> của đường chia.
                           </>
                         ) : (
                           <>
-                            📍 Click to set the <strong>second point</strong> and split the section.
+                            📍 Nhấp để đặt <strong>điểm thứ hai</strong> và chia cắt khu vực.
                           </>
                         )}
                         <br />
                         {splitFirstPoint && (
                           <>
-                            <span className='text-green-300'>✓ First point set! Move mouse to preview.</span>
+                            <span className='text-green-600'> Đã đặt điểm đầu! Di chuyển chuột để xem trước.</span>
                             <br />
                             <Button
                               onClick={() => {
@@ -1388,7 +1388,7 @@ export default function AdvancedSeatMapDesigner() {
                               variant='outline'
                               className='mt-2 w-full'
                             >
-                              Reset Points
+                              Đặt Lại Điểm
                             </Button>
                           </>
                         )}
@@ -1398,13 +1398,13 @@ export default function AdvancedSeatMapDesigner() {
 
                   {editTool === 'edit-points' && editingPoints && (
                     <Alert className='bg-teal-600/20 border-teal-600/50'>
-                      <AlertDescription className='text-xs'>
-                        🔧 <strong>Edit Points Mode</strong>
+                      <AlertDescription className='text-xs text-black'>
+                        <strong>Chế Độ Sửa Điểm</strong>
                         <br />
-                        Drag control points to reshape the polygon.
+                        Kéo các điểm điều khiển để định hình lại đa giác.
                         <br />
                         <Button onClick={applyEditedPoints} size='sm' className='mt-2 w-full bg-teal-600'>
-                          Apply Changes
+                          Áp Dụng Thay Đổi
                         </Button>
                         <Button
                           onClick={() => {
@@ -1416,7 +1416,7 @@ export default function AdvancedSeatMapDesigner() {
                           variant='outline'
                           className='mt-1 w-full'
                         >
-                          Cancel
+                          Hủy
                         </Button>
                       </AlertDescription>
                     </Alert>
@@ -1424,19 +1424,19 @@ export default function AdvancedSeatMapDesigner() {
 
                   {editTool === 'label' && (
                     <Alert className='bg-red-600/20 border-red-600/50'>
-                      <AlertDescription className='text-xs'>
-                        🏷️ <strong>Label Mode</strong>
+                      <AlertDescription className='text-xs text-black'>
+                        <strong>Chế Độ Nhãn</strong>
                         <br />
-                        Click any section to edit its name.
+                        Nhấp vào bất kỳ khu vực nào để sửa tên.
                         <br />
-                        OR double-click/right-click section labels directly.
+                        HOẶC nhấp đúp/chuột phải trực tiếp vào nhãn khu vực.
                       </AlertDescription>
                     </Alert>
                   )}
 
                   {editTool === 'shape' && (
                     <div className='space-y-3'>
-                      <h3 className='text-sm font-semibold text-purple-300'>Shape Type</h3>
+                      <h3 className='text-sm font-semibold text-purple-300'>Loại Hình Dạng</h3>
                       <div className='grid grid-cols-3 gap-2'>
                         {['rectangle', 'circle', 'star', 'crescent', 'arc', 'polygon'].map((shape) => (
                           <Button
@@ -1461,11 +1461,11 @@ export default function AdvancedSeatMapDesigner() {
                     <div className='space-y-3'>
                       <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                         <Palette className='w-4 h-4' />
-                        Colors
+                        Màu Sắc
                       </h3>
                       <div className='space-y-2'>
                         <div className='flex items-center justify-between'>
-                          <label className='text-xs text-gray-400'>Use Gradient</label>
+                          <label className='text-xs text-gray-400'>Dùng Gradient</label>
                           <input
                             type='checkbox'
                             checked={colorPicker.useGradient}
@@ -1476,7 +1476,7 @@ export default function AdvancedSeatMapDesigner() {
                         {!colorPicker.useGradient ? (
                           <>
                             <div>
-                              <label className='text-xs text-gray-400'>Fill Color</label>
+                              <label className='text-xs text-gray-400'>Màu Tô</label>
                               <input
                                 type='color'
                                 value={colorPicker.fill}
@@ -1485,7 +1485,7 @@ export default function AdvancedSeatMapDesigner() {
                               />
                             </div>
                             <div>
-                              <label className='text-xs text-gray-400'>Stroke Color</label>
+                              <label className='text-xs text-gray-400'>Màu Viền</label>
                               <input
                                 type='color'
                                 value={colorPicker.stroke}
@@ -1497,7 +1497,7 @@ export default function AdvancedSeatMapDesigner() {
                         ) : (
                           <>
                             <div>
-                              <label className='text-xs text-gray-400'>Gradient From</label>
+                              <label className='text-xs text-gray-400'>Gradient Từ</label>
                               <input
                                 type='color'
                                 value={colorPicker.gradientFrom}
@@ -1506,7 +1506,7 @@ export default function AdvancedSeatMapDesigner() {
                               />
                             </div>
                             <div>
-                              <label className='text-xs text-gray-400'>Gradient To</label>
+                              <label className='text-xs text-gray-400'>Gradient Đến</label>
                               <input
                                 type='color'
                                 value={colorPicker.gradientTo}
@@ -1537,7 +1537,7 @@ export default function AdvancedSeatMapDesigner() {
                             className='w-full bg-purple-600 hover:bg-purple-700'
                             size='sm'
                           >
-                            Apply to Selected
+                            Áp Dụng Cho Mục Đã Chọn
                           </Button>
                         )}
                       </div>
@@ -1546,10 +1546,10 @@ export default function AdvancedSeatMapDesigner() {
 
                   {(editTool === 'draw' || editTool === 'shape') && (
                     <div className='space-y-2'>
-                      <h3 className='text-sm font-semibold text-purple-300'>Section Config</h3>
+                      <h3 className='text-sm font-semibold text-purple-300'>Cấu Hình Khu Vực</h3>
                       <div className='space-y-2'>
                         <div>
-                          <label className='text-xs text-gray-400'>Rows</label>
+                          <label className='text-xs text-gray-400'>Số Hàng</label>
                           <input
                             type='number'
                             value={sectionConfig.rows}
@@ -1562,7 +1562,7 @@ export default function AdvancedSeatMapDesigner() {
                           />
                         </div>
                         <div>
-                          <label className='text-xs text-gray-400'>Seats per Row</label>
+                          <label className='text-xs text-gray-400'>Ghế Mỗi Hàng</label>
                           <input
                             type='number'
                             value={sectionConfig.seatsPerRow}
@@ -1583,7 +1583,7 @@ export default function AdvancedSeatMapDesigner() {
                           }`}
                           size='sm'
                         >
-                          {isDrawing ? 'Cancel Drawing' : 'Start Drawing'}
+                          {isDrawing ? 'Hủy Vẽ' : 'Bắt Đầu Vẽ'}
                         </Button>
                       )}
                     </div>
@@ -1591,8 +1591,8 @@ export default function AdvancedSeatMapDesigner() {
 
                   {isDrawing && (
                     <Alert className='bg-green-600/20 border-green-600/50'>
-                      <AlertDescription className='text-xs'>
-                        Click to add points. Click near first point to close shape.
+                      <AlertDescription className='text-xs text-black'>
+                        Nhấp để thêm điểm. Nhấp gần điểm đầu tiên để đóng hình.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -1600,7 +1600,7 @@ export default function AdvancedSeatMapDesigner() {
                   <div className='space-y-3'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                       <Sparkles className='w-4 h-4' />
-                      Smart Layout Generator
+                      Tạo Bố Cục Thông Minh
                     </h3>
 
                     <div className='grid grid-cols-2 gap-2'>
@@ -1621,7 +1621,7 @@ export default function AdvancedSeatMapDesigner() {
                         />
                       </div>
                       <div>
-                        <label className='text-xs text-gray-400'>Seats/Row</label>
+                        <label className='text-xs text-gray-400'>Ghế/Hàng</label>
                         <input
                           type='number'
                           value={layoutParams.cols}
@@ -1640,7 +1640,7 @@ export default function AdvancedSeatMapDesigner() {
                   </div>
 
                   <div className='space-y-2'>
-                    <h3 className='text-sm font-semibold text-purple-300'>Sections</h3>
+                    <h3 className='text-sm font-semibold text-purple-300'>Các Khu Vực</h3>
                     <div className='space-y-1 max-h-60 overflow-y-auto'>
                       {mapData.sections.map((section) => (
                         <div
@@ -1688,27 +1688,27 @@ export default function AdvancedSeatMapDesigner() {
               )}
 
               <div className='space-y-2 pt-4 border-t border-purple-500/30'>
-                <h3 className='text-sm font-semibold text-purple-300'>Statistics</h3>
+                <h3 className='text-sm font-semibold text-purple-300'>Thống Kê</h3>
                 <div className='text-xs space-y-1 text-gray-400'>
-                  <div>Sections: {mapData.sections.length}</div>
+                  <div>Khu vực: {mapData.sections.length}</div>
                   <div>
-                    Total Seats:{' '}
+                    Tổng ghế:{' '}
                     {mapData.sections.reduce((acc, s) => acc + (s.seats?.length || s.rows * s.seatsPerRow), 0)}
                   </div>
-                  <div>Occupied: {Array.from(seatStatuses.values()).filter((s) => s === 'occupied').length}</div>
-                  <div>Locked: {Array.from(seatStatuses.values()).filter((s) => s === 'locked').length}</div>
+                  <div>Đã đặt: {Array.from(seatStatuses.values()).filter((s) => s === 'occupied').length}</div>
+                  <div>Đã khóa: {Array.from(seatStatuses.values()).filter((s) => s === 'locked').length}</div>
                   <div className='flex items-center gap-3 mt-2'>
                     <span className='flex items-center gap-1'>
                       <div className='w-3 h-3 bg-green-500 rounded'></div>
-                      Available
+                      Còn trống
                     </span>
                     <span className='flex items-center gap-1'>
                       <div className='w-3 h-3 bg-red-500 rounded'></div>
-                      Occupied
+                      Đã đặt
                     </span>
                     <span className='flex items-center gap-1'>
                       <div className='w-3 h-3 bg-gray-500 rounded'></div>
-                      Locked
+                      Đã khóa
                     </span>
                   </div>
                 </div>
@@ -1721,7 +1721,7 @@ export default function AdvancedSeatMapDesigner() {
                   size='sm'
                 >
                   <Download className='w-4 h-4 mr-1' />
-                  Export Layout
+                  Xuất Bố Cục
                 </Button>
               </div>
             </CardContent>
@@ -1746,7 +1746,7 @@ export default function AdvancedSeatMapDesigner() {
                     className='absolute top-4 left-4 z-50 bg-slate-700/90 backdrop-blur hover:bg-slate-600'
                   >
                     <X className='w-4 h-4 mr-2' />
-                    Back to Map
+                    Quay Lại Sơ Đồ
                   </Button>
 
                   <div
@@ -1767,17 +1767,17 @@ export default function AdvancedSeatMapDesigner() {
         {editingLabel && (
           <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
             <div className='bg-slate-800 border border-purple-500/30 rounded-lg p-6 min-w-[300px]'>
-              <h3 className='text-lg font-semibold text-white mb-4'>Edit Section Label</h3>
+              <h3 className='text-lg font-semibold text-white mb-4'>Sửa Nhãn Khu Vực</h3>
               <div className='space-y-4'>
                 <div>
                   <Label htmlFor='label-input' className='text-sm text-gray-300'>
-                    Section Name
+                    Tên Khu Vực
                   </Label>
                   <Input
                     id='label-input'
                     value={labelText}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabelText(e.target.value)}
-                    placeholder='Enter section name'
+                    placeholder='Nhập tên khu vực'
                     className='mt-1 bg-slate-700 border-slate-600 text-white'
                     autoFocus
                   />
@@ -1791,10 +1791,10 @@ export default function AdvancedSeatMapDesigner() {
                     }}
                     size='sm'
                   >
-                    Cancel
+                    Hủy
                   </Button>
                   <Button onClick={updateSectionLabel} size='sm' className='bg-purple-600 hover:bg-purple-700'>
-                    Update
+                    Cập Nhật
                   </Button>
                 </div>
               </div>
