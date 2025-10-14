@@ -8,7 +8,6 @@ import UserTable from './components/UserTable'
 import AddUserModal from './components/AddUserModal'
 import ViewUserModal from './components/ViewUserModal'
 import EditUserModal from './components/EditUserModal'
-import EventOwnerLayout from '@/layouts/EventOwnerLayout'
 import gsap from 'gsap'
 
 export default function UserManagementInEvents() {
@@ -93,54 +92,52 @@ export default function UserManagementInEvents() {
   }
 
   return (
-    <EventOwnerLayout>
-      <div className='space-y-6'>
-        {/* Header */}
-        <div ref={headerRef} className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
-          <div>
-            <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent'>
-              Quản lý thành viên trong sự kiện
-            </h1>
-            <p className='text-gray-600 mt-2'>Quản lý và phân quyền cho các thành viên tham gia sự kiện</p>
-          </div>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
-          >
-            <Plus className='w-5 h-5' />
-            Thêm thành viên
-          </Button>
+    <div className='space-y-6'>
+      {/* Header */}
+      <div ref={headerRef} className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+        <div>
+          <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent'>
+            Quản lý thành viên trong sự kiện
+          </h1>
+          <p className='text-gray-600 mt-2'>Quản lý và phân quyền cho các thành viên tham gia sự kiện</p>
         </div>
-
-        {/* Filters */}
-        <UserFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          selectedRole={selectedRole}
-          setSelectedRole={setSelectedRole}
-        />
-
-        {/* Table */}
-        <UserTable
-          users={currentUsers}
-          onView={handleViewUser}
-          onEdit={handleEditUser}
-          onDelete={handleDeleteUser}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
-
-        {/* Modals */}
-        <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddUser} />
-        <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
-        <EditUserModal
-          isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
-          user={selectedUser}
-          onUpdate={handleUpdateUser}
-        />
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
+        >
+          <Plus className='w-5 h-5' />
+          Thêm thành viên
+        </Button>
       </div>
-    </EventOwnerLayout>
+
+      {/* Filters */}
+      <UserFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        selectedRole={selectedRole}
+        setSelectedRole={setSelectedRole}
+      />
+
+      {/* Table */}
+      <UserTable
+        users={currentUsers}
+        onView={handleViewUser}
+        onEdit={handleEditUser}
+        onDelete={handleDeleteUser}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+
+      {/* Modals */}
+      <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddUser} />
+      <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        user={selectedUser}
+        onUpdate={handleUpdateUser}
+      />
+    </div>
   )
 }
