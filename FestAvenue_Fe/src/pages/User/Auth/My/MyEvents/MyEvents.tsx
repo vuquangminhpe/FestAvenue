@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
 import { EventTempStatusValues } from '@/types/event.types'
 import type { EventSearchFilter, EventTempStatusValue, createEvent } from '@/types/event.types'
-import { Plus, Search, Calendar, MapPin, Users, Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Plus, Search, Calendar, MapPin, Users, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Eye, Edit } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import path from '@/constants/path'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -91,111 +92,112 @@ export default function MyEvents() {
 
   const totalEvents = (eventsData?.data as any)?.data?.pagination?.total || 0
 
-  const renderEventCard = (eventData: createEvent & { id?: string; createdAt?: string }) => {
+  const renderTableRow = (eventData: createEvent & { id?: string; createdAt?: string }) => {
     const status = statusConfig[eventData.status as keyof typeof statusConfig]
     const StatusIcon = status?.icon || AlertCircle
 
     return (
-      <Card key={eventData.id} className='p-6 hover:shadow-lg transition-shadow duration-300 border border-slate-200'>
-        <div className='flex gap-6'>
-          {/* Event Image */}
-          <div className='w-48 h-32 flex-shrink-0'>
-            {eventData.bannerUrl ? (
-              <img src={eventData.bannerUrl} alt={eventData.name} className='w-full h-full object-cover rounded-lg' />
-            ) : (
-              <div className='w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 rounded-lg flex items-center justify-center'>
-                <Calendar className='w-12 h-12 text-slate-400' />
-              </div>
-            )}
-          </div>
-
-          {/* Event Info */}
-          <div className='flex-1'>
-            <div className='flex items-start justify-between mb-3'>
-              <div>
-                <h3 className='text-xl font-bold text-slate-800 mb-1'>{eventData.name}</h3>
-                <p className='text-sm text-slate-600 line-clamp-2'>{eventData.shortDescription}</p>
-              </div>
-              <Badge className={`${status?.color} border flex items-center gap-1 px-3 py-1`}>
-                <StatusIcon className='w-3 h-3' />
-                {status?.label}
-              </Badge>
-            </div>
-
-            <div className='grid grid-cols-2 gap-4 mb-4'>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Calendar className='w-4 h-4' />
-                <span>
-                  {eventData.startDate
-                    ? format(new Date(eventData.startDate), 'dd MMM yyyy', { locale: vi })
-                    : 'Chưa có'}
-                </span>
-              </div>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <MapPin className='w-4 h-4' />
-                <span className='truncate'>{eventData.location?.address?.city || 'Chưa có địa điểm'}</span>
-              </div>
-              <div className='flex items-center gap-2 text-sm text-slate-600'>
-                <Users className='w-4 h-4' />
-                <span>{eventData.capacity} người</span>
-              </div>
-              {eventData.createdAt && (
-                <div className='flex items-center gap-2 text-sm text-slate-600'>
-                  <Clock className='w-4 h-4' />
-                  <span>Tạo: {format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi })}</span>
+      <TableRow key={eventData.id} className='hover:bg-slate-50'>
+        {/* Event Image & Name */}
+        <TableCell className='font-medium'>
+          <div className='flex items-center gap-3'>
+            <div className='w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden'>
+              {eventData.bannerUrl ? (
+                <img src={eventData.bannerUrl} alt={eventData.name} className='w-full h-full object-cover' />
+              ) : (
+                <div className='w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center'>
+                  <Calendar className='w-6 h-6 text-slate-400' />
                 </div>
               )}
             </div>
+            <div className='min-w-0'>
+              <p className='font-semibold text-slate-800 truncate'>{eventData.name}</p>
+              <p className='text-sm text-slate-600 truncate'>{eventData.shortDescription}</p>
+            </div>
+          </div>
+        </TableCell>
 
-            {/* Message Response */}
-            {eventData.messageResponse && (
-              <div className='mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg'>
-                <p className='text-sm text-blue-800'>
-                  <strong>Phản hồi từ staff:</strong> {eventData.messageResponse}
-                </p>
-              </div>
-            )}
+        {/* Status */}
+        <TableCell>
+          <Badge className={`${status?.color} border flex items-center gap-1 px-3 py-1 w-fit`}>
+            <StatusIcon className='w-3 h-3' />
+            {status?.label}
+          </Badge>
+        </TableCell>
 
-            {/* Actions */}
-            <div className='flex gap-2'>
+        {/* Start Date */}
+        <TableCell>
+          <div className='flex items-center gap-2 text-sm text-slate-600'>
+            <Calendar className='w-4 h-4' />
+            <span>
+              {eventData.startDate ? format(new Date(eventData.startDate), 'dd MMM yyyy', { locale: vi }) : 'Chưa có'}
+            </span>
+          </div>
+        </TableCell>
+
+        {/* Location */}
+        <TableCell>
+          <div className='flex items-center gap-2 text-sm text-slate-600'>
+            <MapPin className='w-4 h-4' />
+            <span className='truncate'>{eventData.location?.address?.city || 'Chưa có địa điểm'}</span>
+          </div>
+        </TableCell>
+
+        {/* Capacity */}
+        <TableCell>
+          <div className='flex items-center gap-2 text-sm text-slate-600'>
+            <Users className='w-4 h-4' />
+            <span>{eventData.capacity}</span>
+          </div>
+        </TableCell>
+
+        {/* Created Date */}
+        <TableCell>
+          <div className='flex items-center gap-2 text-sm text-slate-600'>
+            <Clock className='w-4 h-4' />
+            <span>{eventData.createdAt ? format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}</span>
+          </div>
+        </TableCell>
+
+        {/* Actions */}
+        <TableCell>
+          <div className='flex gap-2'>
+            <Button
+              size='sm'
+              variant='outline'
+              onClick={() =>
+                navigate(
+                  `${path.user.event.root}/${generateNameId({
+                    id: eventData?.id as string,
+                    name: `${eventData?.organization.name}_${eventData?.name}`
+                  })}`
+                )
+              }
+            >
+              <Eye className='w-4 h-4' />
+            </Button>
+            {eventData.status === EventTempStatusValues.Draft && (
               <Button
                 size='sm'
                 variant='outline'
-                onClick={() =>
-                  navigate(
-                    `${path.user.event.root}/${generateNameId({
-                      id: eventData?.id as string,
-                      name: `${eventData?.organization.name}_${eventData?.name}`
-                    })}`
-                  )
-                }
+                className='bg-blue-50 hover:bg-blue-100'
+                onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventData.id}`)}
               >
-                Xem chi tiết
+                <Edit className='w-4 h-4' />
               </Button>
-              {eventData.status === EventTempStatusValues.Draft && (
-                <>
-                  <Button
-                    size='sm'
-                    className='bg-blue-600 hover:bg-blue-700'
-                    onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventData.id}`)}
-                  >
-                    Tiếp tục chỉnh sửa
-                  </Button>
-                </>
-              )}
-              {eventData.status === EventTempStatusValues.ContinueSetup && (
-                <Button
-                  size='sm'
-                  className='bg-green-600 hover:bg-green-700'
-                  onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventData.id}`)}
-                >
-                  Chọn gói sự kiện
-                </Button>
-              )}
-            </div>
+            )}
+            {eventData.status === EventTempStatusValues.ContinueSetup && (
+              <Button
+                size='sm'
+                className='bg-green-600 hover:bg-green-700'
+                onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventData.id}`)}
+              >
+                Chọn gói
+              </Button>
+            )}
           </div>
-        </div>
-      </Card>
+        </TableCell>
+      </TableRow>
     )
   }
 
@@ -262,7 +264,22 @@ export default function MyEvents() {
               </Button>
             </Card>
           ) : (
-            <div className='space-y-4'>{events?.map((eventTemp: any) => renderEventCard(eventTemp))}</div>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='w-[350px]'>Sự kiện</TableHead>
+                    <TableHead className='w-[150px]'>Trạng thái</TableHead>
+                    <TableHead className='w-[150px]'>Ngày bắt đầu</TableHead>
+                    <TableHead className='w-[150px]'>Địa điểm</TableHead>
+                    <TableHead className='w-[100px]'>Sức chứa</TableHead>
+                    <TableHead className='w-[120px]'>Ngày tạo</TableHead>
+                    <TableHead className='w-[180px]'>Hành động</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>{events?.map((eventTemp: any) => renderTableRow(eventTemp))}</TableBody>
+              </Table>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
