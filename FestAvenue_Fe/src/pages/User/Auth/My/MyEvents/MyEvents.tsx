@@ -8,25 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
 import { EventTempStatusValues } from '@/types/event.types'
 import type { EventSearchFilter, EventTempStatusValue, createEvent } from '@/types/event.types'
-import {
-  Plus,
-  Search,
-  Calendar,
-  MapPin,
-  Users,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Loader2,
-  Send
-} from 'lucide-react'
+import { Plus, Search, Calendar, MapPin, Users, Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react'
 import path from '@/constants/path'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Helmet } from 'react-helmet-async'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { useQuery } from '@tanstack/react-query'
 import { generateNameId } from '@/utils/utils'
 
 const statusConfig = {
@@ -64,33 +51,8 @@ const statusConfig = {
 
 export default function MyEvents() {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('all')
-
-  // Mutation for sending event approval
-  const sendApproveEventMutation = useMutation({
-    mutationFn: (eventData: createEvent & { id?: string }) => {
-      if (!eventData.id) {
-        throw new Error('Event ID is required')
-      }
-      return eventApis.sendApproveEvent({
-        ...eventData,
-        eventId: eventData.id
-      })
-    },
-    onSuccess: () => {
-      toast.success('Gửi thông tin sự kiện thành công! Đang chờ staff xét duyệt.')
-      queryClient.invalidateQueries({ queryKey: ['myEvents'] })
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi gửi thông tin sự kiện')
-    }
-  })
-
-  const handleSendApproveEvent = (eventData: createEvent & { id?: string }) => {
-    sendApproveEventMutation.mutate(eventData)
-  }
 
   const getStatusFilter = (tab: string): EventTempStatusValue | undefined => {
     switch (tab) {
@@ -218,24 +180,6 @@ export default function MyEvents() {
                     onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventData.id}`)}
                   >
                     Tiếp tục chỉnh sửa
-                  </Button>
-                  <Button
-                    size='sm'
-                    className='bg-cyan-600 hover:bg-cyan-700'
-                    onClick={() => handleSendApproveEvent(eventData)}
-                    disabled={sendApproveEventMutation.isPending}
-                  >
-                    {sendApproveEventMutation.isPending ? (
-                      <>
-                        <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                        Đang gửi...
-                      </>
-                    ) : (
-                      <>
-                        <Send className='w-4 h-4 mr-2' />
-                        Gửi thông tin sự kiện
-                      </>
-                    )}
                   </Button>
                 </>
               )}
