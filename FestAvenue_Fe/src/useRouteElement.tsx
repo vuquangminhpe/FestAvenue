@@ -9,6 +9,7 @@ import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
 import { sampleLandingData } from './components/custom/landing_template/sampleData'
 
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
+const EventOwnerLayout = lazy(() => import('./layouts/EventOwnerLayout'))
 const Home = lazy(() => import('./pages/User/Public/Home'))
 const MyLayout = lazy(() => import('./layouts/MyLayout'))
 const Login = lazy(() => import('./pages/User/Public/Login'))
@@ -48,6 +49,7 @@ const Template4 = lazy(() => import('./components/custom/landing_template').then
 const Template5 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template5 })))
 const Template6 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template6 })))
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents'))
+const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement'))
 
 const Loader = () => (
   <div
@@ -392,7 +394,9 @@ export default function useRouteElement() {
               path: path.user.schedule.view,
               element: (
                 <SuspenseWrapper>
-                  <ScheduleManagement />
+                  <EventOwnerLayout>
+                    <ScheduleManagement />
+                  </EventOwnerLayout>
                 </SuspenseWrapper>
               )
             },
@@ -400,7 +404,9 @@ export default function useRouteElement() {
               path: path.user.analytics_event.view,
               element: (
                 <SuspenseWrapper>
-                  <EventAnalyticsDashboard />
+                  <EventOwnerLayout>
+                    <EventAnalyticsDashboard />
+                  </EventOwnerLayout>
                 </SuspenseWrapper>
               )
             },
@@ -440,7 +446,19 @@ export default function useRouteElement() {
               path: path.user.event_owner.user_management,
               element: (
                 <SuspenseWrapper>
-                  <UserManagementInEvents />
+                  <EventOwnerLayout>
+                    <UserManagementInEvents />
+                  </EventOwnerLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.event_owner.social_media,
+              element: (
+                <SuspenseWrapper>
+                  <EventOwnerLayout>
+                    <SocialMediaManagement />
+                  </EventOwnerLayout>
                 </SuspenseWrapper>
               )
             }

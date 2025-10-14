@@ -35,29 +35,31 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-white'>
-      {/* Navigation Tabs */}
-      <div className='bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40'>
+      {/* Navigation Pills - Centered */}
+      <div className='sticky top-0 z-40 py-6'>
         <div className='container mx-auto px-4'>
-          <nav className='flex space-x-1 overflow-x-auto scrollbar-hide py-4'>
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={cn(
-                    'px-6 py-3 rounded-lg font-medium text-sm whitespace-nowrap transition-all duration-300',
-                    'hover:shadow-md hover:scale-105',
-                    isActive
-                      ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200'
-                      : 'bg-white text-gray-600 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 hover:text-cyan-600'
-                  )}
-                >
-                  {item.name}
-                </Link>
-              )
-            })}
-          </nav>
+          <div className='flex justify-center'>
+            <nav className='bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-gray-200 px-3 py-3 flex items-center gap-2'>
+              {navigation.map((item) => {
+                const isActive = location.pathname === item.href
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={cn(
+                      'px-6 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all duration-300',
+                      'hover:shadow-md hover:scale-105',
+                      isActive
+                        ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200/50'
+                        : 'text-gray-600 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 hover:text-cyan-600'
+                    )}
+                  >
+                    {item.name}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
         </div>
       </div>
 
