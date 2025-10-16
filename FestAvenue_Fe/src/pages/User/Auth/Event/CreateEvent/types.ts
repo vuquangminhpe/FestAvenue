@@ -1,67 +1,522 @@
 import { z } from 'zod'
 
-export const eventSchema = z.object({
-  // Basic Information
-  name: z.string().min(3, 'Tên sự kiện phải có ít nhất 3 ký tự').max(200, 'Tên sự kiện không được quá 200 ký tự'),
-  shortDescription: z
-    .string()
-    .min(10, 'Mô tả ngắn phải có ít nhất 10 ký tự')
-    .max(300, 'Mô tả ngắn không được quá 300 ký tự'),
-  description: z.string().min(50, 'Mô tả chi tiết phải có ít nhất 50 ký tự'),
-  categoryId: z.string().min(1, 'Vui lòng chọn danh mục sự kiện'),
+// ============================================
+// CUSTOM VALIDATORS
+// ============================================
 
-  // Event Type & Visibility
-  eventType: z.number().min(0, 'Vui lòng chọn loại sự kiện'),
-  visibility: z.number().min(0, 'Vui lòng chọn chế độ hiển thị'),
-  capacity: z.number().min(1, 'Sức chứa phải lớn hơn 0').max(1000000, 'Sức chứa không hợp lệ'),
+// Validate Vietnamese phone number
+const vietnamesePhoneRegex = /^(0|\+84)(3|5|7|8|9)[0-9]{8}$/
+const phoneValidator = z.string().refine(
+  (phone) => {
+    if (!phone) return true // Optional
+    return vietnamesePhoneRegex.test(phone.replace(/\s/g, ''))
+  },
+  { message: 'Số điện thoại không hợp lệ. Định dạng: 0xxxxxxxxx hoặc +84xxxxxxxxx' }
+)
 
-  // Dates
-  startDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu'),
-  endDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc'),
-  registrationStartDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu đăng ký'),
-  registrationEndDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc đăng ký'),
+// Validate URL with proper format
+const urlValidator = (fieldName: string) =>
+  z
+    .union([
+      z.string().refine(
+        (url) => {
+          if (!url) return true // Optional
+          try {
+            const parsed = new URL(url)
+            return ['http:', 'https:'].includes(parsed.protocol)
+          } catch {
+            return false
+          }
+        },
+        { message: `${fieldName} phải là URL hợp lệ (bắt đầu với http:// hoặc https://)` }
+      ),
+      z.literal(''),
+      z.undefined()
+    ])
+    .optional()
 
-  // Media - AI Detection Required
-  logoUrl: z.string().url('Logo phải là URL hợp lệ').optional().or(z.literal('')),
-  bannerUrl: z.string().url('Banner phải là URL hợp lệ').optional().or(z.literal('')),
-  trailerUrl: z.string().url('Trailer phải là URL hợp lệ').optional().or(z.literal('')),
+// Validate event name - MUST START WITH LETTER & CONTAIN MEANINGFUL CONTENT
+const eventNameValidator = z
+  .string()
+  .min(3, 'Tên sự kiện phải có ít nhất 3 ký tự')
+  .max(200, 'Tên sự kiện không được quá 200 ký tự')
+  .refine((name) => name.trim().length >= 3, {
+    message: 'Tên sự kiện không được chỉ chứa khoảng trắng'
+  })
+  .refine(
+    (name) => {
+      // Must start with a letter (Vietnamese or English)
+      const firstChar = name.trim()[0]
+      return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(firstChar)
+    },
+    {
+      message: 'Tên sự kiện phải bắt đầu bằng chữ cái, không được bắt đầu bằng số hoặc ký tự đặc biệt'
+    }
+  )
+  .refine(
+    (name) => {
+      // Must contain at least one letter (not just numbers)
+      return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(name)
+    },
+    {
+      message: 'Tên sự kiện phải chứa ít nhất một chữ cái, không được chỉ toàn số'
+    }
+  )
+  .refine(
+    (name) => {
+      // Check if name has meaningful words (not just repeating characters)
+      const trimmed = name.trim()
+      const uniqueChars = new Set(trimmed.replace(/\s/g, '').toLowerCase())
+      return uniqueChars.size >= 3 // At least 3 different characters
+    },
+    {
+      message: 'Tên sự kiện phải có nội dung có ý nghĩa, không được lặp lại ký tự (ví dụ: "aaa", "111")'
+    }
+  )
+  .refine(
+    (name) => {
+      // Must have at least 2 words for meaningful event name
+      const words = name.trim().split(/\s+/)
+      return words.length >= 2
+    },
+    {
+      message: 'Tên sự kiện phải có ít nhất 2 từ (ví dụ: "Lễ hội âm nhạc", "Hội thảo công nghệ")'
+    }
+  )
+  .refine(
+    (name) => {
+      // No excessive special characters
+      return !/[<>{}[\]\\\/]{2,}/g.test(name)
+    },
+    {
+      message: 'Tên sự kiện không được chứa nhiều ký tự đặc biệt liên tiếp'
+    }
+  )
+  .refine(
+    (name) => {
+      // Check ratio of letters to total characters (at least 50%)
+      const letters = name.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+      const totalChars = name.replace(/\s/g, '').length
+      return letters.length / totalChars >= 0.5
+    },
+    {
+      message: 'Tên sự kiện phải chứa nhiều chữ cái hơn (ít nhất 50% là chữ cái)'
+    }
+  )
 
-  // Contact & Website
-  website: z.string().url('Website phải là URL hợp lệ').optional().or(z.literal('')),
-  publicContactEmail: z.string().email('Email không hợp lệ').optional().or(z.literal('')),
-  publicContactPhone: z.string().optional().or(z.literal('')),
+// Validate capacity
+const capacityValidator = z
+  .number({ message: 'Sức chứa phải là số' })
+  .int('Sức chứa phải là số nguyên')
+  .min(1, 'Sức chứa tối thiểu là 1 người')
+  .max(1000000, 'Sức chứa tối đa là 1,000,000 người')
+  .refine((val) => val > 0, { message: 'Sức chứa phải lớn hơn 0' })
 
-  // Location
-  location: z.object({
-    venueId: z.string().optional(),
-    address: z.object({
-      street: z.string().min(1, 'Vui lòng nhập địa chỉ'),
-      city: z.string().min(1, 'Vui lòng nhập thành phố'),
-      state: z.string().optional(),
-      postalCode: z.string().optional(),
-      country: z.string().min(1, 'Vui lòng nhập quốc gia')
+// Validate coordinates
+const latitudeValidator = z
+  .number({ message: 'Vĩ độ phải là số' })
+  .min(-90, 'Vĩ độ phải từ -90 đến 90')
+  .max(90, 'Vĩ độ phải từ -90 đến 90')
+
+const longitudeValidator = z
+  .number({ message: 'Kinh độ phải là số' })
+  .min(-180, 'Kinh độ phải từ -180 đến 180')
+  .max(180, 'Kinh độ phải từ -180 đến 180')
+
+// ============================================
+// MAIN EVENT SCHEMA WITH ADVANCED VALIDATION
+// ============================================
+
+export const eventSchema = z
+  .object({
+    // ========== Basic Information ==========
+    name: eventNameValidator,
+
+    shortDescription: z
+      .string()
+      .min(10, 'Mô tả ngắn phải có ít nhất 10 ký tự')
+      .max(300, 'Mô tả ngắn không được quá 300 ký tự')
+      .refine((desc) => desc.trim().length >= 10, {
+        message: 'Mô tả ngắn không được chỉ chứa khoảng trắng'
+      })
+      .refine((desc) => {
+        const words = desc.trim().split(/\s+/)
+        return words.length >= 3
+      }, 'Mô tả ngắn phải có ít nhất 3 từ')
+      .refine(
+        (desc) => {
+          // Must start with a letter
+          const firstChar = desc.trim()[0]
+          return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(firstChar)
+        },
+        {
+          message: 'Mô tả phải bắt đầu bằng chữ cái, không được bắt đầu bằng số'
+        }
+      )
+      .refine(
+        (desc) => {
+          // Check for meaningful content (not just numbers)
+          const letters =
+            desc.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+          const totalChars = desc.replace(/\s/g, '').length
+          return letters.length / totalChars >= 0.4 // At least 40% letters
+        },
+        {
+          message: 'Mô tả phải chứa nội dung có ý nghĩa, không được chỉ là số hoặc ký tự đặc biệt'
+        }
+      )
+      .refine(
+        (desc) => {
+          // Check for repeating patterns (like "111111" or "aaaaaa")
+          const trimmed = desc.trim().replace(/\s/g, '')
+          const uniqueChars = new Set(trimmed.toLowerCase())
+          return uniqueChars.size >= 5 // At least 5 different characters
+        },
+        {
+          message: 'Mô tả phải có nội dung đa dạng, không được lặp lại ký tự (ví dụ: "111111", "aaaaaa")'
+        }
+      ),
+
+    description: z
+      .string()
+      .min(50, 'Mô tả chi tiết phải có ít nhất 50 ký tự')
+      .max(10000, 'Mô tả chi tiết không được quá 10,000 ký tự')
+      .refine((desc) => desc.trim().length >= 50, {
+        message: 'Mô tả chi tiết không được chỉ chứa khoảng trắng'
+      })
+      .refine((desc) => {
+        const words = desc.trim().split(/\s+/)
+        return words.length >= 10
+      }, 'Mô tả chi tiết phải có ít nhất 10 từ')
+      .refine(
+        (desc) => {
+          // Must start with a letter
+          const firstChar = desc.trim()[0]
+          return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(firstChar)
+        },
+        {
+          message: 'Mô tả chi tiết phải bắt đầu bằng chữ cái, không được bắt đầu bằng số'
+        }
+      )
+      .refine(
+        (desc) => {
+          // Check for meaningful content (at least 40% letters)
+          const letters =
+            desc.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+          const totalChars = desc.replace(/\s/g, '').length
+          return letters.length / totalChars >= 0.4
+        },
+        {
+          message: 'Mô tả phải chứa nội dung có ý nghĩa, không được chỉ là số hoặc ký tự đặc biệt'
+        }
+      )
+      .refine(
+        (desc) => {
+          // Check for content diversity
+          const trimmed = desc.trim().replace(/\s/g, '')
+          const uniqueChars = new Set(trimmed.toLowerCase())
+          return uniqueChars.size >= 10 // At least 10 different characters for long description
+        },
+        {
+          message: 'Mô tả chi tiết phải có nội dung đa dạng và có ý nghĩa, không được lặp lại ký tự'
+        }
+      )
+      .refine(
+        (desc) => {
+          // Check if contains at least some sentences (has punctuation)
+          const hasPunctuation = /[.!?,;:]/.test(desc)
+          return hasPunctuation || desc.length < 100 // Short descriptions might not need punctuation
+        },
+        {
+          message: 'Mô tả chi tiết nên có dấu câu (. ! ? , ;) để dễ đọc hơn'
+        }
+      ),
+
+    categoryId: z.string().min(1, 'Vui lòng chọn danh mục sự kiện'),
+
+    // ========== Event Type & Visibility ==========
+    eventType: z.number().min(0, 'Vui lòng chọn loại sự kiện').max(6, 'Loại sự kiện không hợp lệ'),
+
+    visibility: z.number().min(0, 'Vui lòng chọn chế độ hiển thị').max(2, 'Chế độ hiển thị không hợp lệ'),
+
+    capacity: capacityValidator,
+
+    // ========== Dates (will add cross-field validation later) ==========
+    startDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu sự kiện'),
+    endDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc sự kiện'),
+    registrationStartDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu đăng ký'),
+    registrationEndDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc đăng ký'),
+
+    // ========== Media - AI Detection Required ==========
+    logoUrl: urlValidator('Logo'),
+    bannerUrl: urlValidator('Banner'),
+    trailerUrl: urlValidator('Video trailer'),
+
+    // ========== Contact & Website ==========
+    website: urlValidator('Website'),
+
+    publicContactEmail: z
+      .string()
+      .email('Email không hợp lệ')
+      .refine(
+        (email) => {
+          if (!email) return true
+          // Check for common typos
+          const domain = email.split('@')[1]
+          return domain && domain.includes('.')
+        },
+        { message: 'Email phải có tên miền hợp lệ (ví dụ: @gmail.com)' }
+      )
+      .optional()
+      .or(z.literal('')),
+
+    publicContactPhone: phoneValidator.optional().or(z.literal('')),
+
+    // ========== Location ==========
+    location: z.object({
+      venueId: z.string().optional(),
+      address: z.object({
+        street: z
+          .string()
+          .min(5, 'Địa chỉ phải có ít nhất 5 ký tự')
+          .max(500, 'Địa chỉ không được quá 500 ký tự')
+          .refine((street) => street.trim().length >= 5, {
+            message: 'Địa chỉ không được chỉ chứa khoảng trắng'
+          })
+          .refine((street) => {
+            const words = street.trim().split(/\s+/)
+            return words.length >= 2
+          }, 'Địa chỉ phải có ít nhất 2 từ (ví dụ: Số nhà, Tên đường)'),
+
+        city: z
+          .string()
+          .min(1, 'Vui lòng chọn tỉnh/thành phố')
+          .refine((city) => city !== '', { message: 'Vui lòng chọn tỉnh/thành phố từ danh sách' }),
+
+        state: z.string().optional(),
+        postalCode: z.string().optional(),
+        country: z.string().min(1, 'Vui lòng chọn quốc gia').default('Việt Nam')
+      }),
+      coordinates: z.object({
+        latitude: latitudeValidator,
+        longitude: longitudeValidator
+      })
     }),
-    coordinates: z.object({
-      latitude: z.number(),
-      longitude: z.number()
-    })
-  }),
 
-  // Hashtags
-  hashtags: z.array(z.string()).optional(),
+    // ========== Hashtags ==========
+    hashtags: z
+      .array(
+        z
+          .string()
+          .min(1, 'Hashtag không được để trống')
+          .max(50, 'Hashtag không được quá 50 ký tự')
+          .refine(
+            (tag) => /^[a-zA-Z0-9_àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]+$/.test(tag),
+            {
+              message: 'Hashtag chỉ được chứa chữ cái, số và dấu gạch dưới'
+            }
+          )
+      )
+      .optional(),
 
-  // Organization - Required for creating event
-  organization: z.object({
-    name: z.string().min(3, 'Tên tổ chức phải có ít nhất 3 ký tự'),
-    description: z.string().min(10, 'Mô tả tổ chức phải có ít nhất 10 ký tự'),
-    logo: z.string().url('Logo tổ chức phải là URL hợp lệ'),
-    website: z.string().url('Website tổ chức phải là URL hợp lệ').optional().or(z.literal('')),
-    contact: z.object({
-      email: z.string().email('Email không hợp lệ'),
-      phone: z.string().min(10, 'Số điện thoại phải có ít nhất 10 số'),
-      fax: z.string().optional().or(z.literal(''))
+    // ========== Organization - Required for creating event ==========
+    organization: z.object({
+      name: z
+        .string()
+        .min(3, 'Tên tổ chức phải có ít nhất 3 ký tự')
+        .max(200, 'Tên tổ chức không được quá 200 ký tự')
+        .refine((name) => name.trim().length >= 3, {
+          message: 'Tên tổ chức không được chỉ chứa khoảng trắng'
+        })
+        .refine(
+          (name) => {
+            // Must start with a letter
+            const firstChar = name.trim()[0]
+            return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(firstChar)
+          },
+          {
+            message: 'Tên tổ chức phải bắt đầu bằng chữ cái'
+          }
+        )
+        .refine(
+          (name) => {
+            // Check for meaningful content
+            const letters =
+              name.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+            const totalChars = name.replace(/\s/g, '').length
+            return letters.length / totalChars >= 0.5
+          },
+          {
+            message: 'Tên tổ chức phải chứa nội dung có ý nghĩa, không được chỉ là số'
+          }
+        )
+        .refine(
+          (name) => {
+            // Check for diversity
+            const uniqueChars = new Set(name.trim().replace(/\s/g, '').toLowerCase())
+            return uniqueChars.size >= 3
+          },
+          {
+            message: 'Tên tổ chức phải có nội dung đa dạng, không được lặp lại ký tự'
+          }
+        ),
+
+      description: z
+        .string()
+        .min(10, 'Mô tả tổ chức phải có ít nhất 10 ký tự')
+        .max(2000, 'Mô tả tổ chức không được quá 2000 ký tự')
+        .refine((desc) => desc.trim().length >= 10, {
+          message: 'Mô tả tổ chức không được chỉ chứa khoảng trắng'
+        })
+        .refine(
+          (desc) => {
+            const words = desc.trim().split(/\s+/)
+            return words.length >= 3
+          },
+          {
+            message: 'Mô tả tổ chức phải có ít nhất 3 từ'
+          }
+        )
+        .refine(
+          (desc) => {
+            // Must start with a letter
+            const firstChar = desc.trim()[0]
+            return /[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/.test(firstChar)
+          },
+          {
+            message: 'Mô tả tổ chức phải bắt đầu bằng chữ cái'
+          }
+        )
+        .refine(
+          (desc) => {
+            // Check for meaningful content
+            const letters =
+              desc.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+            const totalChars = desc.replace(/\s/g, '').length
+            return letters.length / totalChars >= 0.4
+          },
+          {
+            message: 'Mô tả tổ chức phải chứa nội dung có ý nghĩa, không được chỉ là số'
+          }
+        )
+        .refine(
+          (desc) => {
+            // Check for diversity
+            const uniqueChars = new Set(desc.trim().replace(/\s/g, '').toLowerCase())
+            return uniqueChars.size >= 5
+          },
+          {
+            message: 'Mô tả tổ chức phải có nội dung đa dạng, không được lặp lại ký tự'
+          }
+        ),
+
+      logo: urlValidator('Logo tổ chức').refine((url) => url !== '' && url !== undefined, {
+        message: 'Logo tổ chức là bắt buộc'
+      }),
+
+      website: urlValidator('Website tổ chức'),
+
+      contact: z.object({
+        email: z
+          .string()
+          .email('Email tổ chức không hợp lệ')
+          .refine(
+            (email) => {
+              const domain = email.split('@')[1]
+              return domain && domain.includes('.')
+            },
+            { message: 'Email phải có tên miền hợp lệ' }
+          ),
+
+        phone: phoneValidator.refine((phone) => phone && phone.length > 0, {
+          message: 'Số điện thoại tổ chức là bắt buộc'
+        }),
+
+        fax: phoneValidator.optional().or(z.literal(''))
+      })
     })
   })
-})
+  // ========== CROSS-FIELD VALIDATION ==========
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate)
+      const end = new Date(data.endDate)
+      return end >= start
+    },
+    {
+      message: 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu sự kiện',
+      path: ['endDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const regStart = new Date(data.registrationStartDate)
+      const regEnd = new Date(data.registrationEndDate)
+      return regEnd >= regStart
+    },
+    {
+      message: 'Ngày kết thúc đăng ký phải sau hoặc bằng ngày bắt đầu đăng ký',
+      path: ['registrationEndDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const regEnd = new Date(data.registrationEndDate)
+      const eventStart = new Date(data.startDate)
+      return eventStart >= regEnd
+    },
+    {
+      message: 'Ngày bắt đầu sự kiện phải sau hoặc bằng ngày kết thúc đăng ký',
+      path: ['startDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const now = new Date()
+      now.setHours(0, 0, 0, 0) // Reset to start of day
+      const eventStart = new Date(data.startDate)
+      return eventStart >= now
+    },
+    {
+      message: 'Ngày bắt đầu sự kiện không thể là ngày trong quá khứ',
+      path: ['startDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate)
+      const end = new Date(data.endDate)
+      const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      return durationDays <= 365
+    },
+    {
+      message: 'Sự kiện không thể kéo dài quá 365 ngày (1 năm)',
+      path: ['endDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const regStart = new Date(data.registrationStartDate)
+      const regEnd = new Date(data.registrationEndDate)
+      const durationDays = (regEnd.getTime() - regStart.getTime()) / (1000 * 60 * 60 * 24)
+      return durationDays <= 180
+    },
+    {
+      message: 'Thời gian đăng ký không thể kéo dài quá 180 ngày (6 tháng)',
+      path: ['registrationEndDate']
+    }
+  )
+  .refine(
+    (data) => {
+      const { latitude, longitude } = data.location.coordinates
+      // Check if coordinates are in Vietnam (approximate bounds)
+      const isInVietnam = latitude >= 8.0 && latitude <= 24.0 && longitude >= 102.0 && longitude <= 110.0
+      return isInVietnam
+    },
+    {
+      message: 'Tọa độ phải nằm trong lãnh thổ Việt Nam',
+      path: ['location', 'coordinates']
+    }
+  )
 
 export type EventFormData = z.infer<typeof eventSchema>

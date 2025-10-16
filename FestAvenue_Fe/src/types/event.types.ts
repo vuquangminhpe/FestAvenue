@@ -171,9 +171,12 @@ export interface EventSearchStaffFilter {
   pagination: Pagination
 }
 export const EventStatusValues = {
+  Draft: 0,
   Pending: 1,
-  Approved: 2,
-  Rejected: 3
+  SelectPackage: 2,
+  Active: 3,
+  Reject: 4,
+  Canceled: 5
 } as const
 
 export type EventStatusValue = (typeof EventStatusValues)[keyof typeof EventStatusValues]

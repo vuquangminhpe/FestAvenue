@@ -40,6 +40,7 @@ import LeafletMap from '@/components/custom/MapLeaflet/MapLeadflet'
 
 export default function StaffEventManagement() {
   const queryClient = useQueryClient()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('pending')
   const [selectedEvent, setSelectedEvent] = useState<sendApproveEventWithOrg | null>(null)

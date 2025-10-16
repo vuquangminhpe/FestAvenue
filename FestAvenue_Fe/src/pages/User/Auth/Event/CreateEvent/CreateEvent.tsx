@@ -34,7 +34,7 @@ function CreateEvent() {
   const navigate = useNavigate()
 
   const form = useForm<EventFormData, any, EventFormData>({
-    resolver: zodResolver(eventSchema),
+    resolver: zodResolver(eventSchema) as any,
     defaultValues: defaultFormValues,
     mode: 'onChange'
   })

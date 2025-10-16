@@ -6,9 +6,22 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
-import { EventTempStatusValues } from '@/types/event.types'
-import type { EventSearchFilter, EventTempStatusValue, createEvent } from '@/types/event.types'
-import { Plus, Search, Calendar, MapPin, Users, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Eye, Edit } from 'lucide-react'
+import { EventStatusValues } from '@/types/event.types'
+import type { EventSearchFilter, EventStatusValue, createEvent } from '@/types/event.types'
+import {
+  Plus,
+  Search,
+  Calendar,
+  MapPin,
+  Users,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  Eye,
+  Edit
+} from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import path from '@/constants/path'
 import { format } from 'date-fns'
@@ -18,35 +31,41 @@ import { useQuery } from '@tanstack/react-query'
 import { generateNameId } from '@/utils/utils'
 
 const statusConfig = {
-  [EventTempStatusValues.Draft]: {
+  [EventStatusValues.Draft]: {
     label: 'Bản nháp',
     color: 'bg-slate-100 text-slate-700 border-slate-300',
     icon: AlertCircle,
     description: 'Chờ gửi duyệt'
   },
-  [EventTempStatusValues.ContinueSetup]: {
-    label: 'Tiếp tục thiết lập',
-    color: 'bg-blue-100 text-blue-700 border-blue-300',
-    icon: Clock,
-    description: 'Đã được chấp nhận, chờ chọn gói'
-  },
-  [EventTempStatusValues.Active]: {
-    label: 'Đang hoạt động',
-    color: 'bg-green-100 text-green-700 border-green-300',
-    icon: CheckCircle2,
-    description: 'Sự kiện đang hoạt động'
-  },
-  [EventTempStatusValues.Pending]: {
+  [EventStatusValues.Pending]: {
     label: 'Chờ duyệt',
     color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
     icon: Clock,
     description: 'Đang chờ staff xét duyệt'
   },
-  [EventTempStatusValues.Canceled]: {
-    label: 'Đã hủy',
+  [EventStatusValues.SelectPackage]: {
+    label: 'Chọn gói',
+    color: 'bg-blue-100 text-blue-700 border-blue-300',
+    icon: CheckCircle2,
+    description: 'Sự kiện đã được chấp nhận, chờ chọn gói'
+  },
+  [EventStatusValues.Active]: {
+    label: 'Đang hoạt động',
+    color: 'bg-green-100 text-green-700 border-green-300',
+    icon: CheckCircle2,
+    description: 'Sự kiện đang hoạt động'
+  },
+  [EventStatusValues.Reject]: {
+    label: 'Đã từ chối',
     color: 'bg-red-100 text-red-700 border-red-300',
     icon: XCircle,
-    description: 'Sự kiện đã bị hủy'
+    description: 'Sự kiện bị staff từ chối'
+  },
+  [EventStatusValues.Canceled]: {
+    label: 'Đã hủy',
+    color: 'bg-gray-100 text-gray-700 border-gray-300',
+    icon: XCircle,
+    description: 'Sự kiện đã bị hủy bỏ'
   }
 }
 
@@ -55,16 +74,20 @@ export default function MyEvents() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('all')
 
-  const getStatusFilter = (tab: string): EventTempStatusValue | undefined => {
+  const getStatusFilter = (tab: string): EventStatusValue | undefined => {
     switch (tab) {
       case 'draft':
-        return EventTempStatusValues.Draft
+        return EventStatusValues.Draft
       case 'pending':
-        return EventTempStatusValues.Pending
-      case 'approved':
-        return EventTempStatusValues.ContinueSetup
+        return EventStatusValues.Pending
+      case 'selectPackage':
+        return EventStatusValues.SelectPackage
       case 'active':
-        return EventTempStatusValues.Active
+        return EventStatusValues.Active
+      case 'rejected':
+        return EventStatusValues.Reject
+      case 'canceled':
+        return EventStatusValues.Canceled
       default:
         return undefined
     }
@@ -155,7 +178,9 @@ export default function MyEvents() {
         <TableCell>
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <Clock className='w-4 h-4' />
-            <span>{eventData.createdAt ? format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}</span>
+            <span>
+              {eventData.createdAt ? format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}
+            </span>
           </div>
         </TableCell>
 
@@ -176,7 +201,7 @@ export default function MyEvents() {
             >
               <Eye className='w-4 h-4' />
             </Button>
-            {eventData.status === EventTempStatusValues.Draft && (
+            {eventData.status === EventStatusValues.Draft && (
               <Button
                 size='sm'
                 variant='outline'
@@ -186,13 +211,29 @@ export default function MyEvents() {
                 <Edit className='w-4 h-4' />
               </Button>
             )}
-            {eventData.status === EventTempStatusValues.ContinueSetup && (
+            {eventData.status === EventStatusValues.SelectPackage && (
               <Button
                 size='sm'
                 className='bg-green-600 hover:bg-green-700'
                 onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventData.id}`)}
               >
                 Chọn gói
+              </Button>
+            )}
+            {eventData.status === EventStatusValues.Active && (
+              <Button
+                size='sm'
+                className='bg-blue-600 hover:bg-blue-700'
+                onClick={() =>
+                  navigate(
+                    `${path.user.event_owner.user_management}?${generateNameId({
+                      id: eventData.id as string,
+                      name: `${eventData.organization}-${eventData.name}`
+                    })}`
+                  )
+                }
+              >
+                Quản lí
               </Button>
             )}
           </div>
@@ -237,12 +278,14 @@ export default function MyEvents() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-        <TabsList className='grid w-full grid-cols-5 mb-6'>
+        <TabsList className='grid w-full grid-cols-7 mb-6'>
           <TabsTrigger value='all'>Tất cả ({totalEvents})</TabsTrigger>
           <TabsTrigger value='draft'>Bản nháp</TabsTrigger>
           <TabsTrigger value='pending'>Chờ duyệt</TabsTrigger>
-          <TabsTrigger value='approved'>Đã duyệt</TabsTrigger>
+          <TabsTrigger value='selectPackage'>Chọn gói</TabsTrigger>
           <TabsTrigger value='active'>Đang hoạt động</TabsTrigger>
+          <TabsTrigger value='rejected'>Đã từ chối</TabsTrigger>
+          <TabsTrigger value='canceled'>Đã hủy</TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab}>

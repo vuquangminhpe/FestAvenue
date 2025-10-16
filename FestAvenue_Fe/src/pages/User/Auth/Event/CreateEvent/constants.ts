@@ -68,7 +68,7 @@ export const defaultFormValues: EventFormData = {
       city: '',
       state: '',
       postalCode: '',
-      country: 'Vietnam'
+      country: 'Việt Nam'
     },
     coordinates: {
       latitude: 10.8231,

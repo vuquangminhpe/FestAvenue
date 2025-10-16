@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import 'mapbox-gl/dist/mapbox-gl.css'
 import App from './App.tsx'
 import { BrowserRouter } from 'react-router'
 import { HelmetProvider } from 'react-helmet-async'
