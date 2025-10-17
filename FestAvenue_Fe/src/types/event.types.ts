@@ -165,13 +165,12 @@ export interface EventSearchFilter {
   pagination: Pagination
 }
 export interface EventSearchStaffFilter {
-  search: string
+  search?: string
   categoryId?: string
-  eventStatuses: EventStatusValue[]
+  eventStatuses?: EventStatusValue[]
   pagination: Pagination
 }
 export const EventStatusValues = {
-  Draft: 0,
   Pending: 1,
   SelectPackage: 2,
   Active: 3,
@@ -210,7 +209,7 @@ export const EventTempStatusValues = {
 
 export type EventTempStatusValue = (typeof EventTempStatusValues)[keyof typeof EventTempStatusValues]
 export interface bodyApproveEventForStaff {
-  eventTempId: string
+  eventVersionId: string
   message: string
 }
 export interface EventTemp {
@@ -236,11 +235,117 @@ export interface EventTempList {
   pagination: PaginationInfo
 }
 export interface EventFilterList {
-  result: createEvent[]
+  result: {
+    currentVersionNumber: number
+    eventCode: number
+    eventVersions: ReqFilterOwnerEvent[]
+  }[]
   pagination: PaginationInfo
 }
 export interface EventTempResponse {
   data: EventTempList
   statusCode: number
   message: string
+}
+export interface EventLocation {
+  [key: string]: any
+}
+
+export interface EventOrganization {
+  name: string
+  [key: string]: any
+}
+
+export interface ReqFilterOwnerEvent {
+  id: string
+  eventCode: string
+  eventName: string
+  shortDescription: string
+  description: string
+  bannerUrl: string
+  logoUrl: string
+  trailerUrl: string
+  categoryId: string
+  capacity: number
+  visibility: number
+  eventVersionStatus: number
+  versionNumber: number
+  createBy: string
+  createdAt: string // ISO date string
+  updatedAt: string | null
+
+  startDate: string // ISO date string
+  endDate: string // ISO date string
+  registrationStartDate: string
+  registrationEndDate: string
+
+  publicContactEmail: string
+  publicContactPhone: string
+  website: string
+
+  hashtags: string[]
+  organization: EventOrganization
+  location: EventLocation
+
+  messageResponse: string | null
+}
+export type ResEventById = ReqFilterOwnerEvent
+export interface EventLocation {
+  address: {
+    street: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+  }
+  coordinates: {
+    latitude: number
+    longitude: number
+  }
+}
+
+export interface EventOrganization {
+  name: string
+  description: string
+  logo: string
+  website: string
+  contact: {
+    email: string
+    phone: string
+    fax: string
+  }
+}
+
+export interface EventVersion {
+  eventCode: string
+  versionNumber: number
+  eventName: string
+  description: string
+  shortDescription: string
+  categoryId: string
+  eventVersionStatus: number
+  visibility: number
+  capacity: number
+  startDate: string
+  endDate: string
+  registrationStartDate: string
+  registrationEndDate: string
+  logoUrl: string
+  bannerUrl: string
+  trailerUrl: string
+  website: string
+  publicContactEmail: string
+  publicContactPhone: string
+  location: EventLocation
+  hashtags: string[]
+  organization: EventOrganization
+  createBy: string
+  messageResponse: string | null
+  id: string
+  createdAt: string
+  updatedAt: string | null
+}
+export interface EventVersionResForStaff {
+  result: EventVersion[]
+  pagination: Pagination
 }

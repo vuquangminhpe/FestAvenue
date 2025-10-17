@@ -37,12 +37,6 @@ export default function ScheduleDetail({
   const modalRef = useRef<HTMLDivElement>(null)
   const hasMultipleSchedules = schedules && schedules.length > 1
 
-  console.log('📋 ScheduleDetail rendered:', {
-    scheduleTitle: schedule.title,
-    selectedDate,
-    selectedDateFormatted: selectedDate ? format(selectedDate, 'yyyy-MM-dd HH:mm') : 'none'
-  })
-
   // Update local schedule when prop changes
   useEffect(() => {
     setLocalSchedule(schedule)

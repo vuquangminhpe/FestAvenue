@@ -195,22 +195,14 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
   // Get time slot for the selected date
   const getTimeSlotForDate = (subTask: SubTask, date: Date | null) => {
     if (!date || !subTask.dailyTimeSlots || subTask.dailyTimeSlots.length === 0) {
-      console.log(`  ⚠️ getTimeSlotForDate: Cannot get time slot`, {
-        hasDate: !!date,
-        hasDailyTimeSlots: !!subTask.dailyTimeSlots,
-        slotsLength: subTask.dailyTimeSlots?.length || 0
-      })
       return null
     }
 
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
-      console.log(`  🔎 Looking for time slot:`, {
-        lookingFor: dateStr,
-        availableSlots: subTask.dailyTimeSlots.map((s) => s.date)
-      })
+
       const timeSlot = subTask.dailyTimeSlots.find((slot) => slot.date === dateStr)
-      console.log(`  ${timeSlot ? '✅' : '❌'} Found time slot:`, timeSlot)
+
       return timeSlot
     } catch (e) {
       console.error(`  ❌ Error in getTimeSlotForDate:`, e)
@@ -411,14 +403,6 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
               {filteredSubTasks.map((subTask, index) => {
                 const isAnimating = animatingTasks.has(subTask.id)
                 const timeSlot = selectedDate ? getTimeSlotForDate(subTask, selectedDate) : null
-
-                console.log(`🕐 TimeSlot Debug for "${subTask.title}":`, {
-                  selectedDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : 'none',
-                  hasTimeSlots: !!subTask.dailyTimeSlots,
-                  timeSlotsCount: subTask.dailyTimeSlots?.length || 0,
-                  timeSlots: subTask.dailyTimeSlots,
-                  foundTimeSlot: timeSlot
-                })
 
                 return (
                   <div

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
 import { EventStatusValues } from '@/types/event.types'
-import type { EventSearchFilter, EventStatusValue, createEvent } from '@/types/event.types'
+import type { EventSearchFilter, ReqFilterOwnerEvent } from '@/types/event.types'
 import {
   Plus,
   Search,
@@ -31,12 +31,6 @@ import { useQuery } from '@tanstack/react-query'
 import { generateNameId } from '@/utils/utils'
 
 const statusConfig = {
-  [EventStatusValues.Draft]: {
-    label: 'Bản nháp',
-    color: 'bg-slate-100 text-slate-700 border-slate-300',
-    icon: AlertCircle,
-    description: 'Chờ gửi duyệt'
-  },
   [EventStatusValues.Pending]: {
     label: 'Chờ duyệt',
     color: 'bg-yellow-100 text-yellow-700 border-yellow-300',
@@ -74,32 +68,8 @@ export default function MyEvents() {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('all')
 
-  const getStatusFilter = (tab: string): EventStatusValue | undefined => {
-    switch (tab) {
-      case 'draft':
-        return EventStatusValues.Draft
-      case 'pending':
-        return EventStatusValues.Pending
-      case 'selectPackage':
-        return EventStatusValues.SelectPackage
-      case 'active':
-        return EventStatusValues.Active
-      case 'rejected':
-        return EventStatusValues.Reject
-      case 'canceled':
-        return EventStatusValues.Canceled
-      default:
-        return undefined
-    }
-  }
-
-  const statusFilter = getStatusFilter(activeTab)
   const searchFilter: EventSearchFilter = {
-    search: searchQuery?.length > 0 ? searchQuery : undefined,
-    categoryId: undefined,
-    ...(statusFilter !== undefined && { statuses: statusFilter }),
     pagination: {
-      orderBy: 'createdAt',
       pageIndex: 1,
       isPaging: true,
       pageSize: 20
@@ -107,26 +77,26 @@ export default function MyEvents() {
   } as any
 
   const { data: eventsData, isLoading } = useQuery({
-    queryKey: ['myEvents', searchQuery, activeTab],
+    queryKey: ['myEvents'],
     queryFn: () => eventApis.getEventWithFilterPaging(searchFilter)
   })
 
-  const events = (eventsData?.data as any)?.result || []
+  const events = eventsData?.result || []
 
-  const totalEvents = (eventsData?.data as any)?.data?.pagination?.total || 0
+  const totalEvents = eventsData?.pagination?.total || 0
 
-  const renderTableRow = (eventData: createEvent & { id?: string; createdAt?: string }) => {
-    const status = statusConfig[eventData.status as keyof typeof statusConfig]
+  const renderTableRow = (eventVersion: ReqFilterOwnerEvent) => {
+    const status = statusConfig[eventVersion.eventVersionStatus as keyof typeof statusConfig]
     const StatusIcon = status?.icon || AlertCircle
 
     return (
-      <TableRow key={eventData.id} className='hover:bg-slate-50'>
+      <TableRow key={eventVersion.id} className='hover:bg-slate-50'>
         {/* Event Image & Name */}
         <TableCell className='font-medium'>
           <div className='flex items-center gap-3'>
             <div className='w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden'>
-              {eventData.bannerUrl ? (
-                <img src={eventData.bannerUrl} alt={eventData.name} className='w-full h-full object-cover' />
+              {eventVersion.bannerUrl ? (
+                <img src={eventVersion.bannerUrl} alt={eventVersion.eventName} className='w-full h-full object-cover' />
               ) : (
                 <div className='w-full h-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center'>
                   <Calendar className='w-6 h-6 text-slate-400' />
@@ -134,8 +104,8 @@ export default function MyEvents() {
               )}
             </div>
             <div className='min-w-0'>
-              <p className='font-semibold text-slate-800 truncate'>{eventData.name}</p>
-              <p className='text-sm text-slate-600 truncate'>{eventData.shortDescription}</p>
+              <p className='font-semibold text-slate-800 truncate'>{eventVersion.eventName}</p>
+              <p className='text-sm text-slate-600 truncate'>{eventVersion.shortDescription}</p>
             </div>
           </div>
         </TableCell>
@@ -153,7 +123,9 @@ export default function MyEvents() {
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <Calendar className='w-4 h-4' />
             <span>
-              {eventData.startDate ? format(new Date(eventData.startDate), 'dd MMM yyyy', { locale: vi }) : 'Chưa có'}
+              {eventVersion.startDate
+                ? format(new Date(eventVersion.startDate), 'dd MMM yyyy', { locale: vi })
+                : 'Chưa có'}
             </span>
           </div>
         </TableCell>
@@ -162,7 +134,7 @@ export default function MyEvents() {
         <TableCell>
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <MapPin className='w-4 h-4' />
-            <span className='truncate'>{eventData.location?.address?.city || 'Chưa có địa điểm'}</span>
+            <span className='truncate'>{eventVersion.location?.address?.city || 'Chưa có địa điểm'}</span>
           </div>
         </TableCell>
 
@@ -170,7 +142,7 @@ export default function MyEvents() {
         <TableCell>
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <Users className='w-4 h-4' />
-            <span>{eventData.capacity}</span>
+            <span>{eventVersion.capacity}</span>
           </div>
         </TableCell>
 
@@ -179,7 +151,7 @@ export default function MyEvents() {
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <Clock className='w-4 h-4' />
             <span>
-              {eventData.createdAt ? format(new Date(eventData.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}
+              {eventVersion.createdAt ? format(new Date(eventVersion.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}
             </span>
           </div>
         </TableCell>
@@ -187,48 +159,62 @@ export default function MyEvents() {
         {/* Actions */}
         <TableCell>
           <div className='flex gap-2'>
+            {/* Nút Xem - luôn hiển thị */}
             <Button
               size='sm'
               variant='outline'
               onClick={() =>
                 navigate(
                   `${path.user.event.root}/${generateNameId({
-                    id: eventData?.id as string,
-                    name: `${eventData?.organization.name}_${eventData?.name}`
+                    id: eventVersion.id,
+                    name: `${eventVersion.organization.name}_${eventVersion.eventName}`
                   })}`
                 )
               }
             >
               <Eye className='w-4 h-4' />
             </Button>
-            {eventData.status === EventStatusValues.Draft && (
+
+            {/* Nút Cập nhật - hiển thị cho tất cả trạng thái trừ Canceled */}
+            {eventVersion.eventVersionStatus !== EventStatusValues.Canceled && (
               <Button
                 size='sm'
                 variant='outline'
-                className='bg-blue-50 hover:bg-blue-100'
-                onClick={() => navigate(`${path.user.event.create_event}?eventId=${eventData.id}`)}
+                className='bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border-yellow-300'
+                onClick={() =>
+                  navigate(
+                    `${path.user.event.update_event}/${generateNameId({
+                      id: eventVersion.id,
+                      name: eventVersion.eventName
+                    })}`
+                  )
+                }
               >
                 <Edit className='w-4 h-4' />
               </Button>
             )}
-            {eventData.status === EventStatusValues.SelectPackage && (
+
+            {/* Nút Chọn gói - chỉ hiển thị cho SelectPackage */}
+            {eventVersion.eventVersionStatus === EventStatusValues.SelectPackage && (
               <Button
                 size='sm'
                 className='bg-green-600 hover:bg-green-700'
-                onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventData.id}`)}
+                onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventVersion.id}`)}
               >
                 Chọn gói
               </Button>
             )}
-            {eventData.status === EventStatusValues.Active && (
+
+            {/* Nút Quản lí - chỉ hiển thị cho Active */}
+            {eventVersion.eventVersionStatus === EventStatusValues.Active && (
               <Button
                 size='sm'
                 className='bg-blue-600 hover:bg-blue-700'
                 onClick={() =>
                   navigate(
                     `${path.user.event_owner.user_management}?${generateNameId({
-                      id: eventData.id as string,
-                      name: `${eventData.organization}-${eventData.name}`
+                      id: eventVersion.id,
+                      name: `${eventVersion.organization.name}-${eventVersion.eventName}`
                     })}`
                   )
                 }
@@ -320,7 +306,11 @@ export default function MyEvents() {
                     <TableHead className='w-[180px]'>Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>{events?.map((eventTemp: any) => renderTableRow(eventTemp))}</TableBody>
+                <TableBody>
+                  {events?.map((eventWrapper: any) =>
+                    eventWrapper.eventVersions?.map((eventVersion: ReqFilterOwnerEvent) => renderTableRow(eventVersion))
+                  )}
+                </TableBody>
               </Table>
             </Card>
           )}

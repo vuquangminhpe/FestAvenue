@@ -32,6 +32,7 @@ export default function Header() {
   const handleLogout = () => {
     clearLocalStorage()
     setIsUserMenuOpen(false)
+    window.location.reload()
   }
 
   const handleSearch = (e: React.FormEvent) => {

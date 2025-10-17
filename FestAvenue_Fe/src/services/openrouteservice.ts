@@ -182,7 +182,6 @@ export async function getDirections(
     }
 
     const data: OpenRouteGeoJSONResponse = await response.json()
-    console.log('OpenRouteService response:', data)
 
     if (!data.features || data.features.length === 0) {
       throw new Error('No route found')

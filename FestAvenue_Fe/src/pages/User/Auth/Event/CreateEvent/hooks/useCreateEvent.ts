@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import userApi from '@/apis/user.api'
 import eventApis from '@/apis/event.api'
 import type { EventFormData } from '../types'
 import path from '@/constants/path'
 import { EventTempStatusValues } from '@/types/event.types'
+import { getIdFromNameId } from '@/utils/utils'
 
 interface OrganizationData {
   name: string
@@ -21,6 +22,10 @@ interface OrganizationData {
 
 export const useCreateEvent = () => {
   const navigate = useNavigate()
+  const { nameId } = useParams<{ nameId: string }>()
+  const isUpdateMode = !!nameId
+  const eventId = nameId ? getIdFromNameId(nameId) : null
+
   const [organizationData, setOrganizationData] = useState<OrganizationData | undefined>()
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
@@ -29,12 +34,31 @@ export const useCreateEvent = () => {
   const [logoPreview, setLogoPreview] = useState<string>('')
   const [bannerPreview, setBannerPreview] = useState<string>('')
   const [trailerPreview, setTrailerPreview] = useState<string>('')
-
+  const { data: getDataByEventId } = useQuery({
+    queryKey: ['getDataByEventId', eventId],
+    queryFn: () => eventApis.getEventById(eventId as string)
+  })
   // Upload mutation
   const uploadFileMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
     onError: () => {
       toast.error('Lỗi khi tải file lên')
+    }
+  })
+
+  // Update event mutation
+  const updateEventMutation = useMutation({
+    mutationFn: (data: any) => eventApis.updateEvent(data),
+    onSuccess: () => {
+      toast.success('Cập nhật sự kiện thành công!', {
+        description: 'Sự kiện của bạn đã được cập nhật'
+      })
+      navigate(path.user.my.events)
+    },
+    onError: (error: any) => {
+      toast.error('Lỗi khi cập nhật sự kiện', {
+        description: error?.response?.data?.message || 'Vui lòng thử lại'
+      })
     }
   })
 
@@ -45,7 +69,7 @@ export const useCreateEvent = () => {
       toast.success('Tạo sự kiện thành công!', {
         description: 'Sự kiện của bạn đang chờ phê duyệt từ staff'
       })
-      navigate(path.user.my.root)
+      navigate(path.user.my.events)
     },
     onError: (error: any) => {
       toast.error('Lỗi khi tạo sự kiện', {
@@ -138,10 +162,17 @@ export const useCreateEvent = () => {
         }
       }
 
-      // Create event
-      await createEventMutation.mutateAsync(eventData)
+      // Create or update event
+      if (isUpdateMode && eventId) {
+        await updateEventMutation.mutateAsync({
+          ...eventData,
+          eventCode: getDataByEventId?.data?.eventCode as unknown as any
+        })
+      } else {
+        await createEventMutation.mutateAsync(eventData)
+      }
     } catch (error) {
-      console.error('Error creating event:', error)
+      console.error('Error creating/updating event:', error)
     }
   }
 
@@ -153,7 +184,7 @@ export const useCreateEvent = () => {
     handleBannerUpload,
     handleTrailerUpload,
     onSubmit,
-    createEventMutation,
+    createEventMutation: isUpdateMode ? updateEventMutation : createEventMutation,
     uploadFileMutation,
     organizationData
   }

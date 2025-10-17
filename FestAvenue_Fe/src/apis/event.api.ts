@@ -5,14 +5,16 @@ import type {
   EventFilterList,
   EventSearchFilter,
   EventSearchStaffFilter,
-  EventTemp
+  EventTemp,
+  EventVersionResForStaff,
+  ResEventById
 } from '@/types/event.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
   eventId: string
 }
-type updateEventWithOrg = createEvent & {
-  id: string
+export type updateEventWithOrg = createEvent & {
+  eventCode: string
 }
 type bodyRejectEventForStaff = bodyApproveEventForStaff
 const eventApis = {
@@ -36,8 +38,8 @@ const eventApis = {
     return data?.data
   },
   getEventWithFilterPaging: async (body: EventSearchFilter) => {
-    const data = await http.post<APIResponse<EventFilterList[]>>('/event/get-event-with-filter-paging', body)
-    return data?.data
+    const data = await http.post<APIResponse<EventFilterList>>('/event/get-event-with-filter-paging', body)
+    return data?.data?.data
   },
   deleteEventTempForEventOwner: async (eventTempId: string) => {
     const data = await http.delete<APIResponse<{ messages: string }>>(`/event/delete-event-temp/${eventTempId}`)
@@ -46,12 +48,19 @@ const eventApis = {
   deleteEventForEventOwner: async (eventId: string) => {
     const data = await http.delete(`/event/delete-event/${eventId}`)
     return data?.data
+  },
+  getEventById: async (eventId: string) => {
+    const data = await http.get<APIResponse<ResEventById>>(`/event/get-event-by-id/${eventId}`)
+    return data?.data
   }
 }
 
 const staffEventApis = {
-  getEventTempWithFilterPagingForStaff: async (body: EventSearchStaffFilter) => {
-    const data = await http.post<APIResponse<EventTemp[]>>('/event/get-event-temp-with-filter-paging-for-staff', body)
+  getEventWithFilterPagingForStaff: async (body: EventSearchStaffFilter) => {
+    const data = await http.post<APIResponse<EventVersionResForStaff>>(
+      '/event/get-event-request-with-filter-paging-for-staff',
+      body
+    )
     return data?.data
   },
   approveEventForStaff: async (body: bodyApproveEventForStaff) => {

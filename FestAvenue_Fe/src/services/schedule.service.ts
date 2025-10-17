@@ -68,8 +68,6 @@ class ScheduleService {
       updatedAt: new Date().toISOString()
     }
 
-    console.log('Complete Schedule Object:', newSchedule)
-
     this.schedules.push(newSchedule)
     return { ...newSchedule }
   }

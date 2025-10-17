@@ -108,23 +108,9 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
           const start = parseISO(updated.startDate)
           const end = parseISO(updated.endDate)
 
-          console.log('📅 Generating time slots:', {
-            startDate: updated.startDate,
-            endDate: updated.endDate,
-            startParsed: start,
-            endParsed: end,
-            isValidStart: isValid(start),
-            isValidEnd: isValid(end)
-          })
-
           if (isValid(start) && isValid(end) && start <= end) {
             const days = eachDayOfInterval({ start, end })
             const existingSlots = updated.dailyTimeSlots || []
-
-            console.log(
-              '  Days in interval:',
-              days.map((d) => format(d, 'yyyy-MM-dd'))
-            )
 
             // Only keep existing slots that are within the new date range
             // and create new slots for dates that don't have slots yet
@@ -140,7 +126,6 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
               )
             })
 
-            console.log('  ✅ Generated time slots:', updated.dailyTimeSlots)
           }
         } catch (e) {
           console.error('❌ Error generating time slots:', e)

@@ -27,7 +27,7 @@ const GoongMap: React.FC<GoongMapProps> = ({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
-  const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapReady, setMapReady] = useState(false)
 
   useEffect(() => {
     if (!mapContainerRef.current || !window.goongjs) return
@@ -42,11 +42,12 @@ const GoongMap: React.FC<GoongMapProps> = ({
       zoom: zoom
     })
 
-    // Wait for map to load before making it available
+    // Store map reference immediately
+    mapRef.current = map
+
+    // Wait for map to load before allowing updates
     map.on('load', () => {
-      mapRef.current = map
-      setMapLoaded(true)
-      console.log('Goong Map loaded successfully')
+      setMapReady(true)
     })
 
     // Add navigation controls
@@ -63,42 +64,48 @@ const GoongMap: React.FC<GoongMapProps> = ({
     return () => {
       map.remove()
       mapRef.current = null
-      setMapLoaded(false)
+      setMapReady(false)
     }
   }, [])
 
-  // Update center and zoom
+  // Update center and zoom - prioritize markerPosition over center prop
   useEffect(() => {
-    if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [center.lng, center.lat],
-        zoom: zoom,
-        essential: true
-      })
-    }
-  }, [center.lat, center.lng, zoom])
-
-  // Update markers (wait for map to load)
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !window.goongjs) {
-      console.log('Map not ready yet for markers, mapLoaded:', mapLoaded)
+    // Wait for map to be ready
+    if (!mapReady || !mapRef.current) {
       return
     }
 
-    console.log('Updating markers:', { markerPosition, userPosition })
-
-    // Remove old markers
-    markersRef.current.forEach(marker => marker.remove())
-    markersRef.current = []
-
-    // Fly to marker position if exists
+    // If markerPosition exists, prioritize it and zoom to 15
     if (markerPosition) {
       mapRef.current.flyTo({
         center: [markerPosition.lng, markerPosition.lat],
         zoom: 15,
-        essential: true
+        essential: true,
+        duration: 1000
+      })
+    } else {
+      // Otherwise use center prop
+      mapRef.current.flyTo({
+        center: [center.lng, center.lat],
+        zoom: zoom,
+        essential: true,
+        duration: 1000
       })
     }
+  }, [mapReady, center.lat, center.lng, zoom, markerPosition?.lat, markerPosition?.lng])
+
+  // Debug log for markerPosition changes
+  useEffect(() => {}, [markerPosition?.lat, markerPosition?.lng])
+
+  // Update markers (wait for map to load)
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !window.goongjs) {
+      return
+    }
+
+    // Remove old markers
+    markersRef.current.forEach((marker) => marker.remove())
+    markersRef.current = []
 
     // Add user position marker (blue)
     if (userPosition) {
@@ -152,18 +159,13 @@ const GoongMap: React.FC<GoongMapProps> = ({
 
     // Cleanup markers
     return () => {
-      markersRef.current.forEach(marker => marker.remove())
+      markersRef.current.forEach((marker) => marker.remove())
     }
-  }, [mapLoaded, markerPosition, userPosition])
+  }, [mapReady, markerPosition, userPosition])
 
   return (
     <div className='relative h-[400px] w-full rounded-lg overflow-hidden border border-slate-200'>
       <div ref={mapContainerRef} className='w-full h-full' />
-
-      {/* Attribution */}
-      <div className='absolute bottom-0 right-0 bg-white bg-opacity-75 px-2 py-1 text-xs text-slate-600'>
-        © <a href='https://goong.io' target='_blank' rel='noopener noreferrer' className='hover:underline'>Goong</a>
-      </div>
     </div>
   )
 }

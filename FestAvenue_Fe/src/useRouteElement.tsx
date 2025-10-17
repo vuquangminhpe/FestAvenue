@@ -6,7 +6,6 @@ import path from './constants/path'
 import { useAdminStore, useUsersStore, useStaffStore } from './contexts/app.context'
 import IMG_LOGIN from '../public/Images/Login_Page.png'
 import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
-import { sampleLandingData } from './components/custom/landing_template/sampleData'
 
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
 const EventOwnerLayout = lazy(() => import('./layouts/EventOwnerLayout'))
@@ -40,14 +39,7 @@ const Category = lazy(() => import('./pages/Admin/Process/Category'))
 const Packages = lazy(() => import('./pages/Admin/Process/Packages'))
 const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
 const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
-const SeatMapEditor = lazy(() => import('./components/custom/EditorSeat'))
-const CinemaTemplate = lazy(() => import('./components/custom/Template/CinemaExperience'))
-const Template1 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template1 })))
-const Template2 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template2 })))
-const Template3 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template3 })))
-const Template4 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template4 })))
-const Template5 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template5 })))
-const Template6 = lazy(() => import('./components/custom/landing_template').then((mod) => ({ default: mod.Template6 })))
+
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents'))
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement'))
@@ -177,7 +169,7 @@ const Loader = () => (
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
-  return isLogin ? <Outlet /> : <Navigate to={path.auth.login} />
+  return isLogin ? <Outlet /> : <Navigate to={path.home} />
 }
 
 function RejectedRoute() {
@@ -249,26 +241,6 @@ export default function useRouteElement() {
         <SuspenseWrapper>
           <MainLayout>
             <Home />
-          </MainLayout>
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: '/seat/editor',
-      element: (
-        <SuspenseWrapper>
-          <MainLayout>
-            <SeatMapEditor />
-          </MainLayout>
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: '/map1',
-      element: (
-        <SuspenseWrapper>
-          <MainLayout>
-            <CinemaTemplate />
           </MainLayout>
         </SuspenseWrapper>
       )
@@ -428,6 +400,14 @@ export default function useRouteElement() {
               )
             },
             {
+              path: `${path.user.event.update_event}/:nameId`,
+              element: (
+                <SuspenseWrapper>
+                  <CreateEvent />
+                </SuspenseWrapper>
+              )
+            },
+            {
               path: path.user.payment.payment_organization,
               element: (
                 <SuspenseWrapper>
@@ -526,55 +506,7 @@ export default function useRouteElement() {
         }
       ]
     },
-    // Landing Template Routes
-    {
-      path: path.landing.template1,
-      element: (
-        <SuspenseWrapper>
-          <Template1 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: path.landing.template2,
-      element: (
-        <SuspenseWrapper>
-          <Template2 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: path.landing.template3,
-      element: (
-        <SuspenseWrapper>
-          <Template3 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: path.landing.template4,
-      element: (
-        <SuspenseWrapper>
-          <Template4 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: path.landing.template5,
-      element: (
-        <SuspenseWrapper>
-          <Template5 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
-    {
-      path: path.landing.template6,
-      element: (
-        <SuspenseWrapper>
-          <Template6 {...sampleLandingData} />
-        </SuspenseWrapper>
-      )
-    },
+
     {
       path: path.admin.process.root,
       element: <ProtectedAdminRoute />,

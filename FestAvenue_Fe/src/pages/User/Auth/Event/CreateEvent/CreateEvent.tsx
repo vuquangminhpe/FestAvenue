@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
 import { gsap } from 'gsap'
 import { ChevronLeft, ChevronRight, Check, ArrowLeft, Loader2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { getIdFromNameId } from '@/utils/utils'
+import eventApis from '@/apis/event.api'
 
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -32,12 +35,56 @@ function CreateEvent() {
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const { nameId } = useParams<{ nameId: string }>()
+
+  const isUpdateMode = !!nameId
+  const eventId = nameId ? getIdFromNameId(nameId) : null
 
   const form = useForm<EventFormData, any, EventFormData>({
     resolver: zodResolver(eventSchema) as any,
     defaultValues: defaultFormValues,
     mode: 'onChange'
   })
+
+  // Fetch event data if in update mode
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: () => eventApis.getEventById(eventId!),
+    enabled: !!eventId
+  })
+
+  useEffect(() => {
+    if (eventData?.data) {
+      const event = eventData?.data
+
+      const formData = {
+        name: event.eventName,
+        description: event.description,
+        shortDescription: event.shortDescription,
+        eventType: 0,
+        categoryId: event.categoryId,
+        status: event.eventVersionStatus,
+        visibility: event.visibility,
+        capacity: event.capacity,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        registrationStartDate: event.registrationStartDate,
+        registrationEndDate: event.registrationEndDate,
+        logoUrl: event.logoUrl,
+        bannerUrl: event.bannerUrl,
+        trailerUrl: event.trailerUrl,
+        website: event.website || '',
+        publicContactEmail: event.publicContactEmail,
+        publicContactPhone: event.publicContactPhone,
+        location: event.location,
+        hashtags: event.hashtags || [],
+        organization: event.organization,
+        messageResponse: event.messageResponse || ''
+      }
+
+      form.reset(formData)
+    }
+  }, [eventData, form])
 
   const { onSubmit, createEventMutation, uploadFileMutation, organizationData } = useCreateEvent()
 
@@ -122,10 +169,22 @@ function CreateEvent() {
     await onSubmit(data)
   }
 
+  // Show loading state while fetching event data
+  if (isLoadingEvent && eventId) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-8 flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='w-12 h-12 animate-spin text-blue-500 mx-auto mb-4' />
+          <p className='text-slate-600'>Đang tải dữ liệu sự kiện...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-8'>
       <Helmet>
-        <title>Tạo sự kiện - FestAvenue</title>
+        <title>{isUpdateMode ? 'Cập nhật sự kiện' : 'Tạo sự kiện'} - FestAvenue</title>
         <meta name='description' content='Tạo sự kiện mới và quản lý chuyên nghiệp với FestAvenue' />
       </Helmet>
 
@@ -138,8 +197,12 @@ function CreateEvent() {
           </Button>
 
           <div className='text-center'>
-            <h1 className='text-3xl font-bold text-slate-800'>Tạo sự kiện mới</h1>
-            <p className='text-slate-600'>Thiết lập sự kiện của bạn và gửi duyệt cho staff</p>
+            <h1 className='text-3xl font-bold text-slate-800'>
+              {isUpdateMode ? 'Cập nhật sự kiện' : 'Tạo sự kiện mới'}
+            </h1>
+            <p className='text-slate-600'>
+              {isUpdateMode ? 'Cập nhật thông tin sự kiện của bạn' : 'Thiết lập sự kiện của bạn và gửi duyệt cho staff'}
+            </p>
             {organizationData && (
               <p className='text-sm text-blue-600 mt-1 font-medium'>Tổ chức: {organizationData.name}</p>
             )}
@@ -301,12 +364,12 @@ function CreateEvent() {
                         {createEventMutation.isPending || uploadFileMutation.isPending ? (
                           <>
                             <Loader2 className='w-4 h-4 animate-spin' />
-                            Đang tạo sự kiện...
+                            {isUpdateMode ? 'Đang cập nhật sự kiện...' : 'Đang tạo sự kiện...'}
                           </>
                         ) : (
                           <>
                             <Check className='w-4 h-4' />
-                            Tạo sự kiện
+                            {isUpdateMode ? 'Cập nhật sự kiện' : 'Tạo sự kiện'}
                           </>
                         )}
                       </Button>

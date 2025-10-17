@@ -38,6 +38,7 @@ const path = {
     event: {
       root: '/user/event',
       create_event: '/user/event/create_event',
+      update_event: '/user/event/update_event',
       details: '/user/event/:eventId'
     },
     my: {

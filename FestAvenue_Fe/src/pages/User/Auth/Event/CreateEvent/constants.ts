@@ -132,6 +132,5 @@ export const eventTypeOptions = [
 
 export const visibilityOptions = [
   { value: 0, label: 'Công khai', description: 'Mọi người đều có thể xem' },
-  { value: 1, label: 'Riêng tư', description: 'Chỉ những người được mời mới xem được' },
-  { value: 2, label: 'Bị ẩn', description: 'Không hiển thị trong danh sách tìm kiếm' }
+  { value: 1, label: 'Riêng tư', description: 'Chỉ những người được mời mới xem được' }
 ]
