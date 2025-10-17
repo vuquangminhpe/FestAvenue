@@ -1,23 +1,39 @@
-export interface getPackageByStatusRes {
-  name: string
-  type: string
-  price: number
-  durationMonth: number
-  features: string[]
-  isActive: false
+export interface ServicePackage {
   id: string
-  createdAt: string
-  updatedAt: string
-}
-export interface bodyCreatePackage {
   name: string
-  type: string
+  description: string | null
+  icon: string
   price: number
-  durationMonth: number
-  features: string[]
   isActive: boolean
+  createdAt: string
+  updatedAt: string | null
 }
-export interface bodyUpdatePackage {
+export interface Package {
   id: string
+  name: string
+  description: string | null
+  totalPrice: number
+  isActive: boolean
+  priority: number
+  servicePackages: ServicePackage[]
+}
+export interface PackageCreateOrUpdate {
+  id?: string
+  name: string
+  description: string
+  totalPrice: number
+  isActive: boolean
+  priority: number
+  servicePackageIds: string[]
+}
+export interface bodyUpdateStatusPackage {
+  isActive: boolean
+  id: string
+}
+export interface bodyCreateServicesPackage {
+  name: string
+  description: string
+  icon: string
+  price: number
   isActive: boolean
 }

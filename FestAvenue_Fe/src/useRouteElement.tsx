@@ -20,11 +20,9 @@ const ForgotPassword = lazy(() => import('./pages/User/Public/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/User/Public/ResetPassword/ResetPassword'))
 const CreateOrganization = lazy(() => import('./pages/User/Auth/Organization/CreateOrganization'))
 const ChatMyMessagesSystem = lazy(() => import('./pages/User/Auth/My/MyMessages'))
-const MyOrganization = lazy(() => import('./pages/User/Auth/My/MyOrganization'))
 const MyPayment = lazy(() => import('./pages/User/Auth/My/MyPayment'))
 const MyEvents = lazy(() => import('./pages/User/Auth/My/MyEvents'))
 const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
-const CreatePaymentWithOrganization = lazy(() => import('./pages/User/Auth/Payment/CreatePaymentWithOrganization'))
 const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule'))
 const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/EventAnalytics'))
 const EventDetails = lazy(() => import('./pages/User/Auth/EventDetails/EventDetails'))
@@ -333,16 +331,7 @@ export default function useRouteElement() {
                 </SuspenseWrapper>
               )
             },
-            {
-              path: path.user.my.organization,
-              element: (
-                <SuspenseWrapper>
-                  <MyLayout>
-                    <MyOrganization />
-                  </MyLayout>
-                </SuspenseWrapper>
-              )
-            },
+
             {
               path: path.user.my.payment,
               element: (
@@ -407,14 +396,7 @@ export default function useRouteElement() {
                 </SuspenseWrapper>
               )
             },
-            {
-              path: path.user.payment.payment_organization,
-              element: (
-                <SuspenseWrapper>
-                  <CreatePaymentWithOrganization />
-                </SuspenseWrapper>
-              )
-            },
+
             {
               path: path.user.event.details,
               element: (
