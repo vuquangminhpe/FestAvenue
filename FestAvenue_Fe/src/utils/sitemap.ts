@@ -1,7 +1,7 @@
 // Utility to generate sitemap.xml dynamically
 // This can be used in a build script or server-side
 
-export interface SitemapUrl {
+interface SitemapUrl {
   loc: string
   lastmod?: string
   changefreq?: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never'
@@ -31,12 +31,6 @@ ${urlElements}
 export const defaultSitemapUrls: SitemapUrl[] = [
   {
     loc: 'https://festavenue.site/',
-    lastmod: new Date().toISOString().split('T')[0],
-    changefreq: 'daily',
-    priority: 1.0
-  },
-  {
-    loc: 'https://festavenue.site/home',
     lastmod: new Date().toISOString().split('T')[0],
     changefreq: 'daily',
     priority: 1.0

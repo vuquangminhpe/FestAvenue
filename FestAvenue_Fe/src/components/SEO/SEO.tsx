@@ -122,7 +122,7 @@ export const pageSEO = {
     description:
       'Welcome to FestAvenue - Your Ultimate Event Management Platform. Discover amazing events, connect with organizers, and create unforgettable experiences.',
     keywords: ['events', 'festival', 'event management', 'home', 'discover events'],
-    url: 'https://festavenue.site/home'
+    url: 'https://festavenue.site/'
   },
   login: {
     title: 'Login',

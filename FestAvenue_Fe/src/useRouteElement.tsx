@@ -233,10 +233,6 @@ export default function useRouteElement() {
   const routeElements = useRoutes([
     {
       path: path.asHome,
-      element: <Navigate to={path.home} />
-    },
-    {
-      path: path.home,
       element: (
         <SuspenseWrapper>
           <MainLayout>
@@ -244,6 +240,10 @@ export default function useRouteElement() {
           </MainLayout>
         </SuspenseWrapper>
       )
+    },
+    {
+      path: path.home,
+      element: <Navigate to={path.asHome} />
     },
     {
       path: path.auth.forgotPassword,
