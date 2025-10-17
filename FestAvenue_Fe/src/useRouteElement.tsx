@@ -169,12 +169,12 @@ const Loader = () => (
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
-  return isLogin ? <Outlet /> : <Navigate to={path.home} />
+  return isLogin ? <Outlet /> : <Navigate to={path.asHome} />
 }
 
 function RejectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
-  return !isLogin ? <Outlet /> : <Navigate to={path.home} />
+  return !isLogin ? <Outlet /> : <Navigate to={path.asHome} />
 }
 
 function ProtectedAdminRoute() {
@@ -188,7 +188,7 @@ function ProtectedAdminRoute() {
 
   // Kiểm tra nếu đã login nhưng chưa có profile hoặc không có role Admin
   if (profile && !profile.roles.includes('Admin')) {
-    return <Navigate to={path.home} />
+    return <Navigate to={path.asHome} />
   }
 
   return <Outlet />
@@ -197,7 +197,7 @@ function ProtectedAdminRoute() {
 function RejectedAdminRoute() {
   const isLogin = useAdminStore((state) => state.isLogin)
   const location = useLocation()
-  const from = location.state?.from || path.admin.process.dashboard
+  const from = location.state?.from?.pathname || path.admin.process.dashboard
   return !isLogin ? <Outlet /> : <Navigate to={from} />
 }
 
@@ -212,7 +212,7 @@ function ProtectedStaffRoute() {
 
   // Kiểm tra nếu đã login nhưng chưa có profile hoặc không có role Staff
   if (profile && !profile.roles.includes('Staff')) {
-    return <Navigate to={path.home} />
+    return <Navigate to={path.asHome} />
   }
 
   return <Outlet />

@@ -58,7 +58,7 @@ export default function Header() {
             {/* Logo */}
             <div className='flex items-center'>
               <div className='flex items-center'>
-                <Link to={path.home} className='flex items-center hover:opacity-80 transition-opacity'>
+                <Link to={path.asHome} className='flex items-center hover:opacity-80 transition-opacity'>
                   <img src={LOGO_IMG} className='w-[160px] h-full object-contain' alt='Fest Avenue Logo' />
                 </Link>
               </div>
