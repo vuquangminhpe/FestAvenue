@@ -52,12 +52,17 @@ class Http {
     this.instance.interceptors.response.use(
       (response) => {
         if (response.status === HttpStatusCode.Unauthorized) {
-          this.accessToken = ''
-          clearLocalStorage()
-          const url = location.pathname
-          if (url && url.startsWith(ADMIN_URL_PREFIX)) {
+          const hasUserToken = Boolean(getAccessTokenFromLS())
+          const hasAdminToken = Boolean(localStorage.getItem('admin_token'))
+          const currentPath = location.pathname
+
+          if (currentPath && currentPath.startsWith(ADMIN_URL_PREFIX) && hasAdminToken) {
+            this.accessToken = ''
+            clearLocalStorage()
             window.location.href = path.admin.auth.login
-          } else {
+          } else if (hasUserToken) {
+            this.accessToken = ''
+            clearLocalStorage()
             window.location.href = path.auth.login
           }
         }
@@ -82,12 +87,18 @@ class Http {
       (error: AxiosError) => {
         if (error.response) {
           if (error.response.status === 401) {
-            this.accessToken = ''
-            clearLocalStorage()
-            const url = error.config?.url
-            if (url && url.startsWith(ADMIN_URL_PREFIX)) {
+            const requestUrl = error.config?.url
+            const isAdminRequest = Boolean(requestUrl && requestUrl.startsWith(ADMIN_URL_PREFIX))
+            const hasAdminToken = Boolean(localStorage.getItem('admin_token'))
+            const hasUserToken = Boolean(getAccessTokenFromLS())
+
+            if (isAdminRequest && hasAdminToken) {
+              this.accessToken = ''
+              clearLocalStorage()
               window.location.href = path.admin.auth.login
-            } else {
+            } else if (!isAdminRequest && hasUserToken) {
+              this.accessToken = ''
+              clearLocalStorage()
               window.location.href = path.auth.login
             }
           }
