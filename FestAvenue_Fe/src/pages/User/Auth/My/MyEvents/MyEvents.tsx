@@ -29,6 +29,7 @@ import { vi } from 'date-fns/locale'
 import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { generateNameId } from '@/utils/utils'
+import InvitationsTable from './components/InvitationsTable'
 
 const statusConfig = {
   [EventStatusValues.Pending]: {
@@ -66,7 +67,7 @@ const statusConfig = {
 export default function MyEvents() {
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<string>('myEvents')
 
   const searchFilter: EventSearchFilter = {
     pagination: {
@@ -213,7 +214,7 @@ export default function MyEvents() {
                 onClick={() =>
                   navigate(
                     `${path.user.event_owner.user_management}?${generateNameId({
-                      id: eventVersion.id,
+                      id: eventVersion.eventCode,
                       name: `${eventVersion.organization.name}-${eventVersion.eventName}`
                     })}`
                   )
@@ -264,17 +265,13 @@ export default function MyEvents() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-        <TabsList className='grid w-full grid-cols-7 mb-6'>
-          <TabsTrigger value='all'>Tất cả ({totalEvents})</TabsTrigger>
-          <TabsTrigger value='draft'>Bản nháp</TabsTrigger>
-          <TabsTrigger value='pending'>Chờ duyệt</TabsTrigger>
-          <TabsTrigger value='selectPackage'>Chọn gói</TabsTrigger>
-          <TabsTrigger value='active'>Đang hoạt động</TabsTrigger>
-          <TabsTrigger value='rejected'>Đã từ chối</TabsTrigger>
-          <TabsTrigger value='canceled'>Đã hủy</TabsTrigger>
+        <TabsList className='grid w-full grid-cols-2 mb-6'>
+          <TabsTrigger value='myEvents'>Sự kiện của tôi ({totalEvents})</TabsTrigger>
+          <TabsTrigger value='invitations'>Lời mời tham gia</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab}>
+        {/* My Events Tab */}
+        <TabsContent value='myEvents'>
           {isLoading ? (
             <div className='flex items-center justify-center py-12'>
               <Loader2 className='w-8 h-8 animate-spin text-blue-500' />
@@ -314,6 +311,11 @@ export default function MyEvents() {
               </Table>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Invitations Tab */}
+        <TabsContent value='invitations'>
+          <InvitationsTable />
         </TabsContent>
       </Tabs>
     </div>

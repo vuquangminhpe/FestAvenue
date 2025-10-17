@@ -1,29 +1,11 @@
 import type { APIResponse } from '@/types/API.types'
-import type { Organization } from '@/types/organization.types'
-import type {
-  bodyCreatePaymentWithOrganization,
-  createPaymentWithOrganizationRes,
-  getPaymentStatusByOrganizationRes
-} from '@/types/payment.types'
+import type { bodyCreateAndUpdatePackageEvent } from '@/types/payment.types'
+
 import http from '@/utils/http'
-import http_v2 from '@/utils/http_v2'
 
 const paymentApis = {
-  createPaymentWithOrganization: async (body: bodyCreatePaymentWithOrganization) => {
-    const data = await http_v2.post<APIResponse<createPaymentWithOrganizationRes>>(
-      '/payment/create-payment-organization',
-      body
-    )
-    return data?.data
-  },
-  getPaymentStatusByOrganization: async (organizationId: string) => {
-    const data = await http.get<APIResponse<Organization>>(`/organization/get-organization/${organizationId}`)
-    return data?.data
-  },
-  getStatusByPaymentId: async (paymentId: string) => {
-    const data = await http_v2.get<APIResponse<getPaymentStatusByOrganizationRes>>(
-      `payment/get-payment-status/${paymentId}`
-    )
+  createPaymentPackage: async (body: bodyCreateAndUpdatePackageEvent) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/payment/create-event-package-payment', body)
     return data?.data
   }
 }

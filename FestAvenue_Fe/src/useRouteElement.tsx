@@ -38,7 +38,7 @@ const Packages = lazy(() => import('./pages/Admin/Process/Packages'))
 const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
 const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
 
-const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents'))
+const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents/UserManagementInEvent'))
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement'))
 

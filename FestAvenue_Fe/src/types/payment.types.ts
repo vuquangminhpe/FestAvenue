@@ -1,27 +1,13 @@
-import type { SubDescriptionStatus } from '@/constants/enum'
-
-export interface bodyCreatePaymentWithOrganization {
-  organizationId: string
+export interface bodyCreateAndUpdatePackageEvent {
+  eventCode: string
   packageId: string
 }
-export interface createPaymentWithOrganizationRes {
-  code: string
-  paymentId: string
-  expirationTime: string
-}
-export interface getPaymentStatusByOrganizationRes {
-  userId: string
-  eventId?: string
-  organizationId?: string
-  ticketId?: string
-  amount: number
-  status: SubDescriptionStatus
-  ticketType?: string
-  transactionDate: string
-  transactionId?: string
-  discount: number
-  refundAmount: number
-  refundDate?: string
-  refundReason?: string
-  packageId?: string
-}
+export const PaymentStatus = {
+  Pending: 0,
+  Completed: 1,
+  Failed: 2,
+  Refunded: 3,
+  Cancelled: 4
+} as const
+
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus]

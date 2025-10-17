@@ -2,31 +2,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
 import { useState, useEffect, useRef } from 'react'
-import { UserPlus } from 'lucide-react'
-import { roleOptions, permissionOptions, type EventUser } from '@/mocks/userManagement.mock'
+import { UserPlus, Loader2, AlertCircle } from 'lucide-react'
 import gsap from 'gsap'
+import { useSendInvitation } from '../hooks/useUserManagement'
 
 interface AddUserModalProps {
   isOpen: boolean
   onClose: () => void
-  onAdd: (user: Omit<EventUser, 'id' | 'status'>) => void
+  eventId: string
 }
 
-export default function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalProps) {
-  const [formData, setFormData] = useState<Omit<EventUser, 'id' | 'status'>>({
+interface FormErrors {
+  firstName?: string
+  lastName?: string
+  email?: string
+  phoneNumber?: string
+}
+
+export default function AddUserModal({ isOpen, onClose, eventId }: AddUserModalProps) {
+  const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    phoneNumber: '',
-    role: 'None',
-    joinDate: '',
-    permissions: [] as string[]
+    phoneNumber: ''
   })
+  const [errors, setErrors] = useState<FormErrors>({})
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
 
   const contentRef = useRef<HTMLDivElement>(null)
+  const sendInvitationMutation = useSendInvitation()
 
   useEffect(() => {
     if (isOpen && contentRef.current) {
@@ -40,10 +45,94 @@ export default function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalPro
     }
   }, [isOpen])
 
+  const validateField = (name: string, value: string): string | undefined => {
+    switch (name) {
+      case 'firstName':
+        if (!value.trim()) return 'First name là bắt buộc'
+        if (value.trim().length < 2) return 'First name phải có ít nhất 2 ký tự'
+        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'First name chỉ được chứa chữ cái'
+        break
+      case 'lastName':
+        if (!value.trim()) return 'Last name là bắt buộc'
+        if (value.trim().length < 2) return 'Last name phải có ít nhất 2 ký tự'
+        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'Last name chỉ được chứa chữ cái'
+        break
+      case 'email':
+        if (!value.trim()) return 'Email là bắt buộc'
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(value)) return 'Email không hợp lệ'
+        break
+      case 'phoneNumber':
+        if (value && !/^[0-9]{10,11}$/.test(value.replace(/\s/g, ''))) {
+          return 'Số điện thoại phải có 10-11 chữ số'
+        }
+        break
+    }
+    return undefined
+  }
+
+  const handleFieldChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value })
+
+    // Validate on change if field was touched
+    if (touched[name]) {
+      const error = validateField(name, value)
+      setErrors({ ...errors, [name]: error })
+    }
+  }
+
+  const handleBlur = (name: string) => {
+    setTouched({ ...touched, [name]: true })
+    const error = validateField(name, formData[name as keyof typeof formData])
+    setErrors({ ...errors, [name]: error })
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    newErrors.firstName = validateField('firstName', formData.firstName)
+    newErrors.lastName = validateField('lastName', formData.lastName)
+    newErrors.email = validateField('email', formData.email)
+    newErrors.phoneNumber = validateField('phoneNumber', formData.phoneNumber)
+
+    // Filter out undefined errors
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, v]) => v !== undefined)
+    ) as FormErrors
+
+    setErrors(filteredErrors)
+    setTouched({
+      firstName: true,
+      lastName: true,
+      email: true,
+      phoneNumber: true
+    })
+
+    return Object.keys(filteredErrors).length === 0
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onAdd(formData)
-    handleClose()
+
+    if (!validateForm()) {
+      return
+    }
+
+    sendInvitationMutation.mutate(
+      {
+        eventCode: eventId,
+        servicePackageIds: [],
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim()
+      },
+      {
+        onSuccess: () => {
+          handleClose()
+        }
+      }
+    )
   }
 
   const handleClose = () => {
@@ -51,31 +140,24 @@ export default function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalPro
       firstName: '',
       lastName: '',
       email: '',
-      phoneNumber: '',
-      role: 'None',
-      joinDate: '',
-      permissions: []
+      phoneNumber: ''
     })
+    setErrors({})
+    setTouched({})
     onClose()
-  }
-
-  const handlePermissionToggle = (permission: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      permissions: prev.permissions.includes(permission)
-        ? prev.permissions.filter((p) => p !== permission)
-        : [...prev.permissions, permission]
-    }))
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto bg-white border-2 border-cyan-100'>
         <DialogHeader>
-          <DialogTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-2'>
-            <UserPlus className='w-6 h-6 text-cyan-500' />
-            Thêm thành viên
+          <DialogTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent flex items-center gap-2'>
+            <UserPlus className='w-6 h-6 text-cyan-400' />
+            Gửi lời mời tham gia sự kiện
           </DialogTitle>
+          <p className='text-sm text-gray-600 mt-2'>
+            Người dùng sẽ nhận được email lời mời. Sau khi họ chấp nhận, bạn có thể cấp quyền sử dụng các chức năng.
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className='space-y-6 mt-4'>
@@ -88,117 +170,87 @@ export default function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalPro
                 </Label>
                 <Input
                   id='firstName'
-                  placeholder='Nhập vào đây'
+                  placeholder='Nhập first name'
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  required
-                  className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'
+                  onChange={(e) => handleFieldChange('firstName', e.target.value)}
+                  onBlur={() => handleBlur('firstName')}
+                  className={`border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg ${
+                    errors.firstName && touched.firstName ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.firstName && touched.firstName && (
+                  <div className='flex items-center gap-1 text-red-500 text-sm mt-1'>
+                    <AlertCircle className='w-4 h-4' />
+                    <span>{errors.firstName}</span>
+                  </div>
+                )}
               </div>
-              <div className='space-y-2'>
-                <Label htmlFor='phoneNumber' className='text-gray-700 font-medium'>
-                  Phone number
-                </Label>
-                <Input
-                  id='phoneNumber'
-                  placeholder='Nhập vào đây'
-                  value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                  className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'
-                />
-              </div>
-            </div>
-
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <Label htmlFor='lastName' className='text-gray-700 font-medium'>
                   Last Name <span className='text-red-500'>*</span>
                 </Label>
                 <Input
                   id='lastName'
-                  placeholder='Nhập vào đây'
+                  placeholder='Nhập last name'
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  required
-                  className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'
+                  onChange={(e) => handleFieldChange('lastName', e.target.value)}
+                  onBlur={() => handleBlur('lastName')}
+                  className={`border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg ${
+                    errors.lastName && touched.lastName ? 'border-red-500' : ''
+                  }`}
                 />
+                {errors.lastName && touched.lastName && (
+                  <div className='flex items-center gap-1 text-red-500 text-sm mt-1'>
+                    <AlertCircle className='w-4 h-4' />
+                    <span>{errors.lastName}</span>
+                  </div>
+                )}
               </div>
+            </div>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <Label htmlFor='email' className='text-gray-700 font-medium'>
-                  Nhập email <span className='text-red-500'>*</span>
+                  Email <span className='text-red-500'>*</span>
                 </Label>
                 <Input
                   id='email'
                   type='email'
-                  placeholder='Nhập email vào đây'
+                  placeholder='example@email.com'
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                  className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email')}
+                  className={`border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg ${
+                    errors.email && touched.email ? 'border-red-500' : ''
+                  }`}
                 />
-              </div>
-            </div>
-
-            {/* Role Selection */}
-            <div className='space-y-2'>
-              <Label htmlFor='role' className='text-gray-700 font-medium'>
-                Chức năng có thể dùng
-              </Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value as EventUser['role'] })}
-              >
-                <SelectTrigger className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'>
-                  <SelectValue placeholder='Social media manager' />
-                </SelectTrigger>
-                <SelectContent className='bg-white rounded-lg shadow-lg'>
-                  {roleOptions
-                    .filter((opt) => opt.value !== 'all')
-                    .map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className='hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50'
-                      >
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Join Date */}
-            <div className='space-y-2'>
-              <Label htmlFor='joinDate' className='text-gray-700 font-medium'>
-                Thời gian hết hạn
-              </Label>
-              <Input
-                id='joinDate'
-                type='date'
-                placeholder='Ví dụ: dd/MM/yyyy'
-                value={formData.joinDate}
-                onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                className='border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg'
-              />
-            </div>
-
-            {/* Permissions */}
-            <div className='space-y-3'>
-              <Label className='text-gray-700 font-medium'>Quyền truy cập</Label>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-white rounded-lg border border-gray-200'>
-                {permissionOptions.map((permission) => (
-                  <div key={permission.value} className='flex items-center space-x-2'>
-                    <Checkbox
-                      id={permission.value}
-                      checked={formData.permissions.includes(permission.value)}
-                      onCheckedChange={() => handlePermissionToggle(permission.value)}
-                      className='border-gray-300 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-cyan-500 data-[state=checked]:to-blue-500'
-                    />
-                    <Label htmlFor={permission.value} className='text-sm text-gray-600 cursor-pointer'>
-                      {permission.label}
-                    </Label>
+                {errors.email && touched.email && (
+                  <div className='flex items-center gap-1 text-red-500 text-sm mt-1'>
+                    <AlertCircle className='w-4 h-4' />
+                    <span>{errors.email}</span>
                   </div>
-                ))}
+                )}
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='phoneNumber' className='text-gray-700 font-medium'>
+                  Phone Number
+                </Label>
+                <Input
+                  id='phoneNumber'
+                  placeholder='0123456789'
+                  value={formData.phoneNumber}
+                  onChange={(e) => handleFieldChange('phoneNumber', e.target.value)}
+                  onBlur={() => handleBlur('phoneNumber')}
+                  className={`border-gray-300 focus:border-cyan-400 focus:ring-cyan-400 rounded-lg ${
+                    errors.phoneNumber && touched.phoneNumber ? 'border-red-500' : ''
+                  }`}
+                />
+                {errors.phoneNumber && touched.phoneNumber && (
+                  <div className='flex items-center gap-1 text-red-500 text-sm mt-1'>
+                    <AlertCircle className='w-4 h-4' />
+                    <span>{errors.phoneNumber}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -209,15 +261,24 @@ export default function AddUserModal({ isOpen, onClose, onAdd }: AddUserModalPro
               type='button'
               variant='outline'
               onClick={handleClose}
+              disabled={sendInvitationMutation.isPending}
               className='hover:bg-gray-100 transition-all duration-300'
             >
               Hủy
             </Button>
             <Button
               type='submit'
-              className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-md hover:shadow-lg transition-all duration-300'
+              disabled={sendInvitationMutation.isPending}
+              className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-md hover:shadow-lg transition-all duration-300'
             >
-              Thêm
+              {sendInvitationMutation.isPending ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  Đang gửi...
+                </>
+              ) : (
+                'Gửi lời mời'
+              )}
             </Button>
           </div>
         </form>
