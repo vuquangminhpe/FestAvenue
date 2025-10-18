@@ -42,8 +42,15 @@ export default function CalendarGrid({
       const scheduleStart = new Date(schedule.startDate)
       const scheduleEnd = new Date(schedule.endDate)
 
+      // Normalize dates to compare only day (ignore time)
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      const scheduleStartDay = new Date(scheduleStart.getFullYear(), scheduleStart.getMonth(), scheduleStart.getDate())
+      const scheduleEndDay = new Date(scheduleEnd.getFullYear(), scheduleEnd.getMonth(), scheduleEnd.getDate())
+
       return (
-        isSameDay(scheduleStart, date) || isSameDay(scheduleEnd, date) || (scheduleStart < date && scheduleEnd > date)
+        isSameDay(scheduleStart, date) ||
+        isSameDay(scheduleEnd, date) ||
+        (scheduleStartDay <= dayStart && scheduleEndDay >= dayStart)
       )
     })
   }

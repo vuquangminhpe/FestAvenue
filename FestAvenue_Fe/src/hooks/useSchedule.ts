@@ -41,7 +41,14 @@ export function useSchedules(
       })
 
       if (!response?.data) return []
-      return response.data.map(mapEventItemToSchedule)
+
+      // Map và deduplicate schedules based on ID (phòng trường hợp API trả về duplicate)
+      const mappedSchedules = response.data.map(mapEventItemToSchedule)
+      const uniqueSchedules = Array.from(
+        new Map(mappedSchedules.map(schedule => [schedule.id, schedule])).values()
+      )
+
+      return uniqueSchedules
     },
     enabled: !!eventCode
   })
@@ -141,7 +148,8 @@ export function useUpdateSchedule() {
       return mapEventItemToSchedule(response.data)
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.list(variables.eventCode) })
+      // Invalidate tất cả schedules lists (bất kể filters)
+      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() })
       queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(variables.scheduleId) })
     }
   })

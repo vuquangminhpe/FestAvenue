@@ -40,9 +40,6 @@ export function mapSubtaskToSubTask(subtask: Subtask): SubTask {
       id: user.id,
       name: user.fullName
     })),
-    // Legacy single assignee for backwards compatibility
-    assigneeId: subtask.implementByUsers[0]?.id,
-    assigneeName: subtask.implementByUsers[0]?.fullName,
     completedAt: subtask.isCompleted ? subtask.endDate : undefined,
     startDate: subtask.startDate,
     endDate: subtask.endDate,
@@ -148,11 +145,12 @@ function mapSubTaskToSubtaskRequest(
   const endTime = firstSlot?.endTime ? `${endDate.split('T')[0]}T${firstSlot.endTime}:00` : endDate
 
   // Support both multiple assignees (assigneeIds) and legacy single assignee (assigneeId)
-  const implementByUserIds = subTask.assigneeIds && subTask.assigneeIds.length > 0
-    ? subTask.assigneeIds
-    : subTask.assigneeId
-    ? [subTask.assigneeId]
-    : []
+  const implementByUserIds =
+    subTask.assigneeIds && subTask.assigneeIds.length > 0
+      ? subTask.assigneeIds
+      : subTask.assigneeId
+      ? [subTask.assigneeId]
+      : []
 
   return {
     title: subTask.title,
