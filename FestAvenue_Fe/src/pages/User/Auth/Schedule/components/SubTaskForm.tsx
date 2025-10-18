@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Plus,
   Trash2,
@@ -11,8 +11,12 @@ import {
   CheckCircle2,
   Calendar,
   Clock,
-  Copy
+  Copy,
+  Loader2,
+  UserPlus,
+  Check
 } from 'lucide-react'
+import { Badge } from '../../../../../components/ui/badge'
 import { Button } from '../../../../../components/ui/button'
 import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
@@ -21,17 +25,10 @@ import { Checkbox } from '../../../../../components/ui/checkbox'
 import type { SubTask, DailyTimeSlot } from '../../../../../types/schedule.types'
 import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
 import { vi } from 'date-fns/locale'
-
-// Mock users - Replace with real user data from API
-const MOCK_USERS = [
-  { id: 'user_1', name: 'Nguyễn Văn A' },
-  { id: 'user_2', name: 'Trần Thị B' },
-  { id: 'user_3', name: 'Lê Văn C' },
-  { id: 'user_4', name: 'Phạm Thị D' },
-  { id: 'user_5', name: 'Hoàng Văn E' }
-]
+import { useGetUsersInEvent } from '@/pages/User/Process/UserManagementInEvents/hooks/useUserManagement'
 
 interface SubTaskFormProps {
+  eventCode: string
   subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]
   onChange: (subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]) => void
   parentScheduleStart: string // ISO date string from parent schedule
@@ -40,13 +37,83 @@ interface SubTaskFormProps {
 
 type FilterStatus = 'all' | 'completed' | 'pending'
 
-export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, parentScheduleEnd }: SubTaskFormProps) {
+export default function SubTaskForm({
+  eventCode,
+  subTasks,
+  onChange,
+  parentScheduleStart,
+  parentScheduleEnd
+}: SubTaskFormProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
   const [filterAssignee, setFilterAssignee] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [expandedTimeSlots, setExpandedTimeSlots] = useState<Record<number, boolean>>({})
+  const [openDropdowns, setOpenDropdowns] = useState<Record<number, boolean>>({})
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState<Record<number, string>>({})
+  const dropdownRefs = useRef<Record<number, HTMLDivElement | null>>({})
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.keys(openDropdowns).forEach((key) => {
+        const index = parseInt(key)
+        if (openDropdowns[index] && dropdownRefs.current[index]) {
+          if (!dropdownRefs.current[index]?.contains(event.target as Node)) {
+            setOpenDropdowns((prev) => ({ ...prev, [index]: false }))
+          }
+        }
+      })
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdowns])
+
+  // Fetch users in event từ API
+  const { data: usersData, isLoading: isLoadingUsers } = useGetUsersInEvent(
+    {
+      eventCode,
+      servicePackageIds: [],
+      searchFullName: '',
+      paginationParam: {
+        isPaging: false,
+        pageIndex: 0,
+        pageSize: 100
+        // orderBy: 'fullName',
+      }
+    },
+    !!eventCode
+  )
+
+  const users = useMemo(() => {
+    return (
+      usersData?.data?.result?.map((user) => ({
+        id: user.userId,
+        name: user.fullName
+      })) || []
+    )
+  }, [usersData])
+
+  // Toggle dropdown open/close
+  const toggleDropdown = (index: number) => {
+    setOpenDropdowns((prev) => ({ ...prev, [index]: !prev[index] }))
+  }
+
+  // Toggle assignee selection
+  const toggleAssignee = (subTaskIndex: number, userId: string) => {
+    const currentIds = subTasks[subTaskIndex].assigneeIds || []
+    const newIds = currentIds.includes(userId) ? currentIds.filter((id) => id !== userId) : [...currentIds, userId]
+    updateSubTask(subTaskIndex, 'assigneeIds', newIds)
+  }
+
+  // Get filtered users for dropdown based on search
+  const getFilteredUsers = (subTaskIndex: number) => {
+    const query = assigneeSearchQuery[subTaskIndex]?.toLowerCase() || ''
+    if (!query) return users
+    return users.filter((user) => user.name.toLowerCase().includes(query))
+  }
 
   // Get parent schedule date range in local datetime format for input
   const parentStartLocal = useMemo(() => {
@@ -82,17 +149,33 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
   const updateSubTask = (
     index: number,
     field: keyof Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>,
-    value: string | boolean | DailyTimeSlot[] | undefined
+    value: string | boolean | DailyTimeSlot[] | string[] | undefined
   ) => {
     const newSubTasks = [...subTasks]
 
-    // If updating assigneeId, also update assigneeName
-    if (field === 'assigneeId') {
-      const user = MOCK_USERS.find((u) => u.id === value)
+    // If updating assigneeIds (multiple), also update assignees array
+    if (field === 'assigneeIds') {
+      const selectedIds = value as string[]
+      const selectedUsers = users.filter((u) => selectedIds.includes(u.id))
+      newSubTasks[index] = {
+        ...newSubTasks[index],
+        assigneeIds: selectedIds,
+        assignees: selectedUsers.map((u) => ({ id: u.id, name: u.name })),
+        // Also update legacy single assignee for backwards compatibility
+        assigneeId: selectedIds[0],
+        assigneeName: selectedUsers[0]?.name
+      }
+    }
+    // If updating assigneeId (legacy single), also update assigneeName
+    else if (field === 'assigneeId') {
+      const user = users.find((u) => u.id === value)
       newSubTasks[index] = {
         ...newSubTasks[index],
         assigneeId: value as string,
-        assigneeName: user?.name
+        assigneeName: user?.name,
+        // Also update new multiple assignee fields
+        assigneeIds: value ? [value as string] : [],
+        assignees: user ? [{ id: user.id, name: user.name }] : []
       }
     }
     // If updating date range, regenerate time slots
@@ -125,7 +208,6 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                 }
               )
             })
-
           }
         } catch (e) {
           console.error('❌ Error generating time slots:', e)
@@ -548,25 +630,160 @@ export default function SubTaskForm({ subTasks, onChange, parentScheduleStart, p
                           </div>
                         )}
 
-                        {/* Assignee */}
-                        <div className='space-y-1'>
-                          <Label htmlFor={`assignee-${index}`} className='text-xs flex items-center gap-1'>
-                            <User className='w-3 h-3' />
+                        {/* Assignee - Multi Select with Custom Dropdown */}
+                        <div className='space-y-2'>
+                          <Label className='text-xs flex items-center gap-1 text-gray-700 font-medium'>
+                            <UserPlus className='w-3.5 h-3.5' />
                             Người thực hiện
                           </Label>
-                          <select
-                            id={`assignee-${index}`}
-                            value={subTask.assigneeId || ''}
-                            onChange={(e) => updateSubTask(index, 'assigneeId', e.target.value)}
-                            className='w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 hover:border-blue-400 cursor-pointer'
+
+                          {/* Custom Dropdown */}
+                          <div
+                            ref={(el) => {
+                              dropdownRefs.current[index] = el
+                            }}
+                            className='relative'
                           >
-                            <option value=''>Chưa chọn</option>
-                            {MOCK_USERS.map((user) => (
-                              <option key={user.id} value={user.id}>
-                                {user.name}
-                              </option>
-                            ))}
-                          </select>
+                            {/* Trigger Button */}
+                            <button
+                              type='button'
+                              onClick={() => toggleDropdown(index)}
+                              disabled={isLoadingUsers}
+                              className='w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-left bg-white hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between gap-2'
+                            >
+                              <span className='text-gray-600 flex-1'>
+                                {isLoadingUsers ? (
+                                  <span className='flex items-center gap-2'>
+                                    <Loader2 className='w-3 h-3 animate-spin' />
+                                    Đang tải...
+                                  </span>
+                                ) : subTask.assigneeIds && subTask.assigneeIds.length > 0 ? (
+                                  `Đã chọn ${subTask.assigneeIds.length} người`
+                                ) : (
+                                  'Chọn người thực hiện...'
+                                )}
+                              </span>
+                              <ChevronDown
+                                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                                  openDropdowns[index] ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </button>
+
+                            {/* Dropdown Panel */}
+                            {openDropdowns[index] && !isLoadingUsers && (
+                              <div className='absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200'>
+                                {/* Search Box */}
+                                <div className='p-2 border-b border-gray-200 bg-gray-50'>
+                                  <div className='relative'>
+                                    <Search className='absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400' />
+                                    <Input
+                                      type='text'
+                                      placeholder='Tìm kiếm...'
+                                      value={assigneeSearchQuery[index] || ''}
+                                      onChange={(e) =>
+                                        setAssigneeSearchQuery((prev) => ({
+                                          ...prev,
+                                          [index]: e.target.value
+                                        }))
+                                      }
+                                      className='pl-8 h-8 text-xs border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* User List */}
+                                <div className='max-h-48 overflow-y-auto'>
+                                  {getFilteredUsers(index).length === 0 ? (
+                                    <div className='p-4 text-center text-xs text-gray-500'>
+                                      Không tìm thấy người dùng
+                                    </div>
+                                  ) : (
+                                    getFilteredUsers(index).map((user) => {
+                                      const isSelected = subTask.assigneeIds?.includes(user.id)
+                                      return (
+                                        <button
+                                          key={user.id}
+                                          type='button'
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            toggleAssignee(index, user.id)
+                                          }}
+                                          className={`w-full px-3 py-2 text-left text-sm hover:bg-blue-50 transition-colors duration-150 flex items-center gap-2 ${
+                                            isSelected ? 'bg-blue-50' : ''
+                                          }`}
+                                        >
+                                          <div
+                                            className={`flex items-center justify-center w-4 h-4 rounded border transition-all duration-150 ${
+                                              isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300 bg-white'
+                                            }`}
+                                          >
+                                            {isSelected && <Check className='w-3 h-3 text-white' />}
+                                          </div>
+                                          <User className='w-3.5 h-3.5 text-gray-400' />
+                                          <span
+                                            className={`flex-1 ${
+                                              isSelected ? 'font-medium text-blue-700' : 'text-gray-700'
+                                            }`}
+                                          >
+                                            {user.name}
+                                          </span>
+                                        </button>
+                                      )
+                                    })
+                                  )}
+                                </div>
+
+                                {/* Footer with count */}
+                                {subTask.assigneeIds && subTask.assigneeIds.length > 0 && (
+                                  <div className='px-3 py-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between'>
+                                    <span className='text-xs text-gray-600'>
+                                      {subTask.assigneeIds.length} người được chọn
+                                    </span>
+                                    <Button
+                                      type='button'
+                                      variant='ghost'
+                                      size='sm'
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateSubTask(index, 'assigneeIds', [])
+                                      }}
+                                      className='h-6 text-xs text-red-600 hover:text-red-700 hover:bg-red-50'
+                                    >
+                                      Xóa tất cả
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Selected Users Display as Badges */}
+                          {subTask.assigneeIds && subTask.assigneeIds.length > 0 && (
+                            <div className='flex flex-wrap gap-1.5'>
+                              {subTask.assignees?.map((assignee) => (
+                                <Badge
+                                  key={assignee.id}
+                                  variant='secondary'
+                                  className='text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors duration-150 pl-2 pr-1 py-1 flex items-center gap-1'
+                                >
+                                  <User className='w-3 h-3' />
+                                  {assignee.name}
+                                  <button
+                                    type='button'
+                                    onClick={() => {
+                                      const newIds = (subTask.assigneeIds || []).filter((id) => id !== assignee.id)
+                                      updateSubTask(index, 'assigneeIds', newIds)
+                                    }}
+                                    className='ml-0.5 hover:bg-blue-300 rounded-full p-0.5 transition-colors duration-150'
+                                  >
+                                    <X className='w-2.5 h-2.5' />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 

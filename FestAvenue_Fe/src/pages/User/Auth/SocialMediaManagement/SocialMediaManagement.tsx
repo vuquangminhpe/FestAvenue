@@ -27,15 +27,13 @@ export default function SocialMediaManagement() {
   const { data: eventPackagesData } = useEventPackages(eventCode)
   const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
-  const isEventOwner = ownerCheckData?.data?.data || false
+  const isEventOwner = ownerCheckData?.data || false
   const servicePackages = eventPackagesData?.data?.servicePackages || []
   const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
-  // Tìm service package ID cho Social Media
-  const socialMediaPackage = servicePackages.find(
-    (pkg: any) =>
-      pkg.name.includes('Social Media') || pkg.name.includes('Quản lý mạng xã hội') || pkg.name.includes('Social')
-  )
+  // Tìm service package ID cho Social Media (sử dụng exact name từ backend)
+  const SOCIAL_MEDIA_PACKAGE_NAME = 'Quản lý social medias'
+  const socialMediaPackage = servicePackages.find((pkg: any) => pkg.name === SOCIAL_MEDIA_PACKAGE_NAME)
   const hasSocialMediaPermission =
     isEventOwner || (socialMediaPackage && userServicePackageIds.includes(socialMediaPackage.id))
 

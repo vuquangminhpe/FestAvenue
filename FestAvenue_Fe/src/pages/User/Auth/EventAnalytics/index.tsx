@@ -50,7 +50,7 @@ export default function EventAnalyticsDashboard() {
 
   // Check if user is event owner (only event owners can see analytics)
   const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
-  const isEventOwner = ownerCheckData?.data?.data || false
+  const isEventOwner = ownerCheckData?.data || false
 
   const [analytics, setAnalytics] = useState<EventAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)

@@ -200,7 +200,14 @@ export default function MyEvents() {
               <Button
                 size='sm'
                 className='bg-green-600 hover:bg-green-700'
-                onClick={() => navigate(`${path.user.payment.payment_event}?eventId=${eventVersion.id}`)}
+                onClick={() =>
+                  navigate(
+                    `${path.user.payment.payment_event}?${generateNameId({
+                      id: eventVersion.eventCode,
+                      name: eventVersion.eventName
+                    })}`
+                  )
+                }
               >
                 Chọn gói
               </Button>
@@ -267,7 +274,7 @@ export default function MyEvents() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
         <TabsList className='grid w-full grid-cols-2 mb-6'>
           <TabsTrigger value='myEvents'>Sự kiện của tôi ({totalEvents})</TabsTrigger>
-          <TabsTrigger value='invitations'>Lời mời tham gia</TabsTrigger>
+          <TabsTrigger value='invitations'>Các sự kiện được mời tham gia</TabsTrigger>
         </TabsList>
 
         {/* My Events Tab */}

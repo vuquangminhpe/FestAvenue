@@ -30,7 +30,7 @@ const serviceScheduleManagementApis = {
   },
   //Xóa một lịch trình (Schedule) theo Id.
   deleteScheduleInEvent: async (scheduleId: string) => {
-    const data = await http.delete<APIResponse<{ data: boolean }>>(`/payment/delete-schedule/${scheduleId}`)
+    const data = await http.delete<APIResponse<{ data: boolean }>>(`/schedule/delete-schedule/${scheduleId}`)
     return data?.data
   }
 }

@@ -11,11 +11,9 @@ import EditUserModal from './components/EditUserModal'
 import gsap from 'gsap'
 import { useGetUsersInEvent } from './hooks/useUserManagement'
 import { getIdFromNameId } from '@/utils/utils'
-import { PermissionProvider } from '@/contexts/PermissionContext'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
-import { useCheckIsEventOwner } from './hooks/usePermissions'
 
-function UserManagementContent() {
+export default function UserManagementInEvents() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventId = getIdFromNameId(nameId)
@@ -132,31 +130,5 @@ function UserManagementContent() {
       {/* View modal - Everyone can view */}
       <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
     </div>
-  )
-}
-
-export default function UserManagementInEvents() {
-  const [searchParams] = useSearchParams()
-  const nameId = Array.from(searchParams.keys())[0] || ''
-  const eventId = getIdFromNameId(nameId)
-
-  // Check user có phải event owner không thông qua API
-  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventId)
-  const isEventOwner = ownerCheckData?.data?.data || false
-
-  // Show loading state khi đang check owner
-  if (isCheckingOwner) {
-    return (
-      <div className='flex items-center justify-center py-12'>
-        <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
-        <span className='ml-2 text-gray-600'>Đang kiểm tra quyền truy cập...</span>
-      </div>
-    )
-  }
-
-  return (
-    <PermissionProvider eventCode={eventId} isEventOwner={isEventOwner}>
-      <UserManagementContent />
-    </PermissionProvider>
   )
 }

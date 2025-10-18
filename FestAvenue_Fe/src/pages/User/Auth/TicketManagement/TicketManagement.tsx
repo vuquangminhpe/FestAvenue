@@ -23,14 +23,13 @@ export default function TicketManagement() {
   const { data: eventPackagesData } = useEventPackages(eventCode)
   const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
-  const isEventOwner = ownerCheckData?.data?.data || false
+  const isEventOwner = ownerCheckData?.data || false
   const servicePackages = eventPackagesData?.data?.servicePackages || []
   const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
-  // Tìm service package ID cho Ticket Management
-  const ticketPackage = servicePackages.find(
-    (pkg: any) => pkg.name.includes('Ticket') || pkg.name.includes('Quản lý vé') || pkg.name.includes('Ticketing')
-  )
+  // Tìm service package ID cho Ticket Management (sử dụng exact name từ backend)
+  const TICKET_PACKAGE_NAME = 'Quản lý vé'
+  const ticketPackage = servicePackages.find((pkg: any) => pkg.name === TICKET_PACKAGE_NAME)
   const hasTicketPermission = isEventOwner || (ticketPackage && userServicePackageIds.includes(ticketPackage.id))
 
   const [activeTab, setActiveTab] = useState<TabType>('ticket-config')

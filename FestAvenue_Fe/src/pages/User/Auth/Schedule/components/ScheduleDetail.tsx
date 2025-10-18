@@ -4,12 +4,13 @@ import { Button } from '../../../../../components/ui/button'
 import type { Schedule } from '../../../../../types/schedule.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { scheduleService } from '../../../../../services/schedule.service'
+import { useDeleteSchedule, useUpdateSubTask } from '@/hooks/useSchedule'
 import { gsap } from 'gsap'
 import BellNotification from './BellNotification'
 import SubTaskList from './SubTaskList'
 
 interface ScheduleDetailProps {
+  eventCode: string
   schedule: Schedule
   schedules?: Schedule[]
   currentIndex?: number
@@ -22,6 +23,7 @@ interface ScheduleDetailProps {
 }
 
 export default function ScheduleDetail({
+  eventCode,
   schedule,
   schedules,
   currentIndex = 0,
@@ -32,10 +34,12 @@ export default function ScheduleDetail({
   onRefresh,
   onScheduleChange
 }: ScheduleDetailProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
   const [localSchedule, setLocalSchedule] = useState<Schedule>(schedule)
   const modalRef = useRef<HTMLDivElement>(null)
   const hasMultipleSchedules = schedules && schedules.length > 1
+
+  const deleteMutation = useDeleteSchedule()
+  const updateSubTaskMutation = useUpdateSubTask()
 
   // Update local schedule when prop changes
   useEffect(() => {
@@ -55,16 +59,13 @@ export default function ScheduleDetail({
   const handleDelete = async () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa lịch trình này?')) return
 
-    setIsDeleting(true)
     try {
-      await scheduleService.deleteSchedule(schedule.id)
+      await deleteMutation.mutateAsync(schedule.id)
       onDelete()
       onClose()
     } catch (error) {
       console.error('Failed to delete schedule:', error)
       alert('Có lỗi xảy ra khi xóa lịch trình')
-    } finally {
-      setIsDeleting(false)
     }
   }
 
@@ -79,11 +80,16 @@ export default function ScheduleDetail({
       }))
 
       // Then update on server
-      await scheduleService.updateSubTask(schedule.id, subTaskId, {
-        isCompleted: !currentStatus
+      await updateSubTaskMutation.mutateAsync({
+        scheduleId: schedule.id,
+        eventCode,
+        subTaskId,
+        updates: {
+          isCompleted: !currentStatus
+        }
       })
 
-      // Refresh to sync with server (but UI already updated)
+      // Refresh is handled by TanStack Query automatically
       onRefresh()
     } catch (error) {
       console.error('Failed to update subtask:', error)
@@ -230,11 +236,11 @@ export default function ScheduleDetail({
             <Button
               variant='outline'
               onClick={handleDelete}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
               className='text-red-600 hover:text-red-700 hover:bg-red-50'
             >
               <Trash2 className='w-4 h-4 mr-2' />
-              {isDeleting ? 'Đang xóa...' : 'Xóa'}
+              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa'}
             </Button>
             <Button onClick={onEdit} style={{ backgroundColor: localSchedule.color }}>
               <Edit className='w-4 h-4 mr-2' />

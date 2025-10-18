@@ -1,22 +1,22 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import { Plus, CalendarDays, Lock, Loader2 } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
-import { useScheduleStore } from '../../../../stores/schedule.store'
-import type { Schedule } from '../../../../types/schedule.types'
+import type { Schedule, ScheduleFilter as ScheduleFilterType } from '../../../../types/schedule.types'
 import CalendarHeader from './components/CalendarHeader'
 import CalendarGrid from './components/CalendarGrid'
 import ScheduleFilter from './components/ScheduleFilter'
 import ScheduleForm from './components/ScheduleForm'
 import ScheduleDetail from './components/ScheduleDetail'
 import { addMonths, subMonths } from 'date-fns'
-import { scheduleService } from '../../../../services/schedule.service'
 import { getIdFromNameId } from '@/utils/utils'
 import {
   useCheckIsEventOwner,
   useEventPackages,
   useUserPermissionsInEvent
 } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
+import { useSchedules, useUpdateSchedule } from '@/hooks/useSchedule'
+import { SERVICE_PACKAGE_NAMES } from '@/constants/servicePackages'
 
 export default function ScheduleManagement() {
   const [searchParams] = useSearchParams()
@@ -28,16 +28,21 @@ export default function ScheduleManagement() {
   const { data: eventPackagesData } = useEventPackages(eventCode)
   const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
-  const isEventOwner = ownerCheckData?.data?.data || false
+  const isEventOwner = ownerCheckData?.data || false
   const servicePackages = eventPackagesData?.data?.servicePackages || []
   const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
-  // Tìm service package ID cho Schedule Management
-  const schedulePackage = servicePackages.find(
-    (pkg: any) =>
-      pkg.name.includes('Schedule') || pkg.name.includes('Lịch trình') || pkg.name.includes('Schedule Management')
-  )
+  // Tìm service package ID cho Schedule Management (sử dụng exact name từ backend)
+  const schedulePackage = servicePackages.find((pkg: any) => pkg.name === SERVICE_PACKAGE_NAMES.SCHEDULE)
   const hasSchedulePermission = isEventOwner || (schedulePackage && userServicePackageIds.includes(schedulePackage.id))
+
+  // Filter state
+  const [filter, setFilter] = useState<ScheduleFilterType>({
+    searchQuery: '',
+    showCompleted: true,
+    sortBy: 'startDate',
+    sortOrder: 'asc'
+  })
 
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -49,13 +54,14 @@ export default function ScheduleManagement() {
   const [detailSchedule, setDetailSchedule] = useState<Schedule | null>(null)
   const [prefilledDateRange, setPrefilledDateRange] = useState<{ start: Date; end: Date } | null>(null)
 
-  const { schedules, filter, isLoading, fetchSchedules, searchSchedules, setFilter, refreshSchedules } =
-    useScheduleStore()
+  // Fetch schedules với TanStack Query
+  const { data: schedules = [], isLoading } = useSchedules(eventCode, {
+    keyword: filter.searchQuery,
+    sortBy: 1,
+    isAsc: filter.sortOrder === 'asc'
+  })
 
-  useEffect(() => {
-    fetchSchedules()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const updateScheduleMutation = useUpdateSchedule()
 
   const handlePreviousMonth = () => {
     setCurrentDate(subMonths(currentDate, 1))
@@ -81,7 +87,6 @@ export default function ScheduleManagement() {
   }
 
   const handleScheduleClick = (schedule: Schedule, clickedDate?: Date) => {
-    // If clicked from calendar day, use that date. Otherwise use null
     setSelectedDate(clickedDate || null)
     setDetailSchedule(schedule)
     setSelectedSchedules([schedule])
@@ -131,25 +136,27 @@ export default function ScheduleManagement() {
 
     // Update schedule with new dates
     try {
-      await scheduleService.updateSchedule(scheduleId, {
-        title: schedule.title,
-        description: schedule.description,
-        startDate: newStart.toISOString(),
-        endDate: newEnd.toISOString(),
-        color: schedule.color,
-        subTasks: schedule.subTasks.map((st) => ({
-          title: st.title,
-          description: st.description,
-          isCompleted: st.isCompleted,
-          assigneeId: st.assigneeId,
-          assigneeName: st.assigneeName,
-          startDate: st.startDate,
-          endDate: st.endDate,
-          dailyTimeSlots: st.dailyTimeSlots
-        }))
+      await updateScheduleMutation.mutateAsync({
+        scheduleId,
+        eventCode,
+        data: {
+          title: schedule.title,
+          description: schedule.description,
+          startDate: newStart.toISOString(),
+          endDate: newEnd.toISOString(),
+          color: schedule.color,
+          subTasks: schedule.subTasks.map((st) => ({
+            title: st.title,
+            description: st.description,
+            isCompleted: st.isCompleted,
+            assigneeId: st.assigneeId,
+            assigneeName: st.assigneeName,
+            startDate: st.startDate,
+            endDate: st.endDate,
+            dailyTimeSlots: st.dailyTimeSlots
+          }))
+        }
       })
-
-      refreshSchedules()
     } catch (error) {
       console.error('Failed to move schedule:', error)
       alert('Có lỗi xảy ra khi di chuyển lịch trình')
@@ -163,77 +170,82 @@ export default function ScheduleManagement() {
   }
 
   const handleFormSuccess = () => {
-    refreshSchedules()
     setShowForm(false)
     setEditingSchedule(null)
     setPrefilledDateRange(null)
   }
 
   const handleDetailDelete = () => {
-    refreshSchedules()
     setShowDetail(false)
     setDetailSchedule(null)
   }
 
-  const handleSearch = useCallback(
-    (query: string) => {
-      searchSchedules(query)
-    },
-    [searchSchedules]
-  )
+  const handleSearch = useCallback((query: string) => {
+    setFilter((prev) => ({ ...prev, searchQuery: query }))
+  }, [])
 
-  const filteredSchedules = schedules.filter((schedule) => {
-    // Apply filters
-    if (!filter.showCompleted) {
-      const allCompleted = schedule.subTasks.length > 0 && schedule.subTasks.every((st) => st.isCompleted)
-      if (allCompleted) return false
-    }
+  const handleFilterChange = useCallback((newFilter: Partial<ScheduleFilterType>) => {
+    setFilter((prev) => ({ ...prev, ...newFilter }))
+  }, [])
 
-    if (filter.dateRange) {
-      const scheduleStart = new Date(schedule.startDate)
-      const scheduleEnd = new Date(schedule.endDate)
-      const { from, to } = filter.dateRange
+  // Apply filters
+  const filteredSchedules = useMemo(() => {
+    return schedules.filter((schedule) => {
+      // Apply completed filter
+      if (!filter.showCompleted) {
+        const allCompleted = schedule.subTasks.length > 0 && schedule.subTasks.every((st) => st.isCompleted)
+        if (allCompleted) return false
+      }
 
-      const isInRange =
-        (scheduleStart >= from && scheduleStart <= to) ||
-        (scheduleEnd >= from && scheduleEnd <= to) ||
-        (scheduleStart <= from && scheduleEnd >= to)
+      // Apply date range filter
+      if (filter.dateRange) {
+        const scheduleStart = new Date(schedule.startDate)
+        const scheduleEnd = new Date(schedule.endDate)
+        const { from, to } = filter.dateRange
 
-      if (!isInRange) return false
-    }
+        const isInRange =
+          (scheduleStart >= from && scheduleStart <= to) ||
+          (scheduleEnd >= from && scheduleEnd <= to) ||
+          (scheduleStart <= from && scheduleEnd >= to)
 
-    return true
-  })
+        if (!isInRange) return false
+      }
+
+      return true
+    })
+  }, [schedules, filter])
 
   // Sort schedules
-  const sortedSchedules = [...filteredSchedules].sort((a, b) => {
-    let aValue: string | Date, bValue: string | Date
+  const sortedSchedules = useMemo(() => {
+    return [...filteredSchedules].sort((a, b) => {
+      let aValue: string | Date, bValue: string | Date
 
-    switch (filter.sortBy) {
-      case 'startDate':
-        aValue = new Date(a.startDate)
-        bValue = new Date(b.startDate)
-        break
-      case 'endDate':
-        aValue = new Date(a.endDate)
-        bValue = new Date(b.endDate)
-        break
-      case 'title':
-        aValue = a.title.toLowerCase()
-        bValue = b.title.toLowerCase()
-        break
-      case 'createdAt':
-        aValue = new Date(a.createdAt)
-        bValue = new Date(b.createdAt)
-        break
-      default:
-        return 0
-    }
+      switch (filter.sortBy) {
+        case 'startDate':
+          aValue = new Date(a.startDate)
+          bValue = new Date(b.startDate)
+          break
+        case 'endDate':
+          aValue = new Date(a.endDate)
+          bValue = new Date(b.endDate)
+          break
+        case 'title':
+          aValue = a.title.toLowerCase()
+          bValue = b.title.toLowerCase()
+          break
+        case 'createdAt':
+          aValue = new Date(a.createdAt)
+          bValue = new Date(b.createdAt)
+          break
+        default:
+          return 0
+      }
 
-    if (aValue < bValue) return filter.sortOrder === 'asc' ? -1 : 1
-    if (aValue > bValue) return filter.sortOrder === 'asc' ? 1 : -1
-    return 0
-  })
+      if (aValue < bValue) return filter.sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return filter.sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filteredSchedules, filter.sortBy, filter.sortOrder])
 
   // Loading state
   if (isCheckingOwner || isLoadingPermissions) {
@@ -289,7 +301,7 @@ export default function ScheduleManagement() {
 
         {/* Filter Section */}
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-          <ScheduleFilter filter={filter} onFilterChange={setFilter} onSearch={handleSearch} />
+          <ScheduleFilter filter={filter} onFilterChange={handleFilterChange} onSearch={handleSearch} />
         </div>
 
         {/* Stats */}
@@ -367,6 +379,7 @@ export default function ScheduleManagement() {
       {/* Modals */}
       {showForm && (
         <ScheduleForm
+          eventCode={eventCode}
           schedule={editingSchedule}
           prefilledDateRange={prefilledDateRange}
           onClose={() => {
@@ -380,6 +393,7 @@ export default function ScheduleManagement() {
 
       {showDetail && detailSchedule && (
         <ScheduleDetail
+          eventCode={eventCode}
           schedule={detailSchedule}
           schedules={selectedSchedules}
           currentIndex={currentScheduleIndex}
@@ -392,7 +406,7 @@ export default function ScheduleManagement() {
           }}
           onEdit={handleEdit}
           onDelete={handleDetailDelete}
-          onRefresh={refreshSchedules}
+          onRefresh={() => {}}
           onScheduleChange={handleScheduleChange}
         />
       )}

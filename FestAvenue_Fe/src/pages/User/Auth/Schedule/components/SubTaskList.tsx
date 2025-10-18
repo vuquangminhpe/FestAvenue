@@ -58,16 +58,26 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
     }
   }, [subTasks])
 
-  // Get unique assignees
+  // Get unique assignees (support both multiple and legacy single)
   const uniqueAssignees = useMemo(() => {
-    const assignees = subTasks
-      .filter((st) => st.assigneeName)
-      .map((st) => ({
-        id: st.assigneeId || '',
-        name: st.assigneeName || ''
-      }))
+    const allAssignees: Array<{ id: string; name: string }> = []
+
+    subTasks.forEach((st) => {
+      // Use new multiple assignees if available
+      if (st.assignees && st.assignees.length > 0) {
+        allAssignees.push(...st.assignees)
+      }
+      // Fallback to legacy single assignee
+      else if (st.assigneeName) {
+        allAssignees.push({
+          id: st.assigneeId || '',
+          name: st.assigneeName
+        })
+      }
+    })
+
     // Remove duplicates
-    const uniqueMap = new Map(assignees.map((a) => [a.id, a]))
+    const uniqueMap = new Map(allAssignees.map((a) => [a.id, a]))
     return Array.from(uniqueMap.values())
   }, [subTasks])
 
@@ -105,12 +115,20 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(
-        (st) =>
-          st.title.toLowerCase().includes(query) ||
-          st.description?.toLowerCase().includes(query) ||
-          st.assigneeName?.toLowerCase().includes(query)
-      )
+      filtered = filtered.filter((st) => {
+        // Check title and description
+        if (st.title.toLowerCase().includes(query) || st.description?.toLowerCase().includes(query)) {
+          return true
+        }
+
+        // Check assignees (support both multiple and legacy single)
+        if (st.assignees && st.assignees.length > 0) {
+          return st.assignees.some((assignee) => assignee.name.toLowerCase().includes(query))
+        }
+
+        // Fallback to legacy single assignee
+        return st.assigneeName?.toLowerCase().includes(query)
+      })
     }
 
     // Status filter
@@ -447,13 +465,24 @@ export default function SubTaskList({ subTasks, onToggleSubTask, readOnly = fals
 
                         {/* Meta info */}
                         <div className='flex flex-wrap gap-3 mt-2'>
-                          {/* Assignee */}
-                          {subTask.assigneeName && (
+                          {/* Assignees - Support multiple */}
+                          {subTask.assignees && subTask.assignees.length > 0 ? (
+                            subTask.assignees.map((assignee) => (
+                              <div
+                                key={assignee.id}
+                                className='flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-blue-100'
+                              >
+                                <User className='w-3 h-3' />
+                                <span>{assignee.name}</span>
+                              </div>
+                            ))
+                          ) : subTask.assigneeName ? (
+                            // Fallback to legacy single assignee
                             <div className='flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded transition-all duration-200 hover:bg-blue-100'>
                               <User className='w-3 h-3' />
                               <span>{subTask.assigneeName}</span>
                             </div>
-                          )}
+                          ) : null}
 
                           {/* Subtask Date/Time - show time slot for selected date if available */}
                           {subTask.startDate && subTask.endDate && (

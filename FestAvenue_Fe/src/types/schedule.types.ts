@@ -9,6 +9,10 @@ export interface SubTask {
   title: string
   description?: string
   isCompleted: boolean
+  // Support multiple assignees
+  assigneeIds?: string[]
+  assignees?: Array<{ id: string; name: string }>
+  // Legacy single assignee fields (kept for backwards compatibility)
   assigneeId?: string
   assigneeName?: string
   completedAt?: string
@@ -115,7 +119,9 @@ export interface bodyCreateEventScheduleRequest {
   endDate: string // ISO date string
   subtasks: SubtaskRequest[]
 }
-export type bodyUpdateEventScheduleRequest = bodyCreateEventScheduleRequest
+export interface bodyUpdateEventScheduleRequest extends bodyCreateEventScheduleRequest {
+  id: string // Schedule ID for update
+}
 export interface SubtaskRequest {
   title: string
   description: string

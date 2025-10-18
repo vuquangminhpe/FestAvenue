@@ -21,6 +21,7 @@ const ResetPassword = lazy(() => import('./pages/User/Public/ResetPassword/Reset
 const ChatMyMessagesSystem = lazy(() => import('./pages/User/Auth/My/MyMessages'))
 const MyPayment = lazy(() => import('./pages/User/Auth/My/MyPayment'))
 const MyEvents = lazy(() => import('./pages/User/Auth/My/MyEvents'))
+const PaymentEvent = lazy(() => import('./pages/User/Auth/Payment/PaymentEvent/PaymentEvent'))
 const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
 const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule/ScheduleManagement'))
 const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/EventAnalytics'))
@@ -423,6 +424,14 @@ export default function useRouteElement() {
                   <EventOwnerLayout>
                     <TicketManagement />
                   </EventOwnerLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.payment.payment_event,
+              element: (
+                <SuspenseWrapper>
+                  <PaymentEvent />
                 </SuspenseWrapper>
               )
             }
