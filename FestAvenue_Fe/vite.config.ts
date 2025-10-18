@@ -38,7 +38,7 @@ export default defineConfig({
           ],
           'query-vendor': ['@tanstack/react-query'],
           utils: ['axios', 'date-fns', 'zustand'],
-          animations: ['gsap', 'three']
+          animations: ['gsap']
         }
       }
     },

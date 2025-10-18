@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import serviceUserManagementsApis from '@/apis/serviceManaget.api'
+import serviceUserManagementsApis from '@/apis/serviceUserManagement.api'
 import type { bodyGetInvitationsReceived } from '@/types/userManagement.types'
 import { toast } from 'sonner'
 

@@ -53,3 +53,76 @@ export interface ScheduleFilter {
 }
 
 export type ScheduleView = 'month' | 'week' | 'day' | 'list'
+
+/////////// Types mới chính thức từ api
+export interface bodyGetListSchedule {
+  eventCode: string
+  status: number
+  startDate: string
+  endDate: string
+  keyword: string
+  isCompleted: boolean
+  sortBy: number
+  isAsc: boolean
+}
+export interface EventItem {
+  id: string
+  eventCode: string
+  title: string
+  description: string
+  color: string
+  status: number
+  startDate: string // ISO date string
+  endDate: string // ISO date string
+  createdBy: string
+  createdByUser: CreatedByUser
+  subtasks: Subtask[]
+}
+
+export interface CreatedByUser {
+  id: string
+  fullName: string
+  avatar: string
+  email: string
+}
+
+export interface Subtask {
+  id: string
+  title: string
+  description: string
+  startDate: string // ISO date string
+  endDate: string // ISO date string
+  startTime: string // ISO date string
+  endTime: string // ISO date string
+  isCompleted: boolean
+  implementByUsers: ImplementByUser[]
+}
+
+export interface ImplementByUser {
+  id: string
+  fullName: string
+  avatar: string
+  email: string
+}
+
+export interface bodyCreateEventScheduleRequest {
+  eventCode: string
+  title: string
+  description: string
+  color: string
+  status: number
+  startDate: string // ISO date string
+  endDate: string // ISO date string
+  subtasks: SubtaskRequest[]
+}
+export type bodyUpdateEventScheduleRequest = bodyCreateEventScheduleRequest
+export interface SubtaskRequest {
+  title: string
+  description: string
+  startDate: string // ISO date string
+  endDate: string // ISO date string
+  startTime: string // ISO date string
+  endTime: string // ISO date string
+  implementByUserIds: string[]
+  isCompleted: boolean
+}

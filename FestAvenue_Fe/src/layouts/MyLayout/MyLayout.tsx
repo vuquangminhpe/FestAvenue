@@ -161,17 +161,6 @@ export default function MyLayout({ children }: MyLayoutProps) {
                             to={item.url}
                             onClick={() => setActiveTab(item.title)}
                             className='flex items-center gap-x-2 w-full h-12 px-4 rounded-lg transition-all duration-200 ease-out hover:bg-gray-50 hover:shadow-sm relative overflow-hidden border border-transparent hover:border-gray-200'
-                            // Preload configuration - chỉ cho Organization
-                            preloadTarget={
-                              item.preloadKey === 'create-organization'
-                                ? {
-                                    path: item.preloadKey,
-                                    importFn: () =>
-                                      import('@/pages/User/Auth/Organization/CreateOrganization/CreateOrganization'),
-                                    delay: 100 // 100ms delay khi hover
-                                  }
-                                : undefined
-                            }
                           >
                             {/* Hover ripple effect */}
                             <div className='absolute inset-0 bg-gradient-to-r from-blue-100/0 via-blue-100/50 to-blue-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out' />
@@ -248,16 +237,6 @@ export default function MyLayout({ children }: MyLayoutProps) {
                     )}
                     onClick={() => setActiveTab(item.title)}
                     // Mobile preload configuration
-                    preloadTarget={
-                      item.preloadKey === 'create-organization'
-                        ? {
-                            path: item.preloadKey,
-                            importFn: () =>
-                              import('@/pages/User/Auth/Organization/CreateOrganization/CreateOrganization'),
-                            delay: 50 // Faster on mobile touch
-                          }
-                        : undefined
-                    }
                   >
                     {/* Hover ripple effect */}
                     <div className='absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out' />

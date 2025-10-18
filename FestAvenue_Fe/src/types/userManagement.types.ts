@@ -172,3 +172,32 @@ export interface ServicePackage {
   price: number
   isActive: boolean
 }
+export interface ResGetPermissionService {
+  id: string
+  createdAt: string
+  updatedAt: string
+  eventCode: string
+  userId: string
+  servicePackageIds: string[]
+}
+
+export interface PackageDetail {
+  packageId: string
+  packageName: string
+  description: string
+  totalPrice: number
+  isActive: boolean
+  priority: number
+  servicePackages: ServicePackage[]
+}
+
+export interface ServicePackage {
+  id: string
+  createdAt: string // ISO date string
+  updatedAt: string // ISO date string
+  name: string
+  description: string
+  icon: string
+  price: number
+  isActive: boolean
+}

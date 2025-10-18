@@ -34,6 +34,7 @@ const Login = () => {
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const setIsAuth = useUsersStore((data) => data.setIsAuth)
+  const setUserStore = useUsersStore((data) => data.setIsProfile)
   const [errors, setErrors] = useState<FormErrors>({})
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const loginMutation = useMutation({
@@ -41,6 +42,7 @@ const Login = () => {
     onSuccess: (data) => {
       setIsAuth(true)
       saveAccessTokenToLS(data?.data?.accessToken)
+      setUserStore((data?.data as any)?.user)
       navigate(path.home)
       toast.success(`${data?.message}` || 'Đăng nhập thành công')
     },

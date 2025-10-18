@@ -1,1 +1,0 @@
-export { BasicInfo } from './BasicInfo'

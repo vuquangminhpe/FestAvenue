@@ -18,12 +18,11 @@ const VerifyEmail = lazy(() => import('./pages/User/Public/VerifyEmail/VerifyEma
 const UserProfile = lazy(() => import('./pages/User/Auth/My/MyProfile/UserProfile'))
 const ForgotPassword = lazy(() => import('./pages/User/Public/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/User/Public/ResetPassword/ResetPassword'))
-const CreateOrganization = lazy(() => import('./pages/User/Auth/Organization/CreateOrganization'))
 const ChatMyMessagesSystem = lazy(() => import('./pages/User/Auth/My/MyMessages'))
 const MyPayment = lazy(() => import('./pages/User/Auth/My/MyPayment'))
 const MyEvents = lazy(() => import('./pages/User/Auth/My/MyEvents'))
 const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
-const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule'))
+const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule/ScheduleManagement'))
 const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/EventAnalytics'))
 const EventDetails = lazy(() => import('./pages/User/Auth/EventDetails/EventDetails'))
 const StaffLogin = lazy(() => import('./pages/Staff/Auth/Login'))
@@ -39,8 +38,8 @@ const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
 const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
 
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents/UserManagementInEvent'))
-const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement'))
-const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement'))
+const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement/SocialMediaManagement'))
+const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
 
 const Loader = () => (
   <div
@@ -369,14 +368,6 @@ export default function useRouteElement() {
                   <EventOwnerLayout>
                     <EventAnalyticsDashboard />
                   </EventOwnerLayout>
-                </SuspenseWrapper>
-              )
-            },
-            {
-              path: path.user.organization.created_organization,
-              element: (
-                <SuspenseWrapper>
-                  <CreateOrganization />
                 </SuspenseWrapper>
               )
             },

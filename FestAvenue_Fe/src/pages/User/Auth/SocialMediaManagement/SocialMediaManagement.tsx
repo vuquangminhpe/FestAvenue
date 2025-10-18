@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router'
 import gsap from 'gsap'
 import { sampleLandingData } from '@/components/custom/landing_template/sampleData'
 import type { LandingTemplateProps } from '@/components/custom/landing_template'
@@ -7,10 +8,37 @@ import TemplatePreview from './components/TemplatePreview'
 import TemplateEditor from './components/TemplateEditor'
 import type { TemplateType, ViewMode } from './types'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Lock, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getIdFromNameId } from '@/utils/utils'
+import {
+  useCheckIsEventOwner,
+  useEventPackages,
+  useUserPermissionsInEvent
+} from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 
 export default function SocialMediaManagement() {
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventCode = getIdFromNameId(nameId)
+
+  // Check permissions
+  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  const { data: eventPackagesData } = useEventPackages(eventCode)
+  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+
+  const isEventOwner = ownerCheckData?.data?.data || false
+  const servicePackages = eventPackagesData?.data?.servicePackages || []
+  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
+
+  // Tìm service package ID cho Social Media
+  const socialMediaPackage = servicePackages.find(
+    (pkg: any) =>
+      pkg.name.includes('Social Media') || pkg.name.includes('Quản lý mạng xã hội') || pkg.name.includes('Social')
+  )
+  const hasSocialMediaPermission =
+    isEventOwner || (socialMediaPackage && userServicePackageIds.includes(socialMediaPackage.id))
+
   const [viewMode, setViewMode] = useState<ViewMode>('select')
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null)
   const [templateData, setTemplateData] = useState<LandingTemplateProps>(sampleLandingData)
@@ -93,6 +121,40 @@ export default function SocialMediaManagement() {
       return
     }
     setViewMode('edit')
+  }
+
+  // Loading state
+  if (isCheckingOwner || isLoadingPermissions) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='flex items-center gap-3'>
+          <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+          <span className='text-gray-600 font-medium'>Đang kiểm tra quyền truy cập...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Permission denied
+  if (!hasSocialMediaPermission) {
+    return (
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='max-w-md text-center'>
+          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
+            <Lock className='w-10 h-10 text-red-600' />
+          </div>
+          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
+          <p className='text-gray-600 mb-6'>
+            Bạn không có quyền quản lý social media cho sự kiện này. Vui lòng liên hệ chủ sự kiện để được cấp quyền.
+          </p>
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <p className='text-sm text-blue-800'>
+              <strong>Gợi ý:</strong> Chủ sự kiện có thể cấp quyền cho bạn thông qua trang Quản người dùng.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

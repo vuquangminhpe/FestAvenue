@@ -6,6 +6,8 @@ import type {
   bodyUpdatePackagesForUser,
   getInvitationsEvent,
   InvitationListResponse,
+  PackageDetail,
+  ResGetPermissionService,
   UserServicePackageListResponse
 } from '@/types/userManagement.types'
 import http from '@/utils/http'
@@ -78,6 +80,23 @@ const serviceUserManagementsApis = {
     const data = await http.delete<APIResponse<{ messages: string }>>(
       `/event-user-management/user-leave-event?eventId=${eventId}&userId=${userId}`
     )
+    return data?.data
+  },
+  //Check xem user thuộc event này được sử dụng các services nào
+  getPermissionServicesInEventByUser: async (eventCode: string) => {
+    const data = await http.get<APIResponse<ResGetPermissionService>>(
+      `/event-user-management/get-service-event-by-user?eventCode=${eventCode}`
+    )
+    return data?.data
+  },
+  checkUserIsEventOwner: async (eventCode: string) => {
+    const data = await http.get<APIResponse<{ data: boolean }>>(
+      `/event-user-management/check-user-is-event-owner?eventCode=${eventCode}`
+    )
+    return data?.data
+  },
+  getEventPackageByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<PackageDetail>>(`/event/get-event-package-by-event-code/${eventCode}`)
     return data?.data
   }
 }

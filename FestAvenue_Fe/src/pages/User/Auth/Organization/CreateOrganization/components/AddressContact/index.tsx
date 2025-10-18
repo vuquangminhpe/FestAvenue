@@ -1,1 +1,0 @@
-export { AddressContact } from './AddressContact'

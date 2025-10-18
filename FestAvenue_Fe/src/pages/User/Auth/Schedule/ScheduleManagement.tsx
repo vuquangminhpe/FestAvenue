@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Plus, CalendarDays } from 'lucide-react'
+import { useSearchParams } from 'react-router'
+import { Plus, CalendarDays, Lock, Loader2 } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
 import { useScheduleStore } from '../../../../stores/schedule.store'
 import type { Schedule } from '../../../../types/schedule.types'
@@ -10,8 +11,34 @@ import ScheduleForm from './components/ScheduleForm'
 import ScheduleDetail from './components/ScheduleDetail'
 import { addMonths, subMonths } from 'date-fns'
 import { scheduleService } from '../../../../services/schedule.service'
+import { getIdFromNameId } from '@/utils/utils'
+import {
+  useCheckIsEventOwner,
+  useEventPackages,
+  useUserPermissionsInEvent
+} from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 
 export default function ScheduleManagement() {
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventCode = getIdFromNameId(nameId)
+
+  // Check permissions
+  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  const { data: eventPackagesData } = useEventPackages(eventCode)
+  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+
+  const isEventOwner = ownerCheckData?.data?.data || false
+  const servicePackages = eventPackagesData?.data?.servicePackages || []
+  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
+
+  // Tìm service package ID cho Schedule Management
+  const schedulePackage = servicePackages.find(
+    (pkg: any) =>
+      pkg.name.includes('Schedule') || pkg.name.includes('Lịch trình') || pkg.name.includes('Schedule Management')
+  )
+  const hasSchedulePermission = isEventOwner || (schedulePackage && userServicePackageIds.includes(schedulePackage.id))
+
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedSchedules, setSelectedSchedules] = useState<Schedule[]>([])
@@ -207,6 +234,40 @@ export default function ScheduleManagement() {
     if (aValue > bValue) return filter.sortOrder === 'asc' ? 1 : -1
     return 0
   })
+
+  // Loading state
+  if (isCheckingOwner || isLoadingPermissions) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center'>
+        <div className='flex items-center gap-3'>
+          <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+          <span className='text-gray-600 font-medium'>Đang kiểm tra quyền truy cập...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Permission denied
+  if (!hasSchedulePermission) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center'>
+        <div className='max-w-md text-center'>
+          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
+            <Lock className='w-10 h-10 text-red-600' />
+          </div>
+          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
+          <p className='text-gray-600 mb-6'>
+            Bạn không có quyền quản lý lịch cho sự kiện này. Vui lòng liên hệ chủ sự kiện để được cấp quyền.
+          </p>
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <p className='text-sm text-blue-800'>
+              <strong>Gợi ý:</strong> Chủ sự kiện có thể cấp quyền cho bạn thông qua trang Quản người dùng.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6'>

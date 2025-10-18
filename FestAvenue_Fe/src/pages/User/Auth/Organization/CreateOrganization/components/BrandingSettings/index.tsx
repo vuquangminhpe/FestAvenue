@@ -1,1 +1,0 @@
-export { BrandingSettings } from './BrandingSettings'

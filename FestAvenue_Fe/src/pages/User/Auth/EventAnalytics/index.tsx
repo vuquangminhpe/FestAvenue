@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router'
 import {
   TrendingUp,
   Users,
@@ -11,7 +12,8 @@ import {
   Search,
   UserCheck,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Lock
 } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
 import StatCard from './components/StatCard'
@@ -27,6 +29,8 @@ import TaskCompletionChart from './components/TaskCompletionChart'
 import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../services/eventAnalytics.service'
 import type { EventAnalytics } from '../../../../types/eventAnalytics.types'
+import { getIdFromNameId } from '@/utils/utils'
+import { useCheckIsEventOwner } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 
 type TabType =
   | 'overview'
@@ -40,6 +44,14 @@ type TabType =
   | 'staff'
 
 export default function EventAnalyticsDashboard() {
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventCode = getIdFromNameId(nameId)
+
+  // Check if user is event owner (only event owners can see analytics)
+  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  const isEventOwner = ownerCheckData?.data?.data || false
+
   const [analytics, setAnalytics] = useState<EventAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
@@ -67,6 +79,40 @@ export default function EventAnalyticsDashboard() {
       notation: 'compact',
       compactDisplay: 'short'
     }).format(value)
+  }
+
+  // Check owner permission first
+  if (isCheckingOwner) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
+          <p className='text-gray-600'>Đang kiểm tra quyền truy cập...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Permission denied - Analytics chỉ dành cho event owner
+  if (!isEventOwner) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center'>
+        <div className='max-w-md text-center'>
+          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
+            <Lock className='w-10 h-10 text-red-600' />
+          </div>
+          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Chỉ dành cho chủ sự kiện</h2>
+          <p className='text-gray-600 mb-6'>
+            Trang phân tích chỉ dành cho chủ sự kiện. Bạn không có quyền xem thông tin này.
+          </p>
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <p className='text-sm text-blue-800'>
+              <strong>Lưu ý:</strong> Chỉ người tạo sự kiện mới có quyền xem báo cáo phân tích và thống kê.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {

@@ -1,5 +1,4 @@
 export const componentRegistry = {
-  'create-organization': () => import('@/pages/User/Auth/Organization/CreateOrganization/CreateOrganization'),
   'user-profile': () => import('@/pages/User/Auth/My/MyProfile/UserProfile')
 }
 

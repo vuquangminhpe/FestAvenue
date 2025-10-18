@@ -13,6 +13,7 @@ import { Edit, Eye, Trash2, Mail } from 'lucide-react'
 import type { UserServicePackageResult } from '@/types/userManagement.types'
 import { useState } from 'react'
 import { useRemoveUserFromEvent } from '../hooks/useUserManagement'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 
 interface UserTableProps {
   users: UserServicePackageResult[]
@@ -142,6 +143,7 @@ export default function UserTable({
                   </TableCell>
                   <TableCell className='align-middle'>
                     <div className='flex items-center justify-center gap-2'>
+                      {/* Everyone can view */}
                       <Button
                         variant='ghost'
                         size='icon'
@@ -151,24 +153,28 @@ export default function UserTable({
                       >
                         <Eye className='w-4 h-4' />
                       </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => onEdit(user)}
-                        className='hover:bg-cyan-100 hover:text-cyan-600 transition-all duration-300 hover:scale-110'
-                        title='Chỉnh sửa quyền'
-                      >
-                        <Edit className='w-4 h-4' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => handleDeleteClick(user.userId)}
-                        className='hover:bg-red-100 hover:text-red-600 transition-all duration-300 hover:scale-110'
-                        title='Xóa khỏi sự kiện'
-                      >
-                        <Trash2 className='w-4 h-4' />
-                      </Button>
+
+                      {/* Only Event Owner can edit and delete */}
+                      <PermissionGuard requiresEventOwner>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => onEdit(user)}
+                          className='hover:bg-cyan-100 hover:text-cyan-600 transition-all duration-300 hover:scale-110'
+                          title='Chỉnh sửa quyền'
+                        >
+                          <Edit className='w-4 h-4' />
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          onClick={() => handleDeleteClick(user.userId)}
+                          className='hover:bg-red-100 hover:text-red-600 transition-all duration-300 hover:scale-110'
+                          title='Xóa khỏi sự kiện'
+                        >
+                          <Trash2 className='w-4 h-4' />
+                        </Button>
+                      </PermissionGuard>
                     </div>
                   </TableCell>
                 </TableRow>

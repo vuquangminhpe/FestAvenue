@@ -11,8 +11,11 @@ import EditUserModal from './components/EditUserModal'
 import gsap from 'gsap'
 import { useGetUsersInEvent } from './hooks/useUserManagement'
 import { getIdFromNameId } from '@/utils/utils'
+import { PermissionProvider } from '@/contexts/PermissionContext'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
+import { useCheckIsEventOwner } from './hooks/usePermissions'
 
-export default function UserManagementInEvents() {
+function UserManagementContent() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventId = getIdFromNameId(nameId)
@@ -79,13 +82,17 @@ export default function UserManagementInEvents() {
           </h1>
           <p className='text-gray-600 mt-2'>Quản lý và phân quyền cho các thành viên tham gia sự kiện</p>
         </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
-        >
-          <Plus className='w-5 h-5' />
-          Thêm thành viên
-        </Button>
+
+        {/* Only Event Owner can add members */}
+        <PermissionGuard requiresEventOwner>
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
+          >
+            <Plus className='w-5 h-5' />
+            Thêm thành viên
+          </Button>
+        </PermissionGuard>
       </div>
 
       {/* Filters */}
@@ -111,15 +118,45 @@ export default function UserManagementInEvents() {
         />
       )}
 
-      {/* Modals */}
-      <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} eventId={eventId} />
+      {/* Modals - Only Event Owner can access */}
+      <PermissionGuard requiresEventOwner>
+        <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} eventId={eventId} />
+        <EditUserModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          user={selectedUser}
+          eventId={eventId}
+        />
+      </PermissionGuard>
+
+      {/* View modal - Everyone can view */}
       <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
-      <EditUserModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        user={selectedUser}
-        eventId={eventId}
-      />
     </div>
+  )
+}
+
+export default function UserManagementInEvents() {
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventId = getIdFromNameId(nameId)
+
+  // Check user có phải event owner không thông qua API
+  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventId)
+  const isEventOwner = ownerCheckData?.data?.data || false
+
+  // Show loading state khi đang check owner
+  if (isCheckingOwner) {
+    return (
+      <div className='flex items-center justify-center py-12'>
+        <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+        <span className='ml-2 text-gray-600'>Đang kiểm tra quyền truy cập...</span>
+      </div>
+    )
+  }
+
+  return (
+    <PermissionProvider eventCode={eventId} isEventOwner={isEventOwner}>
+      <UserManagementContent />
+    </PermissionProvider>
   )
 }

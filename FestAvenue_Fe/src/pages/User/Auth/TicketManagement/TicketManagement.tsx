@@ -1,12 +1,38 @@
 import { useState, useEffect } from 'react'
-import { Ticket as TicketIcon, Armchair } from 'lucide-react'
+import { useSearchParams } from 'react-router'
+import { Ticket as TicketIcon, Armchair, Lock, Loader2 } from 'lucide-react'
 import gsap from 'gsap'
 import TicketConfig from './components/TicketConfig'
 import EditorSeat from '@/components/custom/EditorSeat/EditorSeat'
+import { getIdFromNameId } from '@/utils/utils'
+import {
+  useCheckIsEventOwner,
+  useEventPackages,
+  useUserPermissionsInEvent
+} from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 
 type TabType = 'ticket-config' | 'seat-setup'
 
 export default function TicketManagement() {
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventCode = getIdFromNameId(nameId)
+
+  // Check permissions
+  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  const { data: eventPackagesData } = useEventPackages(eventCode)
+  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+
+  const isEventOwner = ownerCheckData?.data?.data || false
+  const servicePackages = eventPackagesData?.data?.servicePackages || []
+  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
+
+  // Tìm service package ID cho Ticket Management
+  const ticketPackage = servicePackages.find(
+    (pkg: any) => pkg.name.includes('Ticket') || pkg.name.includes('Quản lý vé') || pkg.name.includes('Ticketing')
+  )
+  const hasTicketPermission = isEventOwner || (ticketPackage && userServicePackageIds.includes(ticketPackage.id))
+
   const [activeTab, setActiveTab] = useState<TabType>('ticket-config')
 
   // Entrance animation
@@ -30,6 +56,40 @@ export default function TicketManagement() {
         gsap.fromTo('.content-area', { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' })
       }
     })
+  }
+
+  // Loading state
+  if (isCheckingOwner || isLoadingPermissions) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 flex items-center justify-center'>
+        <div className='flex items-center gap-3'>
+          <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+          <span className='text-gray-600 font-medium'>Đang kiểm tra quyền truy cập...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Permission denied
+  if (!hasTicketPermission) {
+    return (
+      <div className='min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 flex items-center justify-center'>
+        <div className='max-w-md text-center'>
+          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
+            <Lock className='w-10 h-10 text-red-600' />
+          </div>
+          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
+          <p className='text-gray-600 mb-6'>
+            Bạn không có quyền quản lý vé cho sự kiện này. Vui lòng liên hệ chủ sự kiện để được cấp quyền.
+          </p>
+          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+            <p className='text-sm text-blue-800'>
+              <strong>Gợi ý:</strong> Chủ sự kiện có thể cấp quyền cho bạn thông qua trang Quản người dùng.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -102,9 +162,7 @@ export default function TicketManagement() {
             </div>
 
             {/* Content */}
-            <div className='content-area p-8'>
-              {activeTab === 'ticket-config' ? <TicketConfig /> : <EditorSeat />}
-            </div>
+            <div className='content-area p-8'>{activeTab === 'ticket-config' ? <TicketConfig /> : <EditorSeat />}</div>
           </div>
         </div>
       </div>

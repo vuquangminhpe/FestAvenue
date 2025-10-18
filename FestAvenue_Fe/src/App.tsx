@@ -12,19 +12,28 @@ function App() {
   const check_accessToken = location.search.includes('accessToken')
   const userStore = useUsersStore((set) => set.setIsProfile)
   const setIsAuth = useUsersStore((set) => set.setIsAuth)
-  const { data } = useQuery({
+  const { data, refetch } = useQuery({
     queryKey: ['getMyProfile'],
     queryFn: () => userApi.getMyProfile(),
     enabled: !!getAccessTokenFromLS()
   })
-  userStore(data?.data)
+
+  // Cập nhật userStore khi data thay đổi
+  useEffect(() => {
+    if (data?.data) {
+      userStore(data.data)
+    }
+  }, [data, userStore])
+
   useEffect(() => {
     if (check_accessToken) {
       const accessToken = location.search.split('=')[1]
       saveAccessTokenToLS(accessToken)
       setIsAuth(true)
+      // Refetch profile sau khi lưu token
+      refetch()
     }
-  }, [check_accessToken, location.search])
+  }, [check_accessToken, location.search, setIsAuth, refetch])
 
   const routeElement = useRouteElement()
   return <>{routeElement}</>

@@ -2,15 +2,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { Calendar, MapPin, CheckCircle2, XCircle, Loader2, Mail } from 'lucide-react'
+import { Calendar, MapPin, CheckCircle2, XCircle, Loader2, Mail, Settings } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+import { useNavigate } from 'react-router'
 import { InvitationStatus, type InvitationResult } from '@/types/userManagement.types'
 import { useGetInvitationsReceived } from '@/pages/User/Process/UserManagementInEvents/hooks/useInvitations'
 import {
   useAcceptInvitation,
   useDeclineInvitation
 } from '@/pages/User/Process/UserManagementInEvents/hooks/useInvitations'
+import path from '@/constants/path'
+import { generateNameId } from '@/utils/utils'
 
 const getStatusConfig = (status: number) => {
   const configs = {
@@ -39,6 +42,7 @@ const getStatusConfig = (status: number) => {
 }
 
 export default function InvitationsTable() {
+  const navigate = useNavigate()
   const { data: invitationsData, isLoading } = useGetInvitationsReceived({
     paginationParam: {
       pageIndex: 1,
@@ -58,6 +62,15 @@ export default function InvitationsTable() {
 
   const handleDecline = (invitationId: string) => {
     declineMutation.mutate(invitationId)
+  }
+
+  const handleManage = (invitation: InvitationResult) => {
+    navigate(
+      `${path.user.event_owner.user_management}?${generateNameId({
+        id: invitation.event.eventCode,
+        name: `${invitation.event.organization.name}-${invitation.event.eventName}`
+      })}`
+    )
   }
 
   if (isLoading) {
@@ -182,9 +195,20 @@ export default function InvitationsTable() {
                       </Button>
                     </div>
                   )}
-                  {invitation.invitationStatus !== InvitationStatus.Pending && (
-                    <span className='text-sm text-slate-500'>Không có hành động</span>
+                  {invitation.invitationStatus === InvitationStatus.Accepted && (
+                    <Button
+                      size='sm'
+                      className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
+                      onClick={() => handleManage(invitation)}
+                    >
+                      <Settings className='w-4 h-4' />
+                      <span className='ml-1'>Quản lí</span>
+                    </Button>
                   )}
+                  {invitation.invitationStatus !== InvitationStatus.Pending &&
+                    invitation.invitationStatus !== InvitationStatus.Accepted && (
+                      <span className='text-sm text-slate-500'>Không có hành động</span>
+                    )}
                 </TableCell>
               </TableRow>
             )
