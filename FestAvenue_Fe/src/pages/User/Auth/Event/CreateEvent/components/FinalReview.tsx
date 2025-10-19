@@ -4,7 +4,7 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { eventTypeOptions, visibilityOptions } from '../constants'
+import { visibilityOptions } from '../constants'
 import { Calendar, MapPin, Users, Mail, Phone, Globe } from 'lucide-react'
 import { Suspense, lazy } from 'react'
 
@@ -17,7 +17,6 @@ interface FinalReviewProps {
 export function FinalReview({ form }: FinalReviewProps) {
   const values = form.getValues()
 
-  const eventType = eventTypeOptions.find((opt) => opt.value === values.eventType)
   const visibility = visibilityOptions.find((opt) => opt.value === values.visibility)
 
   return (
@@ -33,7 +32,6 @@ export function FinalReview({ form }: FinalReviewProps) {
               <p className='text-lg font-bold text-slate-800'>{values.name}</p>
               <p className='text-sm text-slate-600'>{values.shortDescription}</p>
               <div className='flex gap-2 flex-wrap mt-2'>
-                <Badge variant='secondary'>{eventType?.label}</Badge>
                 <Badge variant='outline'>{visibility?.label}</Badge>
               </div>
             </div>
