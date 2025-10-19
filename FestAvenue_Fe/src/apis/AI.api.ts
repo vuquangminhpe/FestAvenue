@@ -1,5 +1,5 @@
 import type { AIDetectRes } from '@/types/AI.types'
-import type { APIResponse } from '@/types/API.types'
+import type { APIResponse, bodyGenerateTags, resGenerateTags } from '@/types/API.types'
 import http from '@/utils/http'
 
 const AIApis = {
@@ -29,6 +29,10 @@ const AIApis = {
         }
       }
     )
+    return data?.data
+  },
+  generateTagsInEvent: async (body: bodyGenerateTags) => {
+    const data = await http.post<resGenerateTags>('https://minh9972t12-autoGenerateTags.hf.space/generate-tags', body)
     return data?.data
   }
 }

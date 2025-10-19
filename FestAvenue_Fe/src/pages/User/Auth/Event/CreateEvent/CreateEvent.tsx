@@ -38,7 +38,7 @@ function CreateEvent() {
   const { nameId } = useParams<{ nameId: string }>()
 
   const isUpdateMode = !!nameId
-  const eventId = nameId ? getIdFromNameId(nameId) : null
+  const eventId = nameId ? getIdFromNameId(nameId) : undefined
 
   const form = useForm<EventFormData, any, EventFormData>({
     resolver: zodResolver(eventSchema) as any,

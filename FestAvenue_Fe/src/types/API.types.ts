@@ -23,3 +23,17 @@ export interface LoginEmailPasswordBody {
 export interface ResponseLoginEmailPassword {
   accessToken: string
 }
+export interface bodyGenerateTags {
+  event_name: string
+  category: string
+  short_description: string
+  detailed_description: string
+  max_tags: number
+  language: 'vi'
+}
+export interface resGenerateTags {
+  event_name: string
+  generated_tags: string[]
+  hashtags: string[]
+  target_audience: string[]
+}

@@ -24,37 +24,50 @@ export function LocationInfo({ form }: LocationInfoProps) {
     control: form.control,
     name: 'location.coordinates'
   })
-  const handleMapClick = async (e: { lat: number; lng: number }) => {
-    // Update coordinates immediately
-    await Promise.all([
-      form.setValue('location.coordinates.latitude', e.lat, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true
-      }),
-      form.setValue('location.coordinates.longitude', e.lng, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true
-      })
-    ])
 
-    // Force trigger validation to update form state
-    await form.trigger(['location.coordinates.latitude', 'location.coordinates.longitude'])
+  const handleMapClick = async (e: { lat: number; lng: number }) => {
+    // Update coordinates immediately with validation options
+    form.setValue('location.coordinates.latitude', e.lat, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    })
+    form.setValue('location.coordinates.longitude', e.lng, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    })
 
     // Reverse geocode to get address from coordinates
     const result = await reverseGeocode(e.lat, e.lng)
 
     if (result) {
-      // Auto-fill address details
+      // Auto-fill address details with validation options
       if (result.formatted_address) {
-        form.setValue('location.address.street', result.formatted_address)
+        form.setValue('location.address.street', result.formatted_address, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true
+        })
       }
+
       if (result.compound?.province) {
         const province = provinces.find((p) => result.compound?.province?.includes(p.name))
+
         if (province) {
-          form.setValue('location.address.city', province.name)
+          form.setValue('location.address.city', province.name, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true
+          })
           setSelectedProvinceCode(province.code)
+        } else {
+          // Fallback: set directly from result
+          form.setValue('location.address.city', result.compound.province, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true
+          })
         }
       }
     }
@@ -70,30 +83,59 @@ export function LocationInfo({ form }: LocationInfoProps) {
       commune?: string
     }
   }) => {
-    // Update coordinates (with trigger to force re-render)
-    form.setValue('location.coordinates.latitude', place.lat, { shouldDirty: true, shouldTouch: true })
-    form.setValue('location.coordinates.longitude', place.lng, { shouldDirty: true, shouldTouch: true })
+    // Update coordinates with validation options
+    form.setValue('location.coordinates.latitude', place.lat, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    })
+    form.setValue('location.coordinates.longitude', place.lng, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    })
 
-    // Update address
-    form.setValue('location.address.street', place.formatted_address)
+    // Update address with validation options
+    form.setValue('location.address.street', place.formatted_address, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true
+    })
 
     // Update province if available
     if (place.compound?.province) {
       const province = provinces.find((p) => place.compound?.province?.includes(p.name))
+
       if (province) {
-        form.setValue('location.address.city', province.name)
+        form.setValue('location.address.city', province.name, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true
+        })
         setSelectedProvinceCode(province.code)
+      } else {
+        // Fallback: set directly from result
+        form.setValue('location.address.city', place.compound.province, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true
+        })
       }
     }
   }
 
   const latitude = form.watch('location.coordinates.latitude')
   const longitude = form.watch('location.coordinates.longitude')
-  const cityValue = form.watch('location.address.city')
   const streetValue = form.watch('location.address.street')
-
-  // Check if location has been selected
-  const hasSelectedLocation = !!(streetValue && cityValue && latitude && longitude)
+  const streetValueSplit = streetValue.split(', ')
+  const cityValue = streetValue.split(', ')[streetValueSplit.length - 1]
+  // Check if location has been selected - use useMemo to ensure reactivity
+  const hasSelectedLocation = useMemo(() => {
+    const hasCoords = latitude && longitude && !isNaN(Number(latitude)) && !isNaN(Number(longitude))
+    const hasAddress = streetValue && streetValue.trim().length > 0
+    const hasCity = cityValue && cityValue.trim().length > 0
+    return !!(hasCoords && hasAddress && hasCity)
+  }, [latitude, longitude, streetValue, cityValue])
 
   // Memoize markerPosition to ensure stable reference
   const markerPosition = useMemo(() => {
@@ -101,13 +143,16 @@ export function LocationInfo({ form }: LocationInfoProps) {
     const lng = Number(coordinates?.longitude)
     return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined
   }, [coordinates?.latitude, coordinates?.longitude])
-  // Debug log
+
+  // Trigger validation when location changes
   useEffect(() => {
-    console.log('Coordinates changed:', { latitude, longitude })
-  }, [latitude, longitude])
+    if (hasSelectedLocation) {
+      form.trigger('location')
+    }
+  }, [latitude, longitude, streetValue, cityValue, hasSelectedLocation, form])
 
   useEffect(() => {
-    if (provinces.length > 0 && cityValue && !selectedProvinceCode) {
+    if (provinces.length > 0 && !selectedProvinceCode) {
       const provinceCode = provinces.find((p) => p.name === cityValue)?.code
       if (provinceCode) {
         setSelectedProvinceCode(provinceCode)
@@ -196,6 +241,53 @@ export function LocationInfo({ form }: LocationInfoProps) {
           />
         </Suspense>
       </Card>
+
+      {/* Address Fields - Required for validation */}
+      <div className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='location.address.street'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className='text-base font-semibold text-slate-700'>
+                Địa chỉ đường phố <span className='text-red-500'>*</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder='Địa chỉ sẽ tự động điền khi chọn trên bản đồ...'
+                  className='bg-white border-slate-200'
+                  readOnly
+                />
+              </FormControl>
+              <FormDescription>Địa chỉ chi tiết (tự động cập nhật từ bản đồ)</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='location.address.city'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className='text-base font-semibold text-slate-700'>
+                Tỉnh/Thành phố <span className='text-red-500'>*</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder='Tỉnh/Thành phố sẽ tự động điền...'
+                  className='bg-white border-slate-200'
+                  readOnly
+                />
+              </FormControl>
+              <FormDescription>Tỉnh/Thành phố (tự động cập nhật từ bản đồ)</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <FormField
