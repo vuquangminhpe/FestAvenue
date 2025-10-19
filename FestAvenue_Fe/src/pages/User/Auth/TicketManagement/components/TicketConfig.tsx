@@ -1,175 +1,96 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Plus } from 'lucide-react'
+import { useSearchParams } from 'react-router'
+import { Search, Plus, Loader2 } from 'lucide-react'
 import gsap from 'gsap'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
 import TicketList from './TicketList'
 import FilterPanel from './FilterPanel'
 import AddTicketModal from './AddTicketModal'
 import UpdateTicketModal from './UpdateTicketModal'
-import { mockTickets } from '../mockData'
-import type { Ticket, TicketFormData, TicketFilters } from '../types'
+import DeleteConfirmDialog from './DeleteConfirmDialog'
+import type { Ticket, TicketFilters } from '../types'
+import { useGetTickets, useDeleteTicket } from '../hooks/useTicketManagement'
+import { getIdFromNameId } from '@/utils/utils'
+import type { TicketSearchRequest } from '@/types/serviceTicketManagement.types'
 
 export default function TicketConfig() {
-  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [searchParams] = useSearchParams()
+  const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventCode = getIdFromNameId(nameId)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
+  const [pageIndex, setPageIndex] = useState(1)
   const [filters, setFilters] = useState<TicketFilters>({
     priceFrom: '',
     priceTo: '',
-    isPublic: false,
-    isSoldOut: false,
+    isPublic: true,
     sortBy: 'createdAt',
     sortOrder: 'desc'
   })
 
-  // Load tickets from localStorage or use mock data
-  useEffect(() => {
-    const savedTickets = localStorage.getItem('eventTickets')
-    if (savedTickets) {
-      try {
-        setTickets(JSON.parse(savedTickets))
-      } catch (error) {
-        console.error('Failed to load tickets:', error)
-        setTickets(mockTickets)
+  // Build search request
+  const searchRequest: TicketSearchRequest = useMemo(
+    () => ({
+      search: searchQuery,
+      // createdFromDate: '',
+      // createdToDate: '',
+      eventCode: eventCode,
+      isPublic: filters.isPublic ?? false,
+      minPrice: filters.priceFrom ? Number(filters.priceFrom) : 0,
+      maxPrice: filters.priceTo ? Number(filters.priceTo) : 999999999,
+      pagination: {
+        // orderBy: filters.sortBy,
+        pageIndex: pageIndex,
+        isPaging: true,
+        pageSize: 10
       }
-    } else {
-      setTickets(mockTickets)
-    }
-  }, [])
+    }),
+    [searchQuery, eventCode, filters, pageIndex]
+  )
 
-  // Save tickets to localStorage whenever they change
-  useEffect(() => {
-    if (tickets.length > 0) {
-      localStorage.setItem('eventTickets', JSON.stringify(tickets))
-    }
-  }, [tickets])
+  // Fetch tickets
+  const { data: ticketsData, isLoading, isFetching } = useGetTickets(eventCode, searchRequest)
+  const deleteTicketMutation = useDeleteTicket()
+
+  const tickets = ticketsData?.data?.result || []
 
   // Entrance animation
   useEffect(() => {
-    gsap.fromTo('.ticket-config-content', { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.5, ease: 'power2.out' })
+    gsap.fromTo(
+      '.ticket-config-content',
+      { opacity: 0, x: 20 },
+      { opacity: 1, x: 0, duration: 0.5, ease: 'power2.out' }
+    )
   }, [])
 
-  // Filter and sort tickets
-  const filteredTickets = useMemo(() => {
-    let result = [...tickets]
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      result = result.filter(
-        (ticket) =>
-          ticket.name.toLowerCase().includes(query) ||
-          ticket.description.toLowerCase().includes(query) ||
-          ticket.seatInfo.toLowerCase().includes(query) ||
-          ticket.benefits.toLowerCase().includes(query)
-      )
-    }
-
-    // Price range filter
-    if (filters.priceFrom) {
-      result = result.filter((ticket) => ticket.price >= Number(filters.priceFrom))
-    }
-    if (filters.priceTo) {
-      result = result.filter((ticket) => ticket.price <= Number(filters.priceTo))
-    }
-
-    // Public filter
-    if (filters.isPublic) {
-      result = result.filter((ticket) => ticket.isActive)
-    }
-
-    // Sold out filter
-    if (filters.isSoldOut) {
-      result = result.filter((ticket) => ticket.quantity === 0)
-    }
-
-    // Sorting
-    result.sort((a, b) => {
-      let compareValue = 0
-
-      switch (filters.sortBy) {
-        case 'name':
-          compareValue = a.name.localeCompare(b.name)
-          break
-        case 'price':
-          compareValue = a.price - b.price
-          break
-        case 'quantity':
-          compareValue = a.quantity - b.quantity
-          break
-        case 'createdAt':
-          compareValue = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          break
-      }
-
-      return filters.sortOrder === 'asc' ? compareValue : -compareValue
-    })
-
-    return result
-  }, [tickets, searchQuery, filters])
-
-  const handleAddTicket = (data: TicketFormData) => {
-    const newTicket: Ticket = {
-      id: `ticket-${Date.now()}`,
-      name: data.name,
-      description: data.description,
-      price: Number(data.price) || 0,
-      quantity: Number(data.quantity) || 0,
-      seatInfo: data.seatInfo,
-      benefits: data.benefits,
-      isActive: data.isActive,
-      isPublic: data.isActive,
-      isSoldOut: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-
-    setTickets([...tickets, newTicket])
-    toast.success('Thêm vé thành công!')
-
-    // Animate new ticket
-    setTimeout(() => {
-      gsap.fromTo(
-        '.ticket-list tr:last-child',
-        { backgroundColor: '#ecfeff', scale: 1.02 },
-        { backgroundColor: 'transparent', scale: 1, duration: 1, ease: 'power2.out' }
-      )
-    }, 100)
-  }
-
-  const handleUpdateTicket = (ticketId: string, data: TicketFormData) => {
-    setTickets(
-      tickets.map((ticket) =>
-        ticket.id === ticketId
-          ? {
-              ...ticket,
-              name: data.name,
-              description: data.description,
-              price: Number(data.price) || 0,
-              quantity: Number(data.quantity) || 0,
-              seatInfo: data.seatInfo,
-              benefits: data.benefits,
-              isActive: data.isActive,
-              isPublic: data.isActive,
-              updatedAt: new Date().toISOString()
-            }
-          : ticket
-      )
-    )
-    toast.success('Cập nhật vé thành công!')
-    setIsUpdateModalOpen(false)
-    setSelectedTicket(null)
-  }
-
   const handleDeleteTicket = (ticketId: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa vé này?')) {
-      setTickets(tickets.filter((ticket) => ticket.id !== ticketId))
-      toast.success('Xóa vé thành công!')
+    const ticket = tickets.find((t) => t.id === ticketId)
+    if (ticket) {
+      setTicketToDelete(ticket)
+      setIsDeleteDialogOpen(true)
     }
+  }
+
+  const handleConfirmDelete = () => {
+    if (ticketToDelete) {
+      deleteTicketMutation.mutate(ticketToDelete.id, {
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false)
+          setTicketToDelete(null)
+        }
+      })
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setIsDeleteDialogOpen(false)
+    setTicketToDelete(null)
   }
 
   const handleUpdateClick = (ticket: Ticket) => {
@@ -181,13 +102,32 @@ export default function TicketConfig() {
     setFilters({
       priceFrom: '',
       priceTo: '',
-      isPublic: false,
-      isSoldOut: false,
+      isPublic: null,
       sortBy: 'createdAt',
       sortOrder: 'desc'
     })
     setSearchQuery('')
-    toast.info('Đã xóa tất cả bộ lọc')
+  }
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false)
+  }
+
+  const handleCloseUpdateModal = () => {
+    setIsUpdateModalOpen(false)
+    setSelectedTicket(null)
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className='ticket-config-content flex items-center justify-center min-h-[400px]'>
+        <div className='flex items-center gap-3'>
+          <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+          <span className='text-gray-600 font-medium'>Đang tải danh sách vé...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -221,49 +161,52 @@ export default function TicketConfig() {
       {/* Tickets Count */}
       <div className='flex items-center justify-between py-4'>
         <p className='text-sm text-gray-600'>
-          Hiển thị <span className='font-semibold text-gray-900'>{filteredTickets.length}</span> vé
+          Hiển thị <span className='font-semibold text-gray-900'>{tickets.length}</span> vé
           {searchQuery && ' (đã lọc)'}
         </p>
+        {isFetching && <Loader2 className='w-4 h-4 animate-spin text-cyan-400' />}
       </div>
 
       {/* Ticket List */}
       <div className='ticket-list'>
-        <TicketList tickets={filteredTickets} onUpdate={handleUpdateClick} onDelete={handleDeleteTicket} />
+        <TicketList tickets={tickets} onUpdate={handleUpdateClick} onDelete={handleDeleteTicket} />
       </div>
 
       {/* Pagination Placeholder */}
-      {filteredTickets.length > 0 && (
+      {tickets.length > 0 && (
         <div className='flex items-center justify-center gap-2 py-6'>
-          <Button variant='outline' size='sm' disabled>
+          <Button variant='outline' size='sm' disabled={pageIndex === 1} onClick={() => setPageIndex(pageIndex - 1)}>
             &lt;&lt; Prev
           </Button>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((page) => (
             <Button
               key={page}
-              variant={page === 1 ? 'default' : 'outline'}
+              variant={page === pageIndex ? 'default' : 'outline'}
               size='sm'
-              className={page === 1 ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
+              className={page === pageIndex ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
+              onClick={() => setPageIndex(page)}
             >
               {page}
             </Button>
           ))}
-          <Button variant='outline' size='sm'>
+          <Button variant='outline' size='sm' onClick={() => setPageIndex(pageIndex + 1)}>
             Next &gt;&gt;
           </Button>
         </div>
       )}
 
       {/* Modals */}
-      <AddTicketModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onSubmit={handleAddTicket} />
+      <AddTicketModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} eventCode={eventCode} />
 
-      <UpdateTicketModal
-        isOpen={isUpdateModalOpen}
-        ticket={selectedTicket}
-        onClose={() => {
-          setIsUpdateModalOpen(false)
-          setSelectedTicket(null)
-        }}
-        onSubmit={handleUpdateTicket}
+      <UpdateTicketModal isOpen={isUpdateModalOpen} ticket={selectedTicket} onClose={handleCloseUpdateModal} />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        ticket={ticketToDelete}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDeleting={deleteTicketMutation.isPending}
       />
     </div>
   )

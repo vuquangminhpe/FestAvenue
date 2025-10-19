@@ -1,33 +1,25 @@
-export interface Ticket {
-  id: string
-  name: string // Tên vé
-  description: string // Mô tả chi tiết
-  price: number // Giá vé
-  quantity: number // Số lượng
-  seatInfo: string // Thông tin ghế ngồi
-  benefits: string // Quyền lợi vé
-  isActive: boolean // Công khai
-  isPublic?: boolean // Hiển thị các vé đã public
-  isSoldOut?: boolean // Hiển thị các vé đã bán hết
-  createdAt: string
-  updatedAt: string
-}
+// Import types from API
+import type { Ticket as APITicket } from '@/types/serviceTicketManagement.types'
+
+// Re-export API Ticket type
+export type Ticket = APITicket
 
 export interface TicketFormData {
   name: string
   description: string
   price: number | string
   quantity: number | string
-  seatInfo: string
-  benefits: string
-  isActive: boolean
+  benefits: string[]
+  isFree: boolean
+  isPublic: boolean
+  startSaleDate: string
+  endSaleDate: string
 }
 
 export interface TicketFilters {
   priceFrom: string
   priceTo: string
-  isPublic: boolean
-  isSoldOut: boolean
+  isPublic: boolean | null
   sortBy: 'price' | 'name' | 'quantity' | 'createdAt'
   sortOrder: 'asc' | 'desc'
 }

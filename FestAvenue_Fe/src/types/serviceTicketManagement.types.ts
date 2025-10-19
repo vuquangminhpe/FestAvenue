@@ -42,7 +42,7 @@ export interface TicketResponse {
   result: Ticket[]
 }
 export interface TicketPagination {
-  orderBy: string
+  orderBy?: string
   pageIndex: number
   isPaging: boolean
   pageSize: number
@@ -50,10 +50,10 @@ export interface TicketPagination {
 
 export interface TicketSearchRequest {
   search: string
-  createdFromDate: string // ISO date string
-  createdToDate: string // ISO date string
+  createdFromDate?: string // ISO date string
+  creedFromDate?: string // ISO date string
   eventCode: string
-  isPublic: boolean
+  isPublic?: boolean
   minPrice: number
   maxPrice: number
   pagination: TicketPagination

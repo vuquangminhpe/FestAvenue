@@ -29,12 +29,7 @@ export default function FilterPanel({ filters, onFiltersChange, onClearFilters }
             <Filter className='w-5 h-5 text-cyan-500' />
             <h3 className='text-lg font-semibold text-gray-900'>Bộ lọc nâng cao</h3>
           </div>
-          <Button
-            variant='ghost'
-            size='sm'
-            onClick={() => setIsExpanded(!isExpanded)}
-            className='hover:bg-gray-100'
-          >
+          <Button variant='ghost' size='sm' onClick={() => setIsExpanded(!isExpanded)} className='hover:bg-gray-100'>
             {isExpanded ? <ChevronUp className='w-5 h-5' /> : <ChevronDown className='w-5 h-5' />}
           </Button>
         </div>
@@ -82,22 +77,11 @@ export default function FilterPanel({ filters, onFiltersChange, onClearFilters }
               <div className='flex items-center space-x-2'>
                 <Checkbox
                   id='isPublic'
-                  checked={filters.isPublic}
-                  onCheckedChange={(checked) => handleFilterChange('isPublic', checked)}
+                  checked={filters.isPublic === true}
+                  onCheckedChange={(checked) => handleFilterChange('isPublic', checked ? true : null)}
                 />
                 <Label htmlFor='isPublic' className='text-sm text-gray-700 cursor-pointer'>
-                  Hiển thị các vé đã public
-                </Label>
-              </div>
-
-              <div className='flex items-center space-x-2'>
-                <Checkbox
-                  id='isSoldOut'
-                  checked={filters.isSoldOut}
-                  onCheckedChange={(checked) => handleFilterChange('isSoldOut', checked)}
-                />
-                <Label htmlFor='isSoldOut' className='text-sm text-gray-700 cursor-pointer'>
-                  Hiển thị các vé đã bán hết
+                  Chỉ hiển thị vé công khai
                 </Label>
               </div>
             </div>
