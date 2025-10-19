@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gsap } from 'gsap'
 import {
   Package as PackageIcon,
@@ -31,7 +31,7 @@ import { getIdFromNameId } from '@/utils/utils'
 
 export default function PaymentEvent() {
   const navigate = useNavigate()
-
+  const queryClient = useQueryClient()
   const eventId = getIdFromNameId(location.search).split('?')[1]
 
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null)
@@ -190,6 +190,7 @@ export default function PaymentEvent() {
         {
           onSuccess: () => {
             setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: ['myEvents'] })
               toast.success('Kích hoạt gói thành công!')
               navigate(path.user.my.events)
             }, 1500)

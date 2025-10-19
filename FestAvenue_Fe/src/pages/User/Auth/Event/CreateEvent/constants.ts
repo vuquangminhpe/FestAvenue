@@ -48,7 +48,6 @@ export const defaultFormValues: EventFormData = {
   shortDescription: '',
   description: '',
   categoryId: '',
-  eventType: 0,
   visibility: 0,
   capacity: 100,
   startDate: '',
@@ -94,15 +93,7 @@ export const getFieldsForStep = (step: number): (keyof EventFormData)[] => {
     case 1:
       return ['name', 'shortDescription', 'description', 'categoryId']
     case 2:
-      return [
-        'eventType',
-        'visibility',
-        'capacity',
-        'startDate',
-        'endDate',
-        'registrationStartDate',
-        'registrationEndDate'
-      ]
+      return ['visibility', 'capacity', 'startDate', 'endDate', 'registrationStartDate', 'registrationEndDate']
     case 3:
       return [] // Media validation handled separately with AI
     case 4:

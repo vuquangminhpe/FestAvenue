@@ -5,14 +5,25 @@ import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
 import { gsap } from 'gsap'
-import { ChevronLeft, ChevronRight, Check, ArrowLeft, Loader2 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
+import { ChevronLeft, ChevronRight, Check, ArrowLeft, Loader2, AlertTriangle } from 'lucide-react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { getIdFromNameId } from '@/utils/utils'
 import eventApis from '@/apis/event.api'
+import AIApis from '@/apis/AI.api'
+import type { resModerateContent } from '@/types/API.types'
 
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
 import path from '@/constants/path'
 
 import { eventSchema, type EventFormData } from './types'
@@ -32,6 +43,8 @@ import {
 
 function CreateEvent() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [showModerateDialog, setShowModerateDialog] = useState(false)
+  const [moderateResult, setModerateResult] = useState<resModerateContent | null>(null)
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -88,6 +101,17 @@ function CreateEvent() {
 
   const { onSubmit, createEventMutation, uploadFileMutation, organizationData } = useCreateEvent()
 
+  // Fetch categories for moderate content API
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const categoryApis = await import('@/apis/categories.api')
+      return categoryApis.default.getCategoryActive()
+    }
+  })
+
+  const categories = categoriesData?.data || []
+
   const {
     logoDetection,
     bannerDetection,
@@ -103,6 +127,27 @@ function CreateEvent() {
     hasUncheckedFiles,
     resetDetection
   } = useAIDetection()
+
+  // Moderate content mutation
+  const moderateContentMutation = useMutation({
+    mutationFn: AIApis.moderateContentInEvent,
+    onSuccess: (response) => {
+      if (response?.data?.is_valid) {
+        // Content is valid, proceed with creating event
+        const formData = form.getValues()
+        onSubmit(formData)
+      } else {
+        // Content is invalid, show dialog with reasons
+        setModerateResult(response?.data || null)
+        setShowModerateDialog(true)
+      }
+    },
+    onError: () => {
+      toast.error('Lỗi khi kiểm tra nội dung', {
+        description: 'Vui lòng thử lại sau'
+      })
+    }
+  })
 
   // GSAP Animations
   useEffect(() => {
@@ -155,7 +200,11 @@ function CreateEvent() {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
   }
 
-  const handleSubmit = async (data: EventFormData) => {
+  const goToStep = (stepId: number) => {
+    setCurrentStep(stepId)
+  }
+
+  const handleSubmit = (data: EventFormData) => {
     if (isDetecting()) {
       toast.error('Vui lòng đợi kiểm tra AI hoàn tất')
       return
@@ -166,7 +215,17 @@ function CreateEvent() {
       return
     }
 
-    await onSubmit(data)
+    // Get category name from categoryId
+    const category = categories.find((cat: any) => cat.id === data.categoryId)
+    const categoryName = category?.name || 'General'
+
+    // Call moderate content API first
+    moderateContentMutation.mutate({
+      event_name: data.name,
+      category: categoryName,
+      short_description: data.shortDescription,
+      detailed_description: data.description
+    })
   }
 
   // Show loading state while fetching event data
@@ -210,7 +269,7 @@ function CreateEvent() {
         </div>
 
         {/* Progress Steps */}
-        <ProgressSteps currentStep={currentStep} />
+        <ProgressSteps currentStep={currentStep} onStepClick={goToStep} />
 
         {/* Main Form Card */}
         <Card ref={cardRef} className='bg-white/80 backdrop-blur-sm shadow-xl border-0'>
@@ -358,10 +417,20 @@ function CreateEvent() {
                     ) : (
                       <Button
                         type='submit'
-                        disabled={createEventMutation.isPending || uploadFileMutation.isPending || isDetecting()}
+                        disabled={
+                          createEventMutation.isPending ||
+                          uploadFileMutation.isPending ||
+                          isDetecting() ||
+                          moderateContentMutation.isPending
+                        }
                         className='bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center gap-2'
                       >
-                        {createEventMutation.isPending || uploadFileMutation.isPending ? (
+                        {moderateContentMutation.isPending ? (
+                          <>
+                            <Loader2 className='w-4 h-4 animate-spin' />
+                            Đang kiểm tra nội dung...
+                          </>
+                        ) : createEventMutation.isPending || uploadFileMutation.isPending ? (
                           <>
                             <Loader2 className='w-4 h-4 animate-spin' />
                             {isUpdateMode ? 'Đang cập nhật sự kiện...' : 'Đang tạo sự kiện...'}
@@ -380,6 +449,112 @@ function CreateEvent() {
             </Form>
           </CardContent>
         </Card>
+
+        {/* Moderate Content Rejection Dialog */}
+        <Dialog open={showModerateDialog} onOpenChange={setShowModerateDialog}>
+          <DialogContent className='sm:max-w-[600px]'>
+            <DialogHeader>
+              <div className='flex items-center gap-3 mb-2'>
+                <div className='p-2 bg-red-100 rounded-full'>
+                  <AlertTriangle className='w-6 h-6 text-red-600' />
+                </div>
+                <DialogTitle className='text-xl'>Nội dung không phù hợp</DialogTitle>
+              </div>
+              <DialogDescription className='text-base'>
+                Hệ thống AI đã phát hiện nội dung của sự kiện có thể không phù hợp. Vui lòng xem lại và chỉnh sửa.
+              </DialogDescription>
+            </DialogHeader>
+
+            {moderateResult && (
+              <div className='space-y-4 py-4'>
+                {/* Confidence Score */}
+                <div className='flex items-center justify-between p-3 bg-slate-50 rounded-lg'>
+                  <span className='font-medium text-slate-700'>Điểm tin cậy:</span>
+                  <Badge
+                    variant='outline'
+                    className={
+                      moderateResult.confidence_score >= 0.7
+                        ? 'bg-red-100 text-red-700 border-red-300'
+                        : 'bg-orange-100 text-orange-700 border-orange-300'
+                    }
+                  >
+                    {(moderateResult.confidence_score * 100).toFixed(0)}%
+                  </Badge>
+                </div>
+
+                {/* Reason */}
+                {moderateResult.reason && (
+                  <div className='space-y-2'>
+                    <h4 className='font-semibold text-slate-800 flex items-center gap-2'>
+                      <span className='w-2 h-2 bg-red-500 rounded-full'></span>
+                      Lý do:
+                    </h4>
+                    <p className='text-slate-700 bg-red-50 p-3 rounded-lg border border-red-200'>
+                      {moderateResult.reason}
+                    </p>
+                  </div>
+                )}
+
+                {/* Issues */}
+                {moderateResult.issues && moderateResult.issues.length > 0 && (
+                  <div className='space-y-2'>
+                    <h4 className='font-semibold text-slate-800 flex items-center gap-2'>
+                      <span className='w-2 h-2 bg-orange-500 rounded-full'></span>
+                      Vấn đề phát hiện:
+                    </h4>
+                    <ul className='space-y-2'>
+                      {moderateResult.issues.map((issue, index) => (
+                        <li key={index} className='flex items-start gap-2 text-slate-700'>
+                          <span className='text-orange-500 mt-1'>•</span>
+                          <span className='flex-1'>{issue}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Suggestions */}
+                {moderateResult.suggestions && moderateResult.suggestions.length > 0 && (
+                  <div className='space-y-2'>
+                    <h4 className='font-semibold text-slate-800 flex items-center gap-2'>
+                      <span className='w-2 h-2 bg-green-500 rounded-full'></span>
+                      Gợi ý cải thiện:
+                    </h4>
+                    <ul className='space-y-2'>
+                      {moderateResult.suggestions.map((suggestion, index) => (
+                        <li key={index} className='flex items-start gap-2 text-slate-700 bg-green-50 p-3 rounded-lg'>
+                          <span className='text-green-600 font-bold mt-0.5'>{index + 1}.</span>
+                          <span className='flex-1'>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter className='gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={() => setShowModerateDialog(false)}
+                className='flex items-center gap-2'
+              >
+                Đóng
+              </Button>
+              <Button
+                type='button'
+                onClick={() => {
+                  setShowModerateDialog(false)
+                  setCurrentStep(1) // Go back to step 1 to edit
+                }}
+                className='bg-blue-600 hover:bg-blue-700 flex items-center gap-2'
+              >
+                Chỉnh sửa nội dung
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

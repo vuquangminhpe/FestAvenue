@@ -235,7 +235,6 @@ export const eventSchema = z
     categoryId: z.string().min(1, 'Vui lòng chọn danh mục sự kiện'),
 
     // ========== Event Type & Visibility ==========
-    eventType: z.number().min(0, 'Vui lòng chọn loại sự kiện').max(6, 'Loại sự kiện không hợp lệ'),
 
     visibility: z.number().min(0, 'Vui lòng chọn chế độ hiển thị').max(2, 'Chế độ hiển thị không hợp lệ'),
 

@@ -37,3 +37,16 @@ export interface resGenerateTags {
   hashtags: string[]
   target_audience: string[]
 }
+export interface bodyModerateContent {
+  event_name: string
+  category: string
+  short_description: string
+  detailed_description: string
+}
+export interface resModerateContent {
+  is_valid: boolean
+  confidence_score: number //max là 1
+  reason: string
+  issues: string[]
+  suggestions: string[]
+}

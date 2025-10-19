@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
-import { eventTypeOptions, visibilityOptions } from '../constants'
+import { visibilityOptions } from '../constants'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
@@ -20,33 +20,6 @@ export function EventDetails({ form }: EventDetailsProps) {
   return (
     <div className='space-y-6'>
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-        <FormField
-          control={form.control}
-          name='eventType'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className='text-base font-semibold text-slate-700'>
-                Loại sự kiện <span className='text-red-500'>*</span>
-              </FormLabel>
-              <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)}>
-                <FormControl>
-                  <SelectTrigger className='bg-white border-slate-200'>
-                    <SelectValue placeholder='Chọn loại sự kiện' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {eventTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={String(option.value)}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <FormField
           control={form.control}
           name='visibility'
@@ -76,103 +49,24 @@ export function EventDetails({ form }: EventDetailsProps) {
             </FormItem>
           )}
         />
-      </div>
-
-      <FormField
-        control={form.control}
-        name='capacity'
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className='text-base font-semibold text-slate-700'>
-              Sức chứa <span className='text-red-500'>*</span>
-            </FormLabel>
-            <FormControl>
-              <Input
-                type='number'
-                placeholder='Nhập sức chứa...'
-                {...field}
-                onChange={(e) => field.onChange(Number(e.target.value))}
-                className='bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500'
-              />
-            </FormControl>
-            <FormDescription>Số lượng người tham gia tối đa</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <FormField
           control={form.control}
-          name='startDate'
+          name='capacity'
           render={({ field }) => (
-            <FormItem className='flex flex-col'>
+            <FormItem>
               <FormLabel className='text-base font-semibold text-slate-700'>
-                Ngày bắt đầu <span className='text-red-500'>*</span>
+                Sức chứa <span className='text-red-500'>*</span>
               </FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? format(new Date(field.value), 'PPP', { locale: vi }) : <span>Chọn ngày</span>}
-                      <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='start'>
-                  <Calendar
-                    mode='single'
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date?.toISOString())}
-                    disabled={(date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name='endDate'
-          render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel className='text-base font-semibold text-slate-700'>
-                Ngày kết thúc <span className='text-red-500'>*</span>
-              </FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={'outline'}
-                      className={cn(
-                        'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? format(new Date(field.value), 'PPP', { locale: vi }) : <span>Chọn ngày</span>}
-                      <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='start'>
-                  <Calendar
-                    mode='single'
-                    selected={field.value ? new Date(field.value) : undefined}
-                    onSelect={(date) => field.onChange(date?.toISOString())}
-                    disabled={(date) => date < new Date(form.watch('startDate'))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <Input
+                  type='number'
+                  placeholder='Nhập sức chứa...'
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  className='bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500'
+                />
+              </FormControl>
+              <FormDescription>Số lượng người tham gia tối đa</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -186,7 +80,7 @@ export function EventDetails({ form }: EventDetailsProps) {
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel className='text-base font-semibold text-slate-700'>
-                Ngày bắt đầu đăng ký <span className='text-red-500'>*</span>
+                Ngày bắt đầu mua vé <span className='text-red-500'>*</span>
               </FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
@@ -224,7 +118,7 @@ export function EventDetails({ form }: EventDetailsProps) {
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel className='text-base font-semibold text-slate-700'>
-                Ngày kết thúc đăng ký <span className='text-red-500'>*</span>
+                Ngày kết thúc đặt vé <span className='text-red-500'>*</span>
               </FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
@@ -246,12 +140,91 @@ export function EventDetails({ form }: EventDetailsProps) {
                     mode='single'
                     selected={field.value ? new Date(field.value) : undefined}
                     onSelect={(date) => field.onChange(date?.toISOString())}
-                    disabled={(date) => date < new Date(form.watch('registrationStartDate')) || date > new Date(form.watch('startDate'))}
+                    disabled={(date) =>
+                      date < new Date(form.watch('registrationStartDate')) || date > new Date(form.watch('startDate'))
+                    }
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
-              <FormDescription className='text-xs'>Phải trước ngày bắt đầu sự kiện</FormDescription>
+              <FormDescription className='text-xs'>Phải trước ngày sự kiện diễn ra</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+        <FormField
+          control={form.control}
+          name='startDate'
+          render={({ field }) => (
+            <FormItem className='flex flex-col'>
+              <FormLabel className='text-base font-semibold text-slate-700'>
+                Ngày sự kiện diễn ra <span className='text-red-500'>*</span>
+              </FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full pl-3 text-left font-normal bg-white border-slate-200',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? format(new Date(field.value), 'PPP', { locale: vi }) : <span>Chọn ngày</span>}
+                      <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='start'>
+                  <Calendar
+                    mode='single'
+                    selected={field.value ? new Date(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date?.toISOString())}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='endDate'
+          render={({ field }) => (
+            <FormItem className='flex flex-col'>
+              <FormLabel className='text-base font-semibold text-slate-700'>
+                Ngày kết thúc sự kiện <span className='text-red-500'>*</span>
+              </FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={'outline'}
+                      className={cn(
+                        'w-full pl-3 text-left font-normal bg-white border-slate-200',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? format(new Date(field.value), 'PPP', { locale: vi }) : <span>Chọn ngày</span>}
+                      <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='start'>
+                  <Calendar
+                    mode='single'
+                    selected={field.value ? new Date(field.value) : undefined}
+                    onSelect={(date) => field.onChange(date?.toISOString())}
+                    disabled={(date) => date < new Date(form.watch('startDate'))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
               <FormMessage />
             </FormItem>
           )}
