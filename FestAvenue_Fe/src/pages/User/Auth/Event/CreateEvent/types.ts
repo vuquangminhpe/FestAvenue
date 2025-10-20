@@ -240,11 +240,13 @@ export const eventSchema = z
 
     capacity: capacityValidator,
 
-    // ========== Dates (will add cross-field validation later) ==========
-    startDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu sự kiện'),
-    endDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc sự kiện'),
-    registrationStartDate: z.string().min(1, 'Vui lòng chọn ngày bắt đầu đăng ký'),
-    registrationEndDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc đăng ký'),
+    // ========== New Time Fields - Event Lifecycle Covers All ==========
+    startEventLifecycleTime: z.string().min(1, 'Vui lòng chọn thời gian bắt đầu vòng đời sự kiện'),
+    endEventLifecycleTime: z.string().min(1, 'Vui lòng chọn thời gian kết thúc vòng đời sự kiện'),
+    startTicketSaleTime: z.string().min(1, 'Vui lòng chọn thời gian bắt đầu bán vé'),
+    endTicketSaleTime: z.string().min(1, 'Vui lòng chọn thời gian kết thúc bán vé'),
+    startTimeEventTime: z.string().min(1, 'Vui lòng chọn thời gian bắt đầu sự kiện'),
+    endTimeEventTime: z.string().min(1, 'Vui lòng chọn thời gian kết thúc sự kiện'),
 
     // ========== Media - AI Detection Required ==========
     logoUrl: z
@@ -463,74 +465,135 @@ export const eventSchema = z
       })
     })
   })
-  // ========== CROSS-FIELD VALIDATION ==========
+  // ========== CROSS-FIELD VALIDATION FOR NEW TIME FIELDS ==========
+
+  // 1. EventLifecycleTime validation
   .refine(
     (data) => {
-      const start = new Date(data.startDate)
-      const end = new Date(data.endDate)
+      const start = new Date(data.startEventLifecycleTime)
+      const end = new Date(data.endEventLifecycleTime)
       return end >= start
     },
     {
-      message: 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu sự kiện',
-      path: ['endDate']
-    }
-  )
-  .refine(
-    (data) => {
-      const regStart = new Date(data.registrationStartDate)
-      const regEnd = new Date(data.registrationEndDate)
-      return regEnd >= regStart
-    },
-    {
-      message: 'Ngày kết thúc đăng ký phải sau hoặc bằng ngày bắt đầu đăng ký',
-      path: ['registrationEndDate']
-    }
-  )
-  .refine(
-    (data) => {
-      const regEnd = new Date(data.registrationEndDate)
-      const eventStart = new Date(data.startDate)
-      return eventStart >= regEnd
-    },
-    {
-      message: 'Ngày bắt đầu sự kiện phải sau hoặc bằng ngày kết thúc đăng ký',
-      path: ['startDate']
+      message: 'Thời gian kết thúc vòng đời phải sau hoặc bằng thời gian bắt đầu',
+      path: ['endEventLifecycleTime']
     }
   )
   .refine(
     (data) => {
       const now = new Date()
-      now.setHours(0, 0, 0, 0) // Reset to start of day
-      const eventStart = new Date(data.startDate)
-      return eventStart >= now
+      const start = new Date(data.startEventLifecycleTime)
+      return start >= now
     },
     {
-      message: 'Ngày bắt đầu sự kiện không thể là ngày trong quá khứ',
-      path: ['startDate']
+      message: 'Thời gian bắt đầu vòng đời sự kiện không thể là thời điểm trong quá khứ',
+      path: ['startEventLifecycleTime']
     }
   )
   .refine(
     (data) => {
-      const start = new Date(data.startDate)
-      const end = new Date(data.endDate)
+      const start = new Date(data.startEventLifecycleTime)
+      const end = new Date(data.endEventLifecycleTime)
       const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
       return durationDays <= 365
     },
     {
-      message: 'Sự kiện không thể kéo dài quá 365 ngày (1 năm)',
-      path: ['endDate']
+      message: 'Vòng đời sự kiện không thể kéo dài quá 365 ngày (1 năm)',
+      path: ['endEventLifecycleTime']
+    }
+  )
+
+  // 2. TicketSaleTime validation - must be within EventLifecycleTime
+  .refine(
+    (data) => {
+      const saleStart = new Date(data.startTicketSaleTime)
+      const saleEnd = new Date(data.endTicketSaleTime)
+      return saleEnd >= saleStart
+    },
+    {
+      message: 'Thời gian kết thúc bán vé phải sau hoặc bằng thời gian bắt đầu bán vé',
+      path: ['endTicketSaleTime']
     }
   )
   .refine(
     (data) => {
-      const regStart = new Date(data.registrationStartDate)
-      const regEnd = new Date(data.registrationEndDate)
-      const durationDays = (regEnd.getTime() - regStart.getTime()) / (1000 * 60 * 60 * 24)
+      const lifecycleStart = new Date(data.startEventLifecycleTime)
+      const saleStart = new Date(data.startTicketSaleTime)
+      return saleStart >= lifecycleStart
+    },
+    {
+      message: 'Thời gian bắt đầu bán vé phải nằm trong vòng đời sự kiện',
+      path: ['startTicketSaleTime']
+    }
+  )
+  .refine(
+    (data) => {
+      const lifecycleEnd = new Date(data.endEventLifecycleTime)
+      const saleEnd = new Date(data.endTicketSaleTime)
+      return saleEnd <= lifecycleEnd
+    },
+    {
+      message: 'Thời gian kết thúc bán vé phải nằm trong vòng đời sự kiện',
+      path: ['endTicketSaleTime']
+    }
+  )
+  .refine(
+    (data) => {
+      const saleStart = new Date(data.startTicketSaleTime)
+      const saleEnd = new Date(data.endTicketSaleTime)
+      const durationDays = (saleEnd.getTime() - saleStart.getTime()) / (1000 * 60 * 60 * 24)
       return durationDays <= 180
     },
     {
-      message: 'Thời gian đăng ký không thể kéo dài quá 180 ngày (6 tháng)',
-      path: ['registrationEndDate']
+      message: 'Thời gian bán vé không thể kéo dài quá 180 ngày (6 tháng)',
+      path: ['endTicketSaleTime']
+    }
+  )
+
+  // 3. EventTime validation - must be after TicketSaleTime starts
+  .refine(
+    (data) => {
+      const eventStart = new Date(data.startTimeEventTime)
+      const eventEnd = new Date(data.endTimeEventTime)
+      return eventEnd >= eventStart
+    },
+    {
+      message: 'Thời gian kết thúc sự kiện phải sau hoặc bằng thời gian bắt đầu',
+      path: ['endTimeEventTime']
+    }
+  )
+  .refine(
+    (data) => {
+      const saleStart = new Date(data.startTicketSaleTime)
+      const eventStart = new Date(data.startTimeEventTime)
+      return eventStart >= saleStart
+    },
+    {
+      message: 'Sự kiện phải diễn ra sau hoặc cùng lúc với thời điểm bắt đầu bán vé',
+      path: ['startTimeEventTime']
+    }
+  )
+  .refine(
+    (data) => {
+      const lifecycleEnd = new Date(data.endEventLifecycleTime)
+      const eventEnd = new Date(data.endTimeEventTime)
+      return eventEnd <= lifecycleEnd
+    },
+    {
+      message: 'Thời gian kết thúc sự kiện phải nằm trong vòng đời sự kiện',
+      path: ['endTimeEventTime']
+    }
+  )
+  .refine(
+    (data) => {
+      const eventStart = new Date(data.startTimeEventTime)
+      const eventEnd = new Date(data.endTimeEventTime)
+      const durationDays = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60 * 24)
+      return durationDays <= 30
+    },
+    {
+      message: 'Sự kiện không thể kéo dài quá 30 ngày',
+      path: ['endTimeEventTime']
     }
   )
   .refine(

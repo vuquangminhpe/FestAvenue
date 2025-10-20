@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
   Download,
   Edit,
@@ -24,7 +25,9 @@ import {
   Sparkles,
   Loader2,
   Scissors,
-  GitBranch
+  GitBranch,
+  Save,
+  AlertCircle
 } from 'lucide-react'
 import type {
   DetectedText,
@@ -36,6 +39,7 @@ import type {
   ShapeType
 } from '@/types/seat.types'
 import EmailLockModal from './EmailLockModal'
+import { useSeatManagement } from '@/pages/User/Auth/TicketManagement/hooks/useSeatManagement'
 
 // Import từ các modules đã tách
 import { SeatInteractionManager } from './classes/SeatInteractionManager'
@@ -43,13 +47,23 @@ import { calculateBounds, lineIntersection, getPolygonColor } from './utils/geom
 import { generateShapePath } from './utils/shapes'
 import { generateSeatsForSection } from './utils/seats'
 
+// Props interface
+interface AdvancedSeatMapDesignerProps {
+  eventCode: string
+}
+
 // Main Component
-export default function AdvancedSeatMapDesigner() {
+export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDesignerProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
 
   const seatManagerRef = useRef(new SeatInteractionManager())
+
+  // Seat Management Hook
+  const { capacity, isLoadingEvent, createSeatingChart, isCreating, validateCapacity, tickets, isLoadingTickets } =
+    useSeatManagement(eventCode)
+  console.log(capacity)
 
   const [mode] = useState<'edit'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
@@ -59,8 +73,8 @@ export default function AdvancedSeatMapDesigner() {
   const [selectedSection, setSelectedSection] = useState<Section | null>(null)
   const [editingLabel, setEditingLabel] = useState<string | null>(null)
   const [labelText, setLabelText] = useState('')
-  const [editingSeatPrice, setEditingSeatPrice] = useState<string | null>(null)
-  const [seatPrice, setSeatPrice] = useState('')
+  const [editingSeatTicket, setEditingSeatTicket] = useState<string | null>(null)
+  const [selectedTicketId, setSelectedTicketId] = useState('')
   const [mapData, setMapData] = useState<SeatMapData>({
     sections: [],
     stage: { x: 350, y: 50, width: 300, height: 80 },
@@ -897,10 +911,10 @@ export default function AdvancedSeatMapDesigner() {
                 action: () => handleSeatLockToggle(seat.id, status, seatLabel)
               },
               {
-                label: '💵 Sửa Giá',
+                label: '🎫 Gán Vé',
                 action: () => {
-                  setEditingSeatPrice(seat.id)
-                  setSeatPrice(String(seat.price || section.price || 0))
+                  setEditingSeatTicket(seat.id)
+                  setSelectedTicketId(seat.ticketId || section.ticketId || '')
                 }
               }
             ]
@@ -1122,7 +1136,7 @@ export default function AdvancedSeatMapDesigner() {
 
   const handleSeatLockToggle = (seatId: string, currentStatus: string, seatLabel: string) => {
     if (currentStatus === 'locked') {
-      // Unlock seat
+      // Unlock seat and clear email
       setSeatStatuses((prev) => new Map(prev).set(seatId, 'available'))
       seatManagerRef.current.setSeatStatus(seatId, 'available')
       setSeatEmails((prev) => {
@@ -1130,6 +1144,13 @@ export default function AdvancedSeatMapDesigner() {
         newMap.delete(seatId)
         return newMap
       })
+
+      // Update seat object in mapData to remove email
+      const updatedSections = mapData.sections.map((section) => ({
+        ...section,
+        seats: section.seats?.map((seat) => (seat.id === seatId ? { ...seat, email: undefined } : seat))
+      }))
+      setMapData({ ...mapData, sections: updatedSections })
     } else {
       // Open modal to enter email and lock seat
       setEmailLockModal({
@@ -1144,6 +1165,14 @@ export default function AdvancedSeatMapDesigner() {
     setSeatStatuses((prev) => new Map(prev).set(seatId, 'locked'))
     seatManagerRef.current.setSeatStatus(seatId, 'locked')
     setSeatEmails((prev) => new Map(prev).set(seatId, email))
+
+    // Update seat object in mapData to include email
+    const updatedSections = mapData.sections.map((section) => ({
+      ...section,
+      seats: section.seats?.map((seat) => (seat.id === seatId ? { ...seat, email } : seat))
+    }))
+    setMapData({ ...mapData, sections: updatedSections })
+
     setEmailLockModal(null)
   }
 
@@ -1168,18 +1197,19 @@ export default function AdvancedSeatMapDesigner() {
     setLabelText('')
   }
 
-  const updateSeatPrice = () => {
-    if (!editingSeatPrice) return
+  const updateSeatTicket = () => {
+    if (!editingSeatTicket || !selectedTicketId) return
 
-    const price = parseFloat(seatPrice) || 0
     const updatedSections = mapData.sections.map((section) => ({
       ...section,
-      seats: section.seats?.map((seat) => (seat.id === editingSeatPrice ? { ...seat, price } : seat))
+      seats: section.seats?.map((seat) =>
+        seat.id === editingSeatTicket ? { ...seat, ticketId: selectedTicketId } : seat
+      )
     }))
 
     setMapData({ ...mapData, sections: updatedSections })
-    setEditingSeatPrice(null)
-    setSeatPrice('')
+    setEditingSeatTicket(null)
+    setSelectedTicketId('')
   }
 
   const deleteSection = (sectionId: string) => {
@@ -1203,6 +1233,54 @@ export default function AdvancedSeatMapDesigner() {
     linkElement.setAttribute('href', dataUri)
     linkElement.setAttribute('download', `seating-layout-${Date.now()}.json`)
     linkElement.click()
+  }
+
+  // Save seating chart to API with capacity validation
+  const handleSaveSeatingChart = () => {
+    const seatingData = {
+      ...mapData,
+      seatStatuses: Array.from(seatStatuses.entries())
+    }
+
+    // Build ticketsForSeats array from all seats with assigned tickets
+    const ticketsForSeats: Array<{
+      ticketId: string
+      seatIndex: number
+      isSeatLock: boolean
+      email: string
+      isVerified: boolean
+    }> = []
+
+    let seatIndex = 0
+    mapData.sections.forEach((section) => {
+      section.seats?.forEach((seat) => {
+        // Get ticket ID from seat or section
+        const ticketId = seat.ticketId || section.ticketId
+
+        // Only add seats that have a ticket assigned
+        if (ticketId) {
+          const status = seatStatuses.get(seat.id)
+          ticketsForSeats.push({
+            ticketId,
+            seatIndex,
+            isSeatLock: status === 'locked',
+            email: seat.email || '', // Email is the key to identify user for this seat
+            isVerified: false // Default to false, will be updated when user books
+          })
+        }
+        seatIndex++
+      })
+    })
+
+    // Prepare data for API
+    const bodyData = {
+      eventCode,
+      seatingChartStructure: JSON.stringify(seatingData),
+      ticketsForSeats
+    }
+
+    // The validation will be done inside the mutation hook
+    createSeatingChart(bodyData)
   }
 
   return (
@@ -1544,6 +1622,63 @@ export default function AdvancedSeatMapDesigner() {
                     </div>
                   )}
 
+                  {/* Ticket Assignment for Selected Section */}
+                  {selectedSection && (
+                    <div className='space-y-3 pt-4 border-t border-purple-500/30'>
+                      <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                        🎫 Gán Vé Cho Khu Vực
+                      </h3>
+                      <div className='space-y-2'>
+                        {isLoadingTickets ? (
+                          <div className='text-xs text-gray-400'>Đang tải...</div>
+                        ) : tickets.length === 0 ? (
+                          <Alert className='bg-yellow-600/20 border-yellow-600/50'>
+                            <AlertDescription className='text-xs text-yellow-200'>
+                              Chưa có loại vé. Tạo vé trong tab "Cấu hình vé".
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <>
+                            <Select
+                              value={selectedSection.ticketId || ''}
+                              onValueChange={(ticketId) => {
+                                const updatedSections = mapData.sections.map((s) =>
+                                  s.id === selectedSection.id
+                                    ? { ...s, ticketId, seats: s.seats?.map(seat => ({ ...seat, ticketId })) }
+                                    : s
+                                )
+                                setMapData({ ...mapData, sections: updatedSections })
+                                setSelectedSection({ ...selectedSection, ticketId })
+                              }}
+                            >
+                              <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
+                                <SelectValue placeholder='Chọn loại vé...' />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tickets.map((ticket) => (
+                                  <SelectItem key={ticket.id} value={ticket.id}>
+                                    {ticket.name} - {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {selectedSection.ticketId && (() => {
+                              const ticket = tickets.find((t) => t.id === selectedSection.ticketId)
+                              return ticket ? (
+                                <div className='bg-blue-600/20 border border-blue-500/50 rounded p-2 text-xs'>
+                                  <div className='font-semibold text-blue-200'>{ticket.name}</div>
+                                  <div className='text-blue-300'>
+                                    {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                  </div>
+                                </div>
+                              ) : null
+                            })()}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {(editTool === 'draw' || editTool === 'shape') && (
                     <div className='space-y-2'>
                       <h3 className='text-sm font-semibold text-purple-300'>Cấu Hình Khu Vực</h3>
@@ -1715,6 +1850,68 @@ export default function AdvancedSeatMapDesigner() {
               </div>
 
               <div className='space-y-2 pt-4 border-t border-purple-500/30'>
+                {/* Capacity Info */}
+                {!isLoadingEvent &&
+                  capacity > 0 &&
+                  (() => {
+                    const seatingData = {
+                      ...mapData,
+                      seatStatuses: Array.from(seatStatuses.entries())
+                    }
+                    const validation = validateCapacity(seatingData)
+                    const totalSeats = validation.totalSeats || 0
+                    const isOverCapacity = totalSeats > capacity
+
+                    return (
+                      <Alert
+                        className={
+                          isOverCapacity ? 'bg-red-500/20 border-red-500/30' : 'bg-blue-500/20 border-blue-500/30'
+                        }
+                      >
+                        <AlertCircle className={`w-4 h-4 ${isOverCapacity ? 'text-red-400' : 'text-blue-400'}`} />
+                        <AlertDescription className={`text-sm ${isOverCapacity ? 'text-red-200' : 'text-blue-200'}`}>
+                          Sức chứa sự kiện: <strong>{capacity}</strong> chỗ
+                          {mapData.sections.length > 0 && (
+                            <>
+                              <br />
+                              Tổng số ghế hiện tại:{' '}
+                              <strong className={isOverCapacity ? 'text-red-300' : ''}>{totalSeats}</strong>
+                              {isOverCapacity && (
+                                <>
+                                  <br />
+                                  <span className='text-red-300 font-semibold'>
+                                    ⚠️ Vượt quá {totalSeats - capacity} chỗ!
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )
+                  })()}
+
+                {/* Save Button */}
+                <Button
+                  onClick={handleSaveSeatingChart}
+                  disabled={isCreating || isLoadingEvent || mapData.sections.length === 0}
+                  className='w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
+                  size='sm'
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                      Đang lưu...
+                    </>
+                  ) : (
+                    <>
+                      <Save className='w-4 h-4 mr-1' />
+                      Lưu sơ đồ chỗ ngồi
+                    </>
+                  )}
+                </Button>
+
+                {/* Export Button */}
                 <Button
                   onClick={exportToJSON}
                   className='w-full bg-gradient-to-r from-green-600 to-emerald-600'
@@ -1802,34 +1999,66 @@ export default function AdvancedSeatMapDesigner() {
           </div>
         )}
 
-        {/* Seat Price Edit Modal */}
-        {editingSeatPrice && (
+        {/* Seat Ticket Assignment Modal */}
+        {editingSeatTicket && (
           <div className='fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50'>
-            <div className='bg-white border border-blue-300 rounded-lg p-6 min-w-[300px]'>
-              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Chỉnh Giá Ghế</h3>
+            <div className='bg-white border border-blue-300 rounded-lg p-6 min-w-[400px]'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>Gán Loại Vé Cho Ghế</h3>
               <div className='space-y-4'>
                 <div>
-                  <Label htmlFor='price-input' className='text-sm text-gray-700'>
-                    Giá Ghế ($)
+                  <Label htmlFor='ticket-select' className='text-sm text-gray-700 mb-2 block'>
+                    Chọn Loại Vé
                   </Label>
-                  <Input
-                    id='price-input'
-                    type='number'
-                    value={seatPrice}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSeatPrice(e.target.value)}
-                    placeholder='0.00'
-                    className='mt-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500'
-                    step='0.01'
-                    min='0'
-                    autoFocus
-                  />
+                  {isLoadingTickets ? (
+                    <div className='text-sm text-gray-500'>Đang tải danh sách vé...</div>
+                  ) : tickets.length === 0 ? (
+                    <Alert className='bg-yellow-50 border-yellow-200'>
+                      <AlertCircle className='w-4 h-4 text-yellow-600' />
+                      <AlertDescription className='text-sm text-yellow-800'>
+                        Chưa có loại vé nào. Vui lòng tạo loại vé trước trong tab "Cấu hình vé".
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Select value={selectedTicketId} onValueChange={setSelectedTicketId}>
+                      <SelectTrigger id='ticket-select' className='border-gray-300'>
+                        <SelectValue placeholder='Chọn loại vé...' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tickets.map((ticket) => (
+                          <SelectItem key={ticket.id} value={ticket.id}>
+                            <div className='flex items-center justify-between w-full gap-4'>
+                              <span className='font-medium'>{ticket.name}</span>
+                              <span className='text-sm text-gray-600'>
+                                {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
+
+                {/* Selected Ticket Info */}
+                {selectedTicketId && (() => {
+                  const selectedTicket = tickets.find((t) => t.id === selectedTicketId)
+                  return selectedTicket ? (
+                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1'>
+                      <div className='text-sm font-semibold text-blue-900'>{selectedTicket.name}</div>
+                      <div className='text-xs text-blue-700'>{selectedTicket.description}</div>
+                      <div className='text-sm font-bold text-blue-600'>
+                        {selectedTicket.isFree ? 'Miễn phí' : `${selectedTicket.price.toLocaleString()} VNĐ`}
+                      </div>
+                    </div>
+                  ) : null
+                })()}
+
                 <div className='flex gap-2 justify-end'>
                   <Button
                     variant='outline'
                     onClick={() => {
-                      setEditingSeatPrice(null)
-                      setSeatPrice('')
+                      setEditingSeatTicket(null)
+                      setSelectedTicketId('')
                     }}
                     size='sm'
                     className='border-gray-300 text-gray-700'
@@ -1837,11 +2066,12 @@ export default function AdvancedSeatMapDesigner() {
                     Hủy
                   </Button>
                   <Button
-                    onClick={updateSeatPrice}
+                    onClick={updateSeatTicket}
                     size='sm'
-                    className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400'
+                    disabled={!selectedTicketId}
+                    className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 disabled:opacity-50'
                   >
-                    Cập Nhật
+                    Gán Vé
                   </Button>
                 </div>
               </div>

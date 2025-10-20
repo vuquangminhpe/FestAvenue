@@ -12,9 +12,10 @@ export interface Seat {
   status: 'available' | 'occupied' | 'locked'
   section: string
   category?: 'vip' | 'premium' | 'standard'
-  price?: number
+  price?: number // Deprecated: Use ticketId instead
   email?: string
-  ticketType?: 'vip' | 'premium' | 'standard' | 'economy'
+  ticketType?: 'vip' | 'premium' | 'standard' | 'economy' // Deprecated: Use ticketId instead
+  ticketId?: string // ID của ticket từ API
 }
 
 export interface TicketType {
@@ -44,8 +45,9 @@ export interface Section {
   position?: { x: number; y: number }
   angle?: number
   labelPosition?: { x: number; y: number }
-  price?: number
-  ticketType?: 'vip' | 'premium' | 'standard' | 'economy'
+  price?: number // Deprecated: Use ticketId instead
+  ticketType?: 'vip' | 'premium' | 'standard' | 'economy' // Deprecated: Use ticketId instead
+  ticketId?: string // ID của ticket từ API - áp dụng cho tất cả ghế trong section
 }
 
 export interface SeatMapData {

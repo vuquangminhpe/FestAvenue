@@ -50,10 +50,12 @@ export const defaultFormValues: EventFormData = {
   categoryId: '',
   visibility: 0,
   capacity: 100,
-  startDate: '',
-  endDate: '',
-  registrationStartDate: '',
-  registrationEndDate: '',
+  startEventLifecycleTime: '',
+  endEventLifecycleTime: '',
+  startTicketSaleTime: '',
+  endTicketSaleTime: '',
+  startTimeEventTime: '',
+  endTimeEventTime: '',
   logoUrl: '',
   bannerUrl: '',
   trailerUrl: '',
@@ -93,7 +95,16 @@ export const getFieldsForStep = (step: number): (keyof EventFormData)[] => {
     case 1:
       return ['name', 'shortDescription', 'description', 'categoryId']
     case 2:
-      return ['visibility', 'capacity', 'startDate', 'endDate', 'registrationStartDate', 'registrationEndDate']
+      return [
+        'visibility',
+        'capacity',
+        'startEventLifecycleTime',
+        'endEventLifecycleTime',
+        'startTicketSaleTime',
+        'endTicketSaleTime',
+        'startTimeEventTime',
+        'endTimeEventTime'
+      ]
     case 3:
       return ['logoUrl', 'bannerUrl'] // Logo and Banner are required
     case 4:

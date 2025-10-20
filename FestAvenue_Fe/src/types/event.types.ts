@@ -274,10 +274,19 @@ export interface ReqFilterOwnerEvent {
   createdAt: string // ISO date string
   updatedAt: string | null
 
-  startDate: string // ISO date string
-  endDate: string // ISO date string
-  registrationStartDate: string
-  registrationEndDate: string
+  // New time fields - Event Lifecycle covers all
+  startEventLifecycleTime?: string // ISO date string
+  endEventLifecycleTime?: string // ISO date string
+  startTicketSaleTime?: string // ISO date string
+  endTicketSaleTime?: string // ISO date string
+  startTimeEventTime?: string // ISO date string
+  endTimeEventTime?: string // ISO date string
+
+  // Old fields for backward compatibility
+  startDate?: string // ISO date string - deprecated
+  endDate?: string // ISO date string - deprecated
+  registrationStartDate?: string // deprecated
+  registrationEndDate?: string // deprecated
 
   publicContactEmail: string
   publicContactPhone: string

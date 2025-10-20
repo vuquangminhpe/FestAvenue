@@ -34,19 +34,17 @@ export function useSchedules(
         status: 1,
         startDate: filters?.startDate || new Date(2000, 0, 1).toISOString(),
         endDate: filters?.endDate || new Date(2100, 11, 31).toISOString(),
-        keyword: filters?.keyword || '',
-        isCompleted: filters?.isCompleted ?? false,
-        sortBy: filters?.sortBy ?? 1,
-        isAsc: filters?.isAsc ?? true
+        keyword: filters?.keyword || undefined,
+        isCompleted: filters?.isCompleted ?? undefined,
+        sortBy: filters?.sortBy ?? undefined,
+        isAsc: filters?.isAsc ?? undefined
       })
 
       if (!response?.data) return []
 
       // Map và deduplicate schedules based on ID (phòng trường hợp API trả về duplicate)
       const mappedSchedules = response.data.map(mapEventItemToSchedule)
-      const uniqueSchedules = Array.from(
-        new Map(mappedSchedules.map(schedule => [schedule.id, schedule])).values()
-      )
+      const uniqueSchedules = Array.from(new Map(mappedSchedules.map((schedule) => [schedule.id, schedule])).values())
 
       return uniqueSchedules
     },

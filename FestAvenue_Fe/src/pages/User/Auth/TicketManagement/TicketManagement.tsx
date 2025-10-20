@@ -161,7 +161,9 @@ export default function TicketManagement() {
             </div>
 
             {/* Content */}
-            <div className='content-area p-8'>{activeTab === 'ticket-config' ? <TicketConfig /> : <EditorSeat />}</div>
+            <div className='content-area p-8'>
+              {activeTab === 'ticket-config' ? <TicketConfig /> : <EditorSeat eventCode={eventCode} />}
+            </div>
           </div>
         </div>
       </div>

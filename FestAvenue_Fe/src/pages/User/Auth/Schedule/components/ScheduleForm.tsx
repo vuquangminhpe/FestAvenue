@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, AlertCircle } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
 import { Textarea } from '../../../../../components/ui/textarea'
+import { Alert, AlertDescription } from '../../../../../components/ui/alert'
 import type { Schedule, ScheduleFormData } from '../../../../../types/schedule.types'
 import { useCreateSchedule, useUpdateSchedule } from '@/hooks/useSchedule'
+import { useQuery } from '@tanstack/react-query'
+import eventApis from '@/apis/event.api'
 import ColorPicker from './ColorPicker'
 import SubTaskForm from './SubTaskForm'
+import {
+  validateScheduleTitle,
+  validateScheduleDescription,
+  sanitizeTitle,
+  sanitizeDescription
+} from '@/utils/scheduleValidation'
 
 interface ScheduleFormProps {
   eventCode: string
@@ -35,27 +44,34 @@ export default function ScheduleForm({
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // Fetch event data to get lifecycle times
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+    queryKey: ['event', eventCode],
+    queryFn: () => eventApis.getEventById(eventCode),
+    enabled: !!eventCode
+  })
+
+  const event = eventData?.data
+
   const createMutation = useCreateSchedule()
   const updateMutation = useUpdateSchedule()
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
-  // Validation functions
+  // Validation function
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Validate title
-    if (!formData.title.trim()) {
-      newErrors.title = 'Tiêu đề không được để trống'
-    } else if (formData.title.length < 3) {
-      newErrors.title = 'Tiêu đề phải có ít nhất 3 ký tự'
-    } else if (formData.title.length > 200) {
-      newErrors.title = 'Tiêu đề không được vượt quá 200 ký tự'
+    // Validate title with strict rules
+    const titleValidation = validateScheduleTitle(formData.title)
+    if (!titleValidation.isValid) {
+      newErrors.title = titleValidation.error!
     }
 
     // Validate description
-    if (formData.description && formData.description.length > 1000) {
-      newErrors.description = 'Mô tả không được vượt quá 1000 ký tự'
+    const descValidation = validateScheduleDescription(formData.description)
+    if (!descValidation.isValid) {
+      newErrors.description = descValidation.error!
     }
 
     // Validate dates
@@ -75,18 +91,45 @@ export default function ScheduleForm({
         newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu'
       }
 
-      // Check if dates are too far in the past (optional warning)
+      // Check if dates are in the past
       const now = new Date()
-      now.setHours(0, 0, 0, 0)
       if (end < now) {
         newErrors.endDate = 'Ngày kết thúc không thể trong quá khứ'
+      }
+
+      // Validate against event lifecycle if available
+      if (event) {
+        const lifecycleStart = event.startEventLifecycleTime || event.startDate
+        const lifecycleEnd = event.endEventLifecycleTime || event.endDate
+
+        if (lifecycleStart && lifecycleEnd) {
+          const eventStart = new Date(lifecycleStart)
+          const eventEnd = new Date(lifecycleEnd)
+
+          if (start < eventStart) {
+            newErrors.startDate = `Lịch trình không được bắt đầu trước vòng đời sự kiện (${new Date(lifecycleStart).toLocaleDateString('vi-VN')})`
+          }
+
+          if (end > eventEnd) {
+            newErrors.endDate = `Lịch trình không được kết thúc sau vòng đời sự kiện (${new Date(lifecycleEnd).toLocaleDateString('vi-VN')})`
+          }
+        }
+      }
+
+      // Check duration is reasonable (not too long)
+      const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      if (durationDays > 30) {
+        newErrors.endDate = 'Lịch trình không được kéo dài quá 30 ngày'
       }
     }
 
     // Validate subtasks
     formData.subTasks.forEach((subTask, index) => {
-      if (subTask.title && subTask.title.length < 2) {
-        newErrors[`subTask_${index}_title`] = 'Tiêu đề subtask phải có ít nhất 2 ký tự'
+      if (subTask.title && subTask.title.trim().length > 0) {
+        const subTitleValidation = validateScheduleTitle(subTask.title)
+        if (!subTitleValidation.isValid) {
+          newErrors[`subTask_${index}_title`] = subTitleValidation.error!
+        }
       }
 
       if (subTask.startDate && subTask.endDate) {
@@ -142,7 +185,6 @@ export default function ScheduleForm({
         }))
       })
     } else if (prefilledDateRange) {
-      // Set default times: 8:00 AM for start, 6:00 PM for end
       const startDateTime = new Date(prefilledDateRange.start)
       startDateTime.setHours(8, 0, 0, 0)
 
@@ -169,17 +211,29 @@ export default function ScheduleForm({
       return
     }
 
+    // Sanitize data before submit
+    const sanitizedData: ScheduleFormData = {
+      ...formData,
+      title: sanitizeTitle(formData.title),
+      description: sanitizeDescription(formData.description),
+      subTasks: formData.subTasks.map((st) => ({
+        ...st,
+        title: sanitizeTitle(st.title),
+        description: sanitizeDescription(st.description)
+      }))
+    }
+
     try {
       if (schedule) {
         await updateMutation.mutateAsync({
           scheduleId: schedule.id,
           eventCode,
-          data: formData
+          data: sanitizedData
         })
       } else {
         await createMutation.mutateAsync({
           eventCode,
-          data: formData
+          data: sanitizedData
         })
       }
       onSuccess()
@@ -189,6 +243,27 @@ export default function ScheduleForm({
       alert('Có lỗi xảy ra khi lưu lịch trình')
     }
   }
+
+  // Get lifecycle info for display
+  const getLifecycleInfo = () => {
+    if (!event) return null
+
+    const lifecycleStart = event.startEventLifecycleTime || event.startDate
+    const lifecycleEnd = event.endEventLifecycleTime || event.endDate
+
+    if (!lifecycleStart || !lifecycleEnd) return null
+
+    return {
+      start: new Date(lifecycleStart),
+      end: new Date(lifecycleEnd)
+    }
+  }
+
+  const lifecycleInfo = getLifecycleInfo()
+
+  // Calculate word count for title
+  const titleTrimmed = formData.title.trim()
+  const wordCount = titleTrimmed ? titleTrimmed.split(/\s+/).filter((w) => w.length > 0).length : 0
 
   return (
     <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
@@ -201,7 +276,40 @@ export default function ScheduleForm({
         </div>
 
         <form onSubmit={handleSubmit} className='p-6 space-y-6'>
-          {/* Title */}
+          {/* Event Lifecycle Info */}
+          {lifecycleInfo && (
+            <Alert className='bg-blue-50 border-blue-200'>
+              <AlertCircle className='w-4 h-4 text-blue-600' />
+              <AlertDescription className='text-sm text-blue-800'>
+                <strong>Vòng đời sự kiện:</strong>{' '}
+                {lifecycleInfo.start.toLocaleDateString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}{' '}
+                -{' '}
+                {lifecycleInfo.end.toLocaleDateString('vi-VN', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+                <br />
+                <span className='text-xs'>Lịch trình phải nằm trong khoảng thời gian này</span>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isLoadingEvent && (
+            <Alert>
+              <AlertDescription className='text-sm'>Đang tải thông tin sự kiện...</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Title with validation hints */}
           <div className='space-y-2'>
             <Label htmlFor='title'>
               Tiêu đề <span className='text-red-500'>*</span>
@@ -213,12 +321,23 @@ export default function ScheduleForm({
                 setFormData({ ...formData, title: e.target.value })
                 if (errors.title) setErrors({ ...errors, title: '' })
               }}
-              placeholder='Nhập tiêu đề lịch trình (3-200 ký tự)'
+              placeholder='Ví dụ: "Họp ban tổ chức", "Chuẩn bị sân khấu"'
               className={errors.title ? 'border-red-500 focus:ring-red-500' : ''}
               required
             />
-            {errors.title && <p className='text-sm text-red-600'>{errors.title}</p>}
-            <p className='text-xs text-gray-500'>{formData.title.length}/200 ký tự</p>
+            {errors.title && (
+              <Alert className='bg-red-50 border-red-200'>
+                <AlertCircle className='w-4 h-4 text-red-600' />
+                <AlertDescription className='text-sm text-red-800'>{errors.title}</AlertDescription>
+              </Alert>
+            )}
+            <p className='text-xs text-gray-500'>
+              {formData.title.length}/200 ký tự
+              {wordCount > 0 && <span className='ml-2'>• {wordCount} từ</span>}
+            </p>
+            <p className='text-xs text-gray-400'>
+              💡 Tiêu đề phải: bắt đầu bằng chữ cái, có ít nhất 2 từ, không lặp ký tự
+            </p>
           </div>
 
           {/* Description */}
@@ -231,11 +350,16 @@ export default function ScheduleForm({
                 setFormData({ ...formData, description: e.target.value })
                 if (errors.description) setErrors({ ...errors, description: '' })
               }}
-              placeholder='Nhập mô tả chi tiết (tối đa 1000 ký tự)'
+              placeholder='Nhập mô tả chi tiết có ý nghĩa (không bắt buộc, tối đa 1000 ký tự)'
               rows={3}
               className={errors.description ? 'border-red-500 focus:ring-red-500' : ''}
             />
-            {errors.description && <p className='text-sm text-red-600'>{errors.description}</p>}
+            {errors.description && (
+              <Alert className='bg-red-50 border-red-200'>
+                <AlertCircle className='w-4 h-4 text-red-600' />
+                <AlertDescription className='text-sm text-red-800'>{errors.description}</AlertDescription>
+              </Alert>
+            )}
             <p className='text-xs text-gray-500'>{formData.description?.length || 0}/1000 ký tự</p>
           </div>
 
@@ -253,6 +377,8 @@ export default function ScheduleForm({
                   setFormData({ ...formData, startDate: e.target.value })
                   if (errors.startDate) setErrors({ ...errors, startDate: '' })
                 }}
+                min={lifecycleInfo ? lifecycleInfo.start.toISOString().slice(0, 16) : undefined}
+                max={lifecycleInfo ? lifecycleInfo.end.toISOString().slice(0, 16) : undefined}
                 className={errors.startDate ? 'border-red-500 focus:ring-red-500' : ''}
                 required
               />
@@ -270,6 +396,8 @@ export default function ScheduleForm({
                   setFormData({ ...formData, endDate: e.target.value })
                   if (errors.endDate) setErrors({ ...errors, endDate: '' })
                 }}
+                min={formData.startDate || (lifecycleInfo ? lifecycleInfo.start.toISOString().slice(0, 16) : undefined)}
+                max={lifecycleInfo ? lifecycleInfo.end.toISOString().slice(0, 16) : undefined}
                 className={errors.endDate ? 'border-red-500 focus:ring-red-500' : ''}
                 required
               />
@@ -299,7 +427,7 @@ export default function ScheduleForm({
             <Button type='button' variant='outline' onClick={onClose}>
               Hủy
             </Button>
-            <Button type='submit' disabled={isSubmitting}>
+            <Button type='submit' disabled={isSubmitting || isLoadingEvent}>
               {isSubmitting ? 'Đang lưu...' : schedule ? 'Cập nhật' : 'Tạo mới'}
             </Button>
           </div>

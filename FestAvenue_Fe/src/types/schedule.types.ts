@@ -61,13 +61,13 @@ export type ScheduleView = 'month' | 'week' | 'day' | 'list'
 /////////// Types mới chính thức từ api
 export interface bodyGetListSchedule {
   eventCode: string
-  status: number
-  startDate: string
-  endDate: string
-  keyword: string
-  isCompleted: boolean
-  sortBy: number
-  isAsc: boolean
+  status?: number
+  startDate?: string
+  endDate?: string
+  keyword?: string
+  isCompleted?: boolean
+  sortBy?: number
+  isAsc?: boolean
 }
 export interface EventItem {
   id: string

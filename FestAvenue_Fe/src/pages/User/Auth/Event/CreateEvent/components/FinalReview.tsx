@@ -41,20 +41,24 @@ export function FinalReview({ form }: FinalReviewProps) {
           <div>
             <h4 className='font-semibold text-slate-700 mb-2 flex items-center gap-2'>
               <Calendar className='w-4 h-4' />
-              Thời gian
+              Tổng thời gian sự kiện
             </h4>
             <div className='bg-white p-4 rounded-lg space-y-2'>
               <div className='grid grid-cols-2 gap-4 text-sm'>
                 <div>
                   <span className='text-slate-500'>Bắt đầu:</span>
                   <p className='font-medium'>
-                    {values.startDate ? format(new Date(values.startDate), 'PPP', { locale: vi }) : 'Chưa chọn'}
+                    {values.startEventLifecycleTime
+                      ? format(new Date(values.startEventLifecycleTime), 'PPP', { locale: vi })
+                      : 'Chưa chọn'}
                   </p>
                 </div>
                 <div>
                   <span className='text-slate-500'>Kết thúc:</span>
                   <p className='font-medium'>
-                    {values.endDate ? format(new Date(values.endDate), 'PPP', { locale: vi }) : 'Chưa chọn'}
+                    {values.endEventLifecycleTime
+                      ? format(new Date(values.endEventLifecycleTime), 'PPP', { locale: vi })
+                      : 'Chưa chọn'}
                   </p>
                 </div>
               </div>
