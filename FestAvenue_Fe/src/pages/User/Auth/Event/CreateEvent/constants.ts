@@ -95,7 +95,7 @@ export const getFieldsForStep = (step: number): (keyof EventFormData)[] => {
     case 2:
       return ['visibility', 'capacity', 'startDate', 'endDate', 'registrationStartDate', 'registrationEndDate']
     case 3:
-      return [] // Media validation handled separately with AI
+      return ['logoUrl', 'bannerUrl'] // Logo and Banner are required
     case 4:
       return ['location']
     case 5:

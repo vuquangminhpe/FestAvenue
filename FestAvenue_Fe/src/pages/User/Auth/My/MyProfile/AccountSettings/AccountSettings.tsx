@@ -703,7 +703,7 @@ const AccountSettings: React.FC = () => {
               </AlertDialogTrigger>
               <AlertDialogContent className='rounded-2xl'>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Khi rời khỏi, tín dụng sẽ bị mất và không thể khôi phục!</AlertDialogTitle>
+                  <AlertDialogTitle>Khi rời khỏi, tài khoản sẽ bị xóa và không thể khôi phục!</AlertDialogTitle>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className='rounded-lg'>Hủy</AlertDialogCancel>

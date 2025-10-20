@@ -6,15 +6,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
-import {
-  Template1,
-  Template2,
-  Template3,
-  Template4,
-  Template5,
-  Template6
+import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/custom/landing_template'
+import type {
+  LandingTemplateProps,
+  SocialMediaImage,
+  RelatedEvent,
+  SocialLink
 } from '@/components/custom/landing_template'
-import type { LandingTemplateProps, SocialMediaImage, RelatedEvent, SocialLink } from '@/components/custom/landing_template'
 import type { TemplateType } from '../types'
 
 interface TemplateEditorProps {
@@ -180,10 +178,9 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
       {/* Editor Content */}
       <div className='max-w-7xl mx-auto px-4 py-8'>
         <Tabs defaultValue='basic' className='w-full'>
-          <TabsList className='grid w-full grid-cols-4 max-w-2xl mx-auto mb-8'>
+          <TabsList className='grid w-full grid-cols-3 max-w-2xl mx-auto mb-8'>
             <TabsTrigger value='basic'>Thông tin cơ bản</TabsTrigger>
             <TabsTrigger value='images'>Hình ảnh</TabsTrigger>
-            <TabsTrigger value='events'>Sự kiện liên quan</TabsTrigger>
             <TabsTrigger value='social'>Mạng xã hội</TabsTrigger>
           </TabsList>
 
@@ -367,87 +364,6 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                     <p>Chưa có hình ảnh nào. Nhấn "Thêm ảnh" để bắt đầu.</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Related Events Tab */}
-          <TabsContent value='events' className='space-y-6'>
-            <Card>
-              <CardHeader>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <CardTitle>Sự kiện liên quan</CardTitle>
-                    <CardDescription>Thêm các sự kiện liên quan khác</CardDescription>
-                  </div>
-                  <Button onClick={addRelatedEvent} className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'>
-                    <Plus className='w-4 h-4' />
-                    Thêm sự kiện
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className='space-y-6'>
-                {editedData.relatedEvents.map((event, index) => (
-                  <Card key={event.id} className='border-2'>
-                    <CardHeader>
-                      <div className='flex items-center justify-between'>
-                        <CardTitle className='text-base'>Sự kiện {index + 1}</CardTitle>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => removeRelatedEvent(index)}
-                          className='text-red-500 hover:text-red-600 hover:bg-red-50'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className='space-y-4'>
-                      <div className='space-y-2'>
-                        <Label>Tiêu đề</Label>
-                        <Input
-                          value={event.title}
-                          onChange={(e) => updateRelatedEvent(index, 'title', e.target.value)}
-                          placeholder='Tên sự kiện'
-                        />
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>URL hình ảnh</Label>
-                        <Input
-                          value={event.image}
-                          onChange={(e) => updateRelatedEvent(index, 'image', e.target.value)}
-                          placeholder='https://example.com/event.jpg'
-                        />
-                      </div>
-                      <div className='grid grid-cols-2 gap-4'>
-                        <div className='space-y-2'>
-                          <Label>Ngày</Label>
-                          <Input
-                            value={event.date}
-                            onChange={(e) => updateRelatedEvent(index, 'date', e.target.value)}
-                            placeholder='June 15, 2025'
-                          />
-                        </div>
-                        <div className='space-y-2'>
-                          <Label>Địa điểm</Label>
-                          <Input
-                            value={event.location}
-                            onChange={(e) => updateRelatedEvent(index, 'location', e.target.value)}
-                            placeholder='New York'
-                          />
-                        </div>
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>URL</Label>
-                        <Input
-                          value={event.url}
-                          onChange={(e) => updateRelatedEvent(index, 'url', e.target.value)}
-                          placeholder='https://example.com'
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
               </CardContent>
             </Card>
           </TabsContent>

@@ -247,8 +247,36 @@ export const eventSchema = z
     registrationEndDate: z.string().min(1, 'Vui lòng chọn ngày kết thúc đăng ký'),
 
     // ========== Media - AI Detection Required ==========
-    logoUrl: urlValidator('Logo'),
-    bannerUrl: urlValidator('Banner'),
+    logoUrl: z
+      .string()
+      .min(1, 'Logo sự kiện là bắt buộc')
+      .refine(
+        (url) => {
+          try {
+            const parsed = new URL(url)
+            return ['http:', 'https:'].includes(parsed.protocol)
+          } catch {
+            return false
+          }
+        },
+        { message: 'Logo phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
+      ),
+
+    bannerUrl: z
+      .string()
+      .min(1, 'Banner sự kiện là bắt buộc')
+      .refine(
+        (url) => {
+          try {
+            const parsed = new URL(url)
+            return ['http:', 'https:'].includes(parsed.protocol)
+          } catch {
+            return false
+          }
+        },
+        { message: 'Banner phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
+      ),
+
     trailerUrl: urlValidator('Video trailer'),
 
     // ========== Contact & Website ==========
