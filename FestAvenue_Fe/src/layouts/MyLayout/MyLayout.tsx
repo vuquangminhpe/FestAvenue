@@ -35,24 +35,14 @@ const items = [
     icon: <CustomIcon name='Message' className='size-4' />,
     preloadKey: 'messages-page'
   },
-  {
-    title: 'Tổ chức',
-    url: path.user.my.organization,
-    icon: <CustomIcon name='Organization' className='size-5' />,
-    preloadKey: 'messages-page'
-  },
+
   {
     title: 'Sự kiện của tôi',
     url: path.user.my.events,
     icon: <CustomIcon name='Calendar' className='w-4 h-4' />,
     preloadKey: 'events-page'
   },
-  {
-    title: 'Tín dụng',
-    url: path.user.my.credit,
-    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
-    preloadKey: 'credit-page'
-  },
+
   {
     title: 'Thanh toán',
     url: path.user.my.payment,

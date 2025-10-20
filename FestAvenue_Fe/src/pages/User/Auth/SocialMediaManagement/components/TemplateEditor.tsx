@@ -7,12 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
 import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/custom/landing_template'
-import type {
-  LandingTemplateProps,
-  SocialMediaImage,
-  RelatedEvent,
-  SocialLink
-} from '@/components/custom/landing_template'
+import type { LandingTemplateProps, SocialMediaImage, SocialLink } from '@/components/custom/landing_template'
 import type { TemplateType } from '../types'
 
 interface TemplateEditorProps {
@@ -68,32 +63,6 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
     setEditedData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
-    }))
-  }
-
-  const addRelatedEvent = () => {
-    const newEvent: RelatedEvent = {
-      id: Date.now().toString(),
-      title: '',
-      image: '',
-      date: '',
-      location: '',
-      url: ''
-    }
-    setEditedData((prev) => ({ ...prev, relatedEvents: [...prev.relatedEvents, newEvent] }))
-  }
-
-  const updateRelatedEvent = (index: number, field: keyof RelatedEvent, value: string) => {
-    setEditedData((prev) => ({
-      ...prev,
-      relatedEvents: prev.relatedEvents.map((event, i) => (i === index ? { ...event, [field]: value } : event))
-    }))
-  }
-
-  const removeRelatedEvent = (index: number) => {
-    setEditedData((prev) => ({
-      ...prev,
-      relatedEvents: prev.relatedEvents.filter((_, i) => i !== index)
     }))
   }
 

@@ -101,13 +101,13 @@ const SignUp = () => {
     }
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required'
+      newErrors.firstName = 'Tên is required'
     } else if (formData.firstName.trim().length < 2) {
-      newErrors.firstName = 'First name must be at least 2 characters'
+      newErrors.firstName = 'Tên must be at least 2 characters'
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required'
+      newErrors.lastName = 'Họ là bắt buộc'
     } else if (formData.lastName.trim().length < 2) {
       newErrors.lastName = 'Last name must be at least 2 characters'
     }
@@ -192,7 +192,7 @@ const SignUp = () => {
                 <Input
                   id='firstName'
                   type='text'
-                  placeholder='First Name'
+                  placeholder='Tên'
                   value={formData.firstName}
                   onChange={(e) => handleInputChange('firstName', e.target.value)}
                   className={errors.firstName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}
@@ -203,7 +203,7 @@ const SignUp = () => {
                 <Input
                   id='lastName'
                   type='text'
-                  placeholder='Last Name'
+                  placeholder='Họ'
                   value={formData.lastName}
                   onChange={(e) => handleInputChange('lastName', e.target.value)}
                   className={errors.lastName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}

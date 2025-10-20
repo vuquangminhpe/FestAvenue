@@ -48,14 +48,14 @@ export default function AddUserModal({ isOpen, onClose, eventId }: AddUserModalP
   const validateField = (name: string, value: string): string | undefined => {
     switch (name) {
       case 'firstName':
-        if (!value.trim()) return 'First name là bắt buộc'
-        if (value.trim().length < 2) return 'First name phải có ít nhất 2 ký tự'
-        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'First name chỉ được chứa chữ cái'
+        if (!value.trim()) return 'Tên là bắt buộc'
+        if (value.trim().length < 2) return 'Tên phải có ít nhất 2 ký tự'
+        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'Tên chỉ được chứa chữ cái'
         break
       case 'lastName':
-        if (!value.trim()) return 'Last name là bắt buộc'
-        if (value.trim().length < 2) return 'Last name phải có ít nhất 2 ký tự'
-        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'Last name chỉ được chứa chữ cái'
+        if (!value.trim()) return 'Họ là bắt buộc'
+        if (value.trim().length < 2) return 'Họ phải có ít nhất 2 ký tự'
+        if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(value)) return 'Họ chỉ được chứa chữ cái'
         break
       case 'email':
         if (!value.trim()) return 'Email là bắt buộc'
@@ -166,11 +166,11 @@ export default function AddUserModal({ isOpen, onClose, eventId }: AddUserModalP
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <Label htmlFor='firstName' className='text-gray-700 font-medium'>
-                  First Name <span className='text-red-500'>*</span>
+                  Tên <span className='text-red-500'>*</span>
                 </Label>
                 <Input
                   id='firstName'
-                  placeholder='Nhập first name'
+                  placeholder='Nhập Tên'
                   value={formData.firstName}
                   onChange={(e) => handleFieldChange('firstName', e.target.value)}
                   onBlur={() => handleBlur('firstName')}
@@ -187,11 +187,11 @@ export default function AddUserModal({ isOpen, onClose, eventId }: AddUserModalP
               </div>
               <div className='space-y-2'>
                 <Label htmlFor='lastName' className='text-gray-700 font-medium'>
-                  Last Name <span className='text-red-500'>*</span>
+                  Họ <span className='text-red-500'>*</span>
                 </Label>
                 <Input
                   id='lastName'
-                  placeholder='Nhập last name'
+                  placeholder='Nhập Họ'
                   value={formData.lastName}
                   onChange={(e) => handleFieldChange('lastName', e.target.value)}
                   onBlur={() => handleBlur('lastName')}
@@ -233,7 +233,7 @@ export default function AddUserModal({ isOpen, onClose, eventId }: AddUserModalP
               </div>
               <div className='space-y-2'>
                 <Label htmlFor='phoneNumber' className='text-gray-700 font-medium'>
-                  Phone Number
+                  Số điện thoại
                 </Label>
                 <Input
                   id='phoneNumber'
