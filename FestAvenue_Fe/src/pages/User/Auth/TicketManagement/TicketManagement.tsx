@@ -16,6 +16,8 @@ type TabType = 'ticket-config' | 'seat-setup'
 export default function TicketManagement() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventIdSplit = nameId.split('-')
+  const eventId = eventIdSplit[eventIdSplit.length - 1]
   const eventCode = getIdFromNameId(nameId)
 
   // Check permissions
@@ -162,7 +164,11 @@ export default function TicketManagement() {
 
             {/* Content */}
             <div className='content-area p-8'>
-              {activeTab === 'ticket-config' ? <TicketConfig /> : <EditorSeat eventCode={eventCode} />}
+              {activeTab === 'ticket-config' ? (
+                <TicketConfig />
+              ) : (
+                <EditorSeat eventCode={eventCode} eventId={eventId} />
+              )}
             </div>
           </div>
         </div>

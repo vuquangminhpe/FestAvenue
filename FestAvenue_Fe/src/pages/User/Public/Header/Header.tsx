@@ -183,7 +183,7 @@ export default function Header() {
                             Hồ sơ của tôi
                           </Link>
                           <Link
-                            to='/my-events'
+                            to={path.user.my.events}
                             className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
                             onClick={() => setIsUserMenuOpen(false)}
                           >
@@ -344,7 +344,7 @@ export default function Header() {
                     Hồ sơ của tôi
                   </Link>
                   <Link
-                    to='/my-events'
+                    to={path.user.my.events}
                     className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors'
                     onClick={() => setIsMobileMenuOpen(false)}
                   >

@@ -49,6 +49,7 @@ import { generateSeatsForSection } from './utils/seats'
 
 // Props interface
 interface AdvancedSeatMapDesignerProps {
+  eventId: string
   eventCode: string
 }
 
@@ -1644,7 +1645,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                               onValueChange={(ticketId) => {
                                 const updatedSections = mapData.sections.map((s) =>
                                   s.id === selectedSection.id
-                                    ? { ...s, ticketId, seats: s.seats?.map(seat => ({ ...seat, ticketId })) }
+                                    ? { ...s, ticketId, seats: s.seats?.map((seat) => ({ ...seat, ticketId })) }
                                     : s
                                 )
                                 setMapData({ ...mapData, sections: updatedSections })
@@ -1657,22 +1658,24 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                               <SelectContent>
                                 {tickets.map((ticket) => (
                                   <SelectItem key={ticket.id} value={ticket.id}>
-                                    {ticket.name} - {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    {ticket.name} -{' '}
+                                    {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                            {selectedSection.ticketId && (() => {
-                              const ticket = tickets.find((t) => t.id === selectedSection.ticketId)
-                              return ticket ? (
-                                <div className='bg-blue-600/20 border border-blue-500/50 rounded p-2 text-xs'>
-                                  <div className='font-semibold text-blue-200'>{ticket.name}</div>
-                                  <div className='text-blue-300'>
-                                    {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                            {selectedSection.ticketId &&
+                              (() => {
+                                const ticket = tickets.find((t) => t.id === selectedSection.ticketId)
+                                return ticket ? (
+                                  <div className='bg-blue-600/20 border border-blue-500/50 rounded p-2 text-xs'>
+                                    <div className='font-semibold text-blue-200'>{ticket.name}</div>
+                                    <div className='text-blue-300'>
+                                      {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    </div>
                                   </div>
-                                </div>
-                              ) : null
-                            })()}
+                                ) : null
+                              })()}
                           </>
                         )}
                       </div>
@@ -2040,18 +2043,19 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 </div>
 
                 {/* Selected Ticket Info */}
-                {selectedTicketId && (() => {
-                  const selectedTicket = tickets.find((t) => t.id === selectedTicketId)
-                  return selectedTicket ? (
-                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1'>
-                      <div className='text-sm font-semibold text-blue-900'>{selectedTicket.name}</div>
-                      <div className='text-xs text-blue-700'>{selectedTicket.description}</div>
-                      <div className='text-sm font-bold text-blue-600'>
-                        {selectedTicket.isFree ? 'Miễn phí' : `${selectedTicket.price.toLocaleString()} VNĐ`}
+                {selectedTicketId &&
+                  (() => {
+                    const selectedTicket = tickets.find((t) => t.id === selectedTicketId)
+                    return selectedTicket ? (
+                      <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-1'>
+                        <div className='text-sm font-semibold text-blue-900'>{selectedTicket.name}</div>
+                        <div className='text-xs text-blue-700'>{selectedTicket.description}</div>
+                        <div className='text-sm font-bold text-blue-600'>
+                          {selectedTicket.isFree ? 'Miễn phí' : `${selectedTicket.price.toLocaleString()} VNĐ`}
+                        </div>
                       </div>
-                    </div>
-                  ) : null
-                })()}
+                    ) : null
+                  })()}
 
                 <div className='flex gap-2 justify-end'>
                   <Button

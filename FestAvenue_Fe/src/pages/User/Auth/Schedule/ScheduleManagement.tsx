@@ -21,6 +21,9 @@ import { SERVICE_PACKAGE_NAMES } from '@/constants/servicePackages'
 export default function ScheduleManagement() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
+  const eventIdSplit = nameId.split('-')
+  const eventId = eventIdSplit[eventIdSplit.length - 1]
+
   const eventCode = getIdFromNameId(nameId)
 
   // Check permissions
@@ -379,6 +382,7 @@ export default function ScheduleManagement() {
       {/* Modals */}
       {showForm && (
         <ScheduleForm
+          eventId={eventId}
           eventCode={eventCode}
           schedule={editingSchedule}
           prefilledDateRange={prefilledDateRange}

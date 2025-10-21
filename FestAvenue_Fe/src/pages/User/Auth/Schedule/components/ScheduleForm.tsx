@@ -20,6 +20,7 @@ import {
 
 interface ScheduleFormProps {
   eventCode: string
+  eventId?: string
   schedule?: Schedule | null
   prefilledDateRange?: { start: Date; end: Date } | null
   onClose: () => void
@@ -31,7 +32,8 @@ export default function ScheduleForm({
   schedule,
   prefilledDateRange,
   onClose,
-  onSuccess
+  onSuccess,
+  eventId
 }: ScheduleFormProps) {
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
@@ -46,9 +48,9 @@ export default function ScheduleForm({
 
   // Fetch event data to get lifecycle times
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
-    queryKey: ['event', eventCode],
-    queryFn: () => eventApis.getEventById(eventCode),
-    enabled: !!eventCode
+    queryKey: ['event', eventId],
+    queryFn: () => eventApis.getEventById(eventId as string),
+    enabled: !!eventId
   })
 
   const event = eventData?.data
@@ -107,11 +109,15 @@ export default function ScheduleForm({
           const eventEnd = new Date(lifecycleEnd)
 
           if (start < eventStart) {
-            newErrors.startDate = `Lịch trình không được bắt đầu trước vòng đời sự kiện (${new Date(lifecycleStart).toLocaleDateString('vi-VN')})`
+            newErrors.startDate = `Lịch trình không được bắt đầu trước vòng đời sự kiện (${new Date(
+              lifecycleStart
+            ).toLocaleDateString('vi-VN')})`
           }
 
           if (end > eventEnd) {
-            newErrors.endDate = `Lịch trình không được kết thúc sau vòng đời sự kiện (${new Date(lifecycleEnd).toLocaleDateString('vi-VN')})`
+            newErrors.endDate = `Lịch trình không được kết thúc sau vòng đời sự kiện (${new Date(
+              lifecycleEnd
+            ).toLocaleDateString('vi-VN')})`
           }
         }
       }

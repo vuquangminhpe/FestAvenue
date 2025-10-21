@@ -222,7 +222,8 @@ export default function MyEvents() {
                   navigate(
                     `${path.user.event_owner.user_management}?${generateNameId({
                       id: eventVersion.eventCode,
-                      name: `${eventVersion.organization.name}-${eventVersion.eventName}`
+                      name: eventVersion.eventName,
+                      id_2: eventVersion.organization.name
                     })}`
                   )
                 }

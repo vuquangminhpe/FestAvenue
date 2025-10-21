@@ -2,9 +2,9 @@ const removeSpecialCharacter = (str: string) => {
   // eslint-disable-next-line no-useless-escape
   return str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, '')
 }
-export const generateNameId = ({ name, id }: { name: string; id: string }) => {
+export const generateNameId = ({ name, id, id_2 }: { name: string; id: string; id_2?: string }) => {
   const formattedName = removeSpecialCharacter(name).replace(/\s/g, '-')
-  return `${id}-${formattedName}`
+  return `${id}-${formattedName}-${id_2}`
 }
 
 export const getIdFromNameId = (nameId: string) => {
