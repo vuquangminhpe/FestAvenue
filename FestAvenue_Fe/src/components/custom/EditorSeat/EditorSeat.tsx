@@ -1246,30 +1246,22 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     // Build ticketsForSeats array from all seats with assigned tickets
     const ticketsForSeats: Array<{
       ticketId: string
-      seatIndex: number
-      isSeatLock: boolean
-      email: string
-      isVerified: boolean
+      seatIndex: string
+      email?: string
     }> = []
 
-    let seatIndex = 0
     mapData.sections.forEach((section) => {
       section.seats?.forEach((seat) => {
         // Get ticket ID from seat or section
         const ticketId = seat.ticketId || section.ticketId
 
-        // Only add seats that have a ticket assigned
         if (ticketId) {
-          const status = seatStatuses.get(seat.id)
           ticketsForSeats.push({
             ticketId,
-            seatIndex,
-            isSeatLock: status === 'locked',
-            email: seat.email || '', // Email is the key to identify user for this seat
-            isVerified: false // Default to false, will be updated when user books
+            seatIndex: seat.id,
+            email: seat.email || undefined
           })
         }
-        seatIndex++
       })
     })
 

@@ -26,6 +26,11 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
   const [localDateFrom, setLocalDateFrom] = useState('')
   const [localDateTo, setLocalDateTo] = useState('')
 
+  // Local filter state
+  const [localShowCompleted, setLocalShowCompleted] = useState(filter.showCompleted)
+  const [localSortBy, setLocalSortBy] = useState(filter.sortBy)
+  const [localSortOrder, setLocalSortOrder] = useState(filter.sortOrder)
+
   const debouncedSearch = useCallback(
     (value: string) => {
       onSearch(value)
@@ -64,20 +69,39 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
         return
     }
 
-    onFilterChange({ dateRange: { from, to } })
     setLocalDateFrom(format(from, "yyyy-MM-dd'T'HH:mm"))
     setLocalDateTo(format(to, "yyyy-MM-dd'T'HH:mm"))
+
+    // Quick filters apply immediately
+    onFilterChange({
+      dateRange: { from, to },
+      showCompleted: localShowCompleted,
+      sortBy: localSortBy,
+      sortOrder: localSortOrder
+    })
   }
 
-  const handleDateRangeChange = () => {
-    if (localDateFrom && localDateTo) {
-      onFilterChange({
-        dateRange: {
-          from: new Date(localDateFrom),
-          to: new Date(localDateTo)
-        }
-      })
+  const applyFilters = () => {
+    const newFilter: Partial<ScheduleFilterType> = {
+      showCompleted: localShowCompleted,
+      sortBy: localSortBy,
+      sortOrder: localSortOrder
     }
+
+    if (localDateFrom || localDateTo) {
+      let from = localDateFrom ? new Date(localDateFrom) : new Date(-8640000000000000)
+      let to = localDateTo ? new Date(localDateTo) : new Date(8640000000000000)
+
+      if (from > to) {
+        ;[from, to] = [to, from]
+      }
+
+      newFilter.dateRange = { from, to }
+    } else {
+      newFilter.dateRange = undefined
+    }
+
+    onFilterChange(newFilter)
   }
 
   const clearDateRange = () => {
@@ -91,8 +115,21 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
     onSearch('')
   }
 
-  const hasActiveFilters =
-    searchInput || filter.dateRange || !filter.showCompleted || filter.sortBy !== 'startDate'
+  const resetFilters = () => {
+    setLocalDateFrom('')
+    setLocalDateTo('')
+    setLocalShowCompleted(true)
+    setLocalSortBy('startDate')
+    setLocalSortOrder('asc')
+    onFilterChange({
+      dateRange: undefined,
+      showCompleted: true,
+      sortBy: 'startDate',
+      sortOrder: 'asc'
+    })
+  }
+
+  const hasActiveFilters = searchInput || filter.dateRange || !filter.showCompleted || filter.sortBy !== 'startDate'
 
   return (
     <div className='space-y-4'>
@@ -124,9 +161,7 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
               : 'hover:bg-gray-100'
           }`}
         >
-          <Filter
-            className={`w-4 h-4 transition-transform duration-200 ${isAdvancedOpen ? 'rotate-180' : ''}`}
-          />
+          <Filter className={`w-4 h-4 transition-transform duration-200 ${isAdvancedOpen ? 'rotate-180' : ''}`} />
           {isAdvancedOpen ? 'Ẩn bộ lọc' : 'Bộ lọc'}
           {hasActiveFilters && !isAdvancedOpen && (
             <span className='px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full animate-in fade-in zoom-in duration-200'>
@@ -136,8 +171,8 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
         </Button>
       </div>
 
-      {/* Quick Filters */}
-      <div className='flex gap-2 flex-wrap'>
+      {/* Quick Filters and Apply Button */}
+      <div className='flex gap-2 flex-wrap items-center'>
         {QUICK_FILTERS.map((qf, index) => (
           <Button
             key={qf.value}
@@ -153,6 +188,26 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
             {qf.label}
           </Button>
         ))}
+
+        <div className='flex-1 flex gap-2 justify-end'>
+          <Button
+            onClick={applyFilters}
+            size='sm'
+            className='bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 transition-all duration-200'
+          >
+            <Filter className='w-4 h-4 mr-2' />
+            Bắt đầu lọc
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={resetFilters}
+            className='transition-all duration-200 hover:bg-red-50 hover:text-red-600 hover:border-red-300'
+          >
+            <X className='w-4 h-4 mr-2' />
+            Đặt lại
+          </Button>
+        </div>
       </div>
 
       {/* Advanced Filters */}
@@ -179,7 +234,6 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
                   type='datetime-local'
                   value={localDateFrom}
                   onChange={(e) => setLocalDateFrom(e.target.value)}
-                  onBlur={handleDateRangeChange}
                   placeholder='Từ ngày'
                   className='text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:border-blue-300'
                 />
@@ -189,13 +243,12 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
                   type='datetime-local'
                   value={localDateTo}
                   onChange={(e) => setLocalDateTo(e.target.value)}
-                  onBlur={handleDateRangeChange}
                   placeholder='Đến ngày'
                   className='text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 hover:border-blue-300'
                 />
               </div>
             </div>
-            {filter.dateRange && (
+            {(localDateFrom || localDateTo) && (
               <Button
                 variant='ghost'
                 size='sm'
@@ -212,8 +265,8 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
           <div className='flex items-center gap-2 p-2 rounded-lg transition-all duration-200 hover:bg-white'>
             <Checkbox
               id='showCompleted'
-              checked={filter.showCompleted}
-              onCheckedChange={(checked) => onFilterChange({ showCompleted: checked as boolean })}
+              checked={localShowCompleted}
+              onCheckedChange={(checked) => setLocalShowCompleted(checked as boolean)}
               className='transition-all duration-200'
             />
             <Label htmlFor='showCompleted' className='text-sm cursor-pointer flex items-center gap-1'>
@@ -227,8 +280,8 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
             <div className='space-y-2'>
               <Label className='text-sm font-medium text-gray-600'>Sắp xếp theo</Label>
               <Select
-                value={filter.sortBy}
-                onValueChange={(value) => onFilterChange({ sortBy: value as ScheduleFilterType['sortBy'] })}
+                value={localSortBy}
+                onValueChange={(value) => setLocalSortBy(value as ScheduleFilterType['sortBy'])}
               >
                 <SelectTrigger className='text-sm transition-all duration-200 hover:border-blue-300 focus:ring-2 focus:ring-blue-500'>
                   <SelectValue />
@@ -245,8 +298,8 @@ export default function ScheduleFilter({ filter, onFilterChange, onSearch }: Sch
             <div className='space-y-2'>
               <Label className='text-sm font-medium text-gray-600'>Thứ tự</Label>
               <Select
-                value={filter.sortOrder}
-                onValueChange={(value) => onFilterChange({ sortOrder: value as ScheduleFilterType['sortOrder'] })}
+                value={localSortOrder}
+                onValueChange={(value) => setLocalSortOrder(value as ScheduleFilterType['sortOrder'])}
               >
                 <SelectTrigger className='text-sm transition-all duration-200 hover:border-blue-300 focus:ring-2 focus:ring-blue-500'>
                   <SelectValue />

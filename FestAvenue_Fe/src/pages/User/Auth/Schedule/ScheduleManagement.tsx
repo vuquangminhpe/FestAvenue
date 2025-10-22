@@ -18,6 +18,13 @@ import {
 import { useSchedules, useUpdateSchedule } from '@/hooks/useSchedule'
 import { SERVICE_PACKAGE_NAMES } from '@/constants/servicePackages'
 
+const sortByParamMap: Record<ScheduleFilterType['sortBy'], number> = {
+  startDate: 1,
+  endDate: 2,
+  title: 3,
+  createdAt: 4
+}
+
 export default function ScheduleManagement() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
@@ -35,13 +42,14 @@ export default function ScheduleManagement() {
   const servicePackages = eventPackagesData?.data?.servicePackages || []
   const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
-  // Tìm service package ID cho Schedule Management (sử dụng exact name từ backend)
+  // Tìm service package ID cho Schedule Management
   const schedulePackage = servicePackages.find((pkg: any) => pkg.name === SERVICE_PACKAGE_NAMES.SCHEDULE)
   const hasSchedulePermission = isEventOwner || (schedulePackage && userServicePackageIds.includes(schedulePackage.id))
 
   // Filter state
   const [filter, setFilter] = useState<ScheduleFilterType>({
     searchQuery: '',
+    dateRange: undefined,
     showCompleted: true,
     sortBy: 'startDate',
     sortOrder: 'asc'
@@ -58,11 +66,22 @@ export default function ScheduleManagement() {
   const [prefilledDateRange, setPrefilledDateRange] = useState<{ start: Date; end: Date } | null>(null)
 
   // Fetch schedules với TanStack Query
-  const { data: schedules = [], isLoading } = useSchedules(eventCode, {
-    keyword: filter.searchQuery,
-    sortBy: 1,
-    isAsc: filter.sortOrder === 'asc'
-  })
+  const scheduleQueryFilters = useMemo(() => {
+    const startDate = filter.dateRange?.from ? filter.dateRange.from.toISOString() : undefined
+    const endDate = filter.dateRange?.to ? filter.dateRange.to.toISOString() : undefined
+    const sortBy = sortByParamMap[filter.sortBy]
+
+    return {
+      keyword: filter.searchQuery || undefined,
+      startDate,
+      endDate,
+      isCompleted: filter.showCompleted ? undefined : false,
+      sortBy,
+      isAsc: filter.sortOrder === 'asc'
+    }
+  }, [filter])
+
+  const { data: schedules = [], isLoading } = useSchedules(eventCode, scheduleQueryFilters)
 
   const updateScheduleMutation = useUpdateSchedule()
 
@@ -191,36 +210,9 @@ export default function ScheduleManagement() {
     setFilter((prev) => ({ ...prev, ...newFilter }))
   }, [])
 
-  // Apply filters
-  const filteredSchedules = useMemo(() => {
-    return schedules.filter((schedule) => {
-      // Apply completed filter
-      if (!filter.showCompleted) {
-        const allCompleted = schedule.subTasks.length > 0 && schedule.subTasks.every((st) => st.isCompleted)
-        if (allCompleted) return false
-      }
-
-      // Apply date range filter
-      if (filter.dateRange) {
-        const scheduleStart = new Date(schedule.startDate)
-        const scheduleEnd = new Date(schedule.endDate)
-        const { from, to } = filter.dateRange
-
-        const isInRange =
-          (scheduleStart >= from && scheduleStart <= to) ||
-          (scheduleEnd >= from && scheduleEnd <= to) ||
-          (scheduleStart <= from && scheduleEnd >= to)
-
-        if (!isInRange) return false
-      }
-
-      return true
-    })
-  }, [schedules, filter])
-
   // Sort schedules
   const sortedSchedules = useMemo(() => {
-    return [...filteredSchedules].sort((a, b) => {
+    return [...schedules].sort((a, b) => {
       let aValue: string | Date, bValue: string | Date
 
       switch (filter.sortBy) {
@@ -248,7 +240,7 @@ export default function ScheduleManagement() {
       if (aValue > bValue) return filter.sortOrder === 'asc' ? 1 : -1
       return 0
     })
-  }, [filteredSchedules, filter.sortBy, filter.sortOrder])
+  }, [schedules, filter.sortBy, filter.sortOrder])
 
   // Loading state
   if (isCheckingOwner || isLoadingPermissions) {
@@ -331,7 +323,7 @@ export default function ScheduleManagement() {
           </div>
           <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
             <p className='text-sm text-gray-600 mb-1'>Đang hiển thị</p>
-            <p className='text-2xl font-bold text-purple-600'>{filteredSchedules.length}</p>
+            <p className='text-2xl font-bold text-purple-600'>{sortedSchedules.length}</p>
           </div>
           <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-4'>
             <p className='text-sm text-gray-600 mb-1'>Có thông báo</p>
