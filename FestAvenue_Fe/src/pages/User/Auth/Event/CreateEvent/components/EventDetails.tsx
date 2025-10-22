@@ -1,7 +1,8 @@
+import { useEffect } from 'react'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
 import { visibilityOptions } from '../constants'
 import { Calendar } from '@/components/ui/calendar'
@@ -19,30 +20,83 @@ interface EventDetailsProps {
 
 export function EventDetails({ form }: EventDetailsProps) {
   // Watch values to enable/disable dependent fields
-  const lifecycleStart = form.watch('startEventLifecycleTime')
-  const lifecycleEnd = form.watch('endEventLifecycleTime')
-  const ticketSaleStart = form.watch('startTicketSaleTime')
-  const ticketSaleEnd = form.watch('endTicketSaleTime')
+  const lifecycleStart = useWatch({ control: form.control, name: 'startEventLifecycleTime' })
+  const lifecycleEnd = useWatch({ control: form.control, name: 'endEventLifecycleTime' })
+  const ticketSaleStart = useWatch({ control: form.control, name: 'startTicketSaleTime' })
+  const ticketSaleEnd = useWatch({ control: form.control, name: 'endTicketSaleTime' })
+  const eventStart = useWatch({ control: form.control, name: 'startTimeEventTime' })
+  const eventEnd = useWatch({ control: form.control, name: 'endTimeEventTime' })
 
   const isLifecycleComplete = lifecycleStart && lifecycleEnd
   const isTicketSaleComplete = ticketSaleStart && ticketSaleEnd
 
+  // Re-validate dependent fields when dependencies change
+  useEffect(() => {
+    if (lifecycleStart) {
+      // When lifecycle start changes, re-validate end lifecycle
+      if (lifecycleEnd) {
+        form.trigger('endEventLifecycleTime')
+      }
+      // Also trigger ticket sale fields if they have values
+      if (ticketSaleStart) {
+        form.trigger('startTicketSaleTime')
+      }
+    }
+  }, [lifecycleStart, lifecycleEnd, ticketSaleStart, form])
+
+  useEffect(() => {
+    if (lifecycleEnd) {
+      // When lifecycle end changes, re-validate all time fields that depend on it
+      if (ticketSaleStart) {
+        form.trigger('startTicketSaleTime')
+      }
+      if (ticketSaleEnd) {
+        form.trigger('endTicketSaleTime')
+      }
+      if (eventStart) {
+        form.trigger('startTimeEventTime')
+      }
+      if (eventEnd) {
+        form.trigger('endTimeEventTime')
+      }
+    }
+  }, [lifecycleEnd, ticketSaleStart, ticketSaleEnd, eventStart, eventEnd, form])
+
+  useEffect(() => {
+    if (ticketSaleStart) {
+      // When ticket sale start changes, re-validate end ticket sale and event times
+      if (ticketSaleEnd) {
+        form.trigger('endTicketSaleTime')
+      }
+      if (eventStart) {
+        form.trigger('startTimeEventTime')
+      }
+    }
+  }, [ticketSaleStart, ticketSaleEnd, eventStart, form])
+
+  useEffect(() => {
+    if (ticketSaleEnd) {
+      // When ticket sale end changes, re-validate event times
+      if (eventStart) {
+        form.trigger('startTimeEventTime')
+      }
+      if (eventEnd) {
+        form.trigger('endTimeEventTime')
+      }
+    }
+  }, [ticketSaleEnd, eventStart, eventEnd, form])
+
+  useEffect(() => {
+    if (eventStart) {
+      // When event start changes, re-validate event end
+      if (eventEnd) {
+        form.trigger('endTimeEventTime')
+      }
+    }
+  }, [eventStart, eventEnd, form])
+
   return (
     <div className='space-y-6'>
-      {/* Info Alert */}
-      <Alert className='bg-blue-50 border-blue-200'>
-        <AlertCircle className='w-4 h-4 text-blue-600' />
-        <AlertDescription className='text-sm text-blue-800'>
-          <strong>Quy trình chọn thời gian:</strong>
-          <br />
-          1️⃣ Vòng đời sự kiện (bao gồm tất cả)
-          <br />
-          2️⃣ Thời gian bán vé (trong vòng đời)
-          <br />
-          3️⃣ Thời gian diễn ra sự kiện (sau khi bắt đầu bán vé)
-        </AlertDescription>
-      </Alert>
-
       {/* Visibility & Capacity */}
       <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
         <FormField
@@ -148,6 +202,10 @@ export function EventDetails({ form }: EventDetailsProps) {
                           const now = new Date()
                           date.setHours(now.getHours(), now.getMinutes(), 0, 0)
                           field.onChange(date.toISOString())
+                          // Trigger validation for dependent fields
+                          setTimeout(() => {
+                            form.trigger(['endEventLifecycleTime', 'startTicketSaleTime'])
+                          }, 0)
                         }
                       }}
                       disabled={(date) => date < new Date()}
@@ -197,9 +255,21 @@ export function EventDetails({ form }: EventDetailsProps) {
                           const now = new Date()
                           date.setHours(now.getHours(), now.getMinutes(), 0, 0)
                           field.onChange(date.toISOString())
+                          // Trigger validation for dependent fields
+                          setTimeout(() => {
+                            form.trigger([
+                              'startTicketSaleTime',
+                              'endTicketSaleTime',
+                              'startTimeEventTime',
+                              'endTimeEventTime'
+                            ])
+                          }, 0)
                         }
                       }}
-                      disabled={(date) => !lifecycleStart || date < new Date(lifecycleStart)}
+                      disabled={(date) => {
+                        const startDate = form.getValues('startEventLifecycleTime')
+                        return !startDate || date < new Date(startDate)
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -281,14 +351,22 @@ export function EventDetails({ form }: EventDetailsProps) {
                           const now = new Date()
                           date.setHours(now.getHours(), now.getMinutes(), 0, 0)
                           field.onChange(date.toISOString())
+                          // Trigger validation for dependent fields
+                          setTimeout(() => {
+                            form.trigger(['endTicketSaleTime', 'startTimeEventTime'])
+                          }, 0)
                         }
                       }}
-                      disabled={(date) =>
-                        !lifecycleStart ||
-                        !lifecycleEnd ||
-                        date < new Date(lifecycleStart) ||
-                        date > new Date(lifecycleEnd)
-                      }
+                      disabled={(date) => {
+                        const startLifecycle = form.getValues('startEventLifecycleTime')
+                        const endLifecycle = form.getValues('endEventLifecycleTime')
+                        return (
+                          !startLifecycle ||
+                          !endLifecycle ||
+                          date < new Date(startLifecycle) ||
+                          date > new Date(endLifecycle)
+                        )
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -336,19 +414,26 @@ export function EventDetails({ form }: EventDetailsProps) {
                           const now = new Date()
                           date.setHours(now.getHours(), now.getMinutes(), 0, 0)
                           field.onChange(date.toISOString())
+                          // Trigger validation for dependent fields
+                          setTimeout(() => {
+                            form.trigger(['startTimeEventTime', 'endTimeEventTime'])
+                          }, 0)
                         }
                       }}
-                      disabled={(date) =>
-                        !ticketSaleStart ||
-                        !lifecycleEnd ||
-                        date < new Date(ticketSaleStart) ||
-                        date > new Date(lifecycleEnd)
-                      }
+                      disabled={(date) => {
+                        const startTicket = form.getValues('startTicketSaleTime')
+                        const endLifecycle = form.getValues('endEventLifecycleTime')
+                        return (
+                          !startTicket || !endLifecycle || date < new Date(startTicket) || date > new Date(endLifecycle)
+                        )
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                <FormDescription className='text-xs'>Phải sau thời điểm bắt đầu bán vé và trong vòng đời</FormDescription>
+                <FormDescription className='text-xs'>
+                  Phải sau thời điểm bắt đầu bán vé và trong vòng đời
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -425,14 +510,19 @@ export function EventDetails({ form }: EventDetailsProps) {
                           const now = new Date()
                           date.setHours(now.getHours(), now.getMinutes(), 0, 0)
                           field.onChange(date.toISOString())
+                          // Trigger validation for dependent fields
+                          setTimeout(() => {
+                            form.trigger('endTimeEventTime')
+                          }, 0)
                         }
                       }}
-                      disabled={(date) =>
-                        !ticketSaleStart ||
-                        !lifecycleEnd ||
-                        date < new Date(ticketSaleStart) ||
-                        date > new Date(lifecycleEnd)
-                      }
+                      disabled={(date) => {
+                        const startTicket = form.getValues('startTicketSaleTime')
+                        const endLifecycle = form.getValues('endEventLifecycleTime')
+                        return (
+                          !startTicket || !endLifecycle || date < new Date(startTicket) || date > new Date(endLifecycle)
+                        )
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -460,7 +550,7 @@ export function EventDetails({ form }: EventDetailsProps) {
                           'w-full pl-3 text-left font-normal bg-white border-slate-200',
                           !field.value && 'text-muted-foreground'
                         )}
-                        disabled={!form.watch('startTimeEventTime')}
+                        disabled={!eventStart}
                       >
                         {field.value ? (
                           format(new Date(field.value), 'PPP HH:mm', { locale: vi })
@@ -483,16 +573,19 @@ export function EventDetails({ form }: EventDetailsProps) {
                         }
                       }}
                       disabled={(date) => {
-                        const eventStart = form.watch('startTimeEventTime')
+                        const startEvent = form.getValues('startTimeEventTime')
+                        const endLifecycle = form.getValues('endEventLifecycleTime')
                         return (
-                          !eventStart || !lifecycleEnd || date < new Date(eventStart) || date > new Date(lifecycleEnd)
+                          !startEvent || !endLifecycle || date < new Date(startEvent) || date > new Date(endLifecycle)
                         )
                       }}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-                <FormDescription className='text-xs'>Phải sau thời điểm bắt đầu sự kiện và trong vòng đời</FormDescription>
+                <FormDescription className='text-xs'>
+                  Phải sau thời điểm bắt đầu sự kiện và trong vòng đời
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

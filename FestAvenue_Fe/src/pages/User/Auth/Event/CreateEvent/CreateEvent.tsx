@@ -68,31 +68,50 @@ function CreateEvent() {
 
   useEffect(() => {
     if (eventData?.data) {
-      const event = eventData?.data
+      const event = eventData.data
 
-      const formData = {
-        name: event.eventName,
-        description: event.description,
-        shortDescription: event.shortDescription,
-        eventType: 0,
-        categoryId: event.categoryId,
-        status: event.eventVersionStatus,
-        visibility: event.visibility,
-        capacity: event.capacity,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        registrationStartDate: event.registrationStartDate,
-        registrationEndDate: event.registrationEndDate,
-        logoUrl: event.logoUrl,
-        bannerUrl: event.bannerUrl,
-        trailerUrl: event.trailerUrl,
-        website: event.website || '',
-        publicContactEmail: event.publicContactEmail,
-        publicContactPhone: event.publicContactPhone,
-        location: event.location,
-        hashtags: event.hashtags || [],
-        organization: event.organization,
-        messageResponse: event.messageResponse || ''
+      const formData: EventFormData = {
+        ...defaultFormValues,
+        name: event.eventName ?? '',
+        description: event.description ?? '',
+        shortDescription: event.shortDescription ?? '',
+        categoryId: event.categoryId ?? '',
+        visibility: event.visibility ?? defaultFormValues.visibility,
+        capacity: event.capacity ?? defaultFormValues.capacity,
+        startEventLifecycleTime: event.startEventLifecycleTime ?? event.startDate ?? event.registrationStartDate ?? '',
+        endEventLifecycleTime: event.endEventLifecycleTime ?? event.endDate ?? event.registrationEndDate ?? '',
+        startTicketSaleTime:
+          event.startTicketSaleTime ?? event.registrationStartDate ?? event.startEventLifecycleTime ?? '',
+        endTicketSaleTime: event.endTicketSaleTime ?? event.registrationEndDate ?? event.endEventLifecycleTime ?? '',
+        startTimeEventTime: event.startTimeEventTime ?? event.startDate ?? '',
+        endTimeEventTime: event.endTimeEventTime ?? event.endDate ?? '',
+        logoUrl: event.logoUrl ?? '',
+        bannerUrl: event.bannerUrl ?? '',
+        trailerUrl: event.trailerUrl ?? '',
+        website: event.website ?? '',
+        publicContactEmail: event.publicContactEmail ?? '',
+        publicContactPhone: event.publicContactPhone ?? '',
+        location: {
+          ...defaultFormValues.location,
+          ...event.location,
+          address: {
+            ...defaultFormValues.location.address,
+            ...(event.location?.address ?? {})
+          },
+          coordinates: {
+            ...defaultFormValues.location.coordinates,
+            ...(event.location?.coordinates ?? {})
+          }
+        },
+        hashtags: event.hashtags?.length ? event.hashtags : undefined,
+        organization: {
+          ...defaultFormValues.organization,
+          ...event.organization,
+          contact: {
+            ...defaultFormValues.organization.contact,
+            ...(event.organization?.contact ?? {})
+          }
+        }
       }
 
       form.reset(formData)
