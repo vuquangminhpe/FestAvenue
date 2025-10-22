@@ -167,8 +167,9 @@ export default function MyEvents() {
               onClick={() =>
                 navigate(
                   `${path.user.event.root}/${generateNameId({
-                    id: eventVersion.id,
-                    name: `${eventVersion.organization.name}_${eventVersion.eventName}`
+                    id: eventVersion.eventCode,
+                    name: eventVersion.organization.name,
+                    id_2: eventVersion.eventName
                   })}`
                 )
               }
@@ -185,8 +186,9 @@ export default function MyEvents() {
                 onClick={() =>
                   navigate(
                     `${path.user.event.update_event}/${generateNameId({
-                      id: eventVersion.id,
-                      name: eventVersion.eventName
+                      id: eventVersion.eventCode,
+                      name: eventVersion.eventName,
+                      id_2: eventVersion.organization.name
                     })}`
                   )
                 }
