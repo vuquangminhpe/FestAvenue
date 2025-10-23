@@ -1,17 +1,29 @@
+import { useState } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
-import { Calendar, MapPin, CheckCircle2, XCircle, Loader2, Mail, Settings } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Calendar, MapPin, CheckCircle2, XCircle, Loader2, Mail, Settings, LogOut } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useNavigate } from 'react-router'
 import { InvitationStatus, type InvitationResult } from '@/types/userManagement.types'
+import { EventStatusValues } from '@/types/event.types'
 import { useGetInvitationsReceived } from '@/pages/User/Process/UserManagementInEvents/hooks/useInvitations'
 import {
   useAcceptInvitation,
   useDeclineInvitation
 } from '@/pages/User/Process/UserManagementInEvents/hooks/useInvitations'
+import { useUserLeaveEvent } from '@/pages/User/Process/UserManagementInEvents/hooks/useUserManagement'
+import { useUsersStore } from '@/contexts/app.context'
 import path from '@/constants/path'
 import { generateNameId } from '@/utils/utils'
 
@@ -43,6 +55,10 @@ const getStatusConfig = (status: number) => {
 
 export default function InvitationsTable() {
   const navigate = useNavigate()
+  const userProfile = useUsersStore((state) => state.isProfile)
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false)
+  const [eventToLeave, setEventToLeave] = useState<InvitationResult | null>(null)
+
   const { data: invitationsData, isLoading } = useGetInvitationsReceived({
     paginationParam: {
       pageIndex: 1,
@@ -53,6 +69,7 @@ export default function InvitationsTable() {
 
   const acceptMutation = useAcceptInvitation()
   const declineMutation = useDeclineInvitation()
+  const leaveEventMutation = useUserLeaveEvent()
 
   const invitations = invitationsData?.data?.result || []
 
@@ -71,6 +88,25 @@ export default function InvitationsTable() {
         name: `${invitation.event.organization.name}-${invitation.event.eventName}`
       })}`
     )
+  }
+
+  const handleLeaveClick = (invitation: InvitationResult) => {
+    setEventToLeave(invitation)
+    setLeaveDialogOpen(true)
+  }
+
+  const confirmLeave = () => {
+    if (eventToLeave && userProfile?.id) {
+      leaveEventMutation.mutate(
+        { eventId: eventToLeave.event.id, userId: userProfile.id },
+        {
+          onSuccess: () => {
+            setLeaveDialogOpen(false)
+            setEventToLeave(null)
+          }
+        }
+      )
+    }
   }
 
   if (isLoading) {
@@ -92,24 +128,25 @@ export default function InvitationsTable() {
   }
 
   return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className='w-[400px]'>Sự kiện</TableHead>
-            <TableHead className='w-[150px]'>Ngày bắt đầu</TableHead>
-            <TableHead className='w-[150px]'>Địa điểm</TableHead>
-            <TableHead className='w-[150px]'>Trạng thái</TableHead>
-            <TableHead className='w-[200px]'>Hành động</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {invitations.map((invitation: InvitationResult) => {
-            const status = getStatusConfig(invitation.invitationStatus)
-            const StatusIcon = status.icon
+    <>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className='w-[400px]'>Sự kiện</TableHead>
+              <TableHead className='w-[150px]'>Ngày bắt đầu</TableHead>
+              <TableHead className='w-[150px]'>Địa điểm</TableHead>
+              <TableHead className='w-[150px]'>Trạng thái</TableHead>
+              <TableHead className='w-[250px]'>Hành động</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {invitations.map((invitation: InvitationResult) => {
+              const status = getStatusConfig(invitation.invitationStatus)
+              const StatusIcon = status.icon
 
-            return (
-              <TableRow key={invitation.invitationId} className='hover:bg-slate-50'>
+              return (
+                <TableRow key={invitation.invitationId} className='hover:bg-slate-50'>
                 {/* Event Info */}
                 <TableCell className='font-medium'>
                   <div className='flex items-center gap-3'>
@@ -196,14 +233,27 @@ export default function InvitationsTable() {
                     </div>
                   )}
                   {invitation.invitationStatus === InvitationStatus.Accepted && (
-                    <Button
-                      size='sm'
-                      className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
-                      onClick={() => handleManage(invitation)}
-                    >
-                      <Settings className='w-4 h-4' />
-                      <span className='ml-1'>Quản lí</span>
-                    </Button>
+                    <div className='flex gap-2'>
+                      <Button
+                        size='sm'
+                        className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
+                        onClick={() => handleManage(invitation)}
+                      >
+                        <Settings className='w-4 h-4' />
+                        <span className='ml-1'>Quản lí</span>
+                      </Button>
+                      {invitation.event.eventVersionStatus === EventStatusValues.Active && (
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          className='border-red-300 text-red-700 hover:bg-red-50'
+                          onClick={() => handleLeaveClick(invitation)}
+                        >
+                          <LogOut className='w-4 h-4' />
+                          <span className='ml-1'>Rời sự kiện</span>
+                        </Button>
+                      )}
+                    </div>
                   )}
                   {invitation.invitationStatus !== InvitationStatus.Pending &&
                     invitation.invitationStatus !== InvitationStatus.Accepted && (
@@ -216,5 +266,51 @@ export default function InvitationsTable() {
         </TableBody>
       </Table>
     </Card>
+
+    {/* Leave Event Confirmation Dialog */}
+    <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
+      <DialogContent className='bg-white'>
+        <DialogHeader>
+          <DialogTitle className='text-xl font-bold text-gray-800'>Xác nhận rời sự kiện</DialogTitle>
+          <DialogDescription className='text-gray-600'>
+            Bạn có chắc chắn muốn rời khỏi sự kiện này? Bạn sẽ không còn quyền truy cập vào các chức năng của sự kiện.
+          </DialogDescription>
+        </DialogHeader>
+        {eventToLeave && (
+          <div className='py-4'>
+            <p className='text-sm text-gray-700'>
+              <span className='font-semibold'>Sự kiện:</span> {eventToLeave.event.eventName}
+            </p>
+            <p className='text-sm text-gray-700 mt-2'>
+              <span className='font-semibold'>Tổ chức:</span> {eventToLeave.event.organization.name}
+            </p>
+          </div>
+        )}
+        <DialogFooter className='gap-2'>
+          <Button variant='outline' onClick={() => setLeaveDialogOpen(false)} disabled={leaveEventMutation.isPending}>
+            Hủy
+          </Button>
+          <Button
+            variant='destructive'
+            onClick={confirmLeave}
+            disabled={leaveEventMutation.isPending}
+            className='bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+          >
+            {leaveEventMutation.isPending ? (
+              <>
+                <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                Đang rời...
+              </>
+            ) : (
+              <>
+                <LogOut className='w-4 h-4 mr-2' />
+                Rời sự kiện
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </>
   )
 }

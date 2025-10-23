@@ -103,6 +103,7 @@ export const useUserLeaveEvent = () => {
     onSuccess: () => {
       toast.success('Rời khỏi sự kiện thành công!')
       queryClient.invalidateQueries({ queryKey: ['usersInEvent'] })
+      queryClient.invalidateQueries({ queryKey: ['invitationsReceived'] })
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Rời khỏi sự kiện thất bại!')

@@ -31,7 +31,7 @@ export interface bodySendInvitation {
 }
 export interface getInvitationsEvent {
   eventCode: string
-  invitationStatuses: InvitationStatus
+  invitationStatuses: InvitationStatus[]
   searchMail: string
   paginationParam: {
     orderBy?: string
