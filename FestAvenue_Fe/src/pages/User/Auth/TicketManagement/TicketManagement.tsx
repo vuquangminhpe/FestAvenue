@@ -95,91 +95,48 @@ export default function TicketManagement() {
 
   return (
     <div className='ticket-management-container min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50'>
-      <div className='flex h-screen'>
-        {/* Sidebar Navigation */}
-        <div className='w-64 bg-white border-r border-gray-200 shadow-lg flex flex-col'>
-          {/* Header */}
-          <div className='p-6 border-b border-gray-200'>
-            <h2 className='text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
-              Quản lý vé
-            </h2>
-            <p className='text-xs text-gray-500 mt-1'>Cấu hình vé và chỗ ngồi</p>
-          </div>
+      <div className='flex flex-col h-screen'>
+        {/* Top Header with Horizontal Tabs */}
+        <div className='bg-white border-b border-gray-200 shadow-sm flex-shrink-0'>
+          {/* Horizontal Tabs */}
+          <div className='px-8 flex gap-2 border-t border-gray-100'>
+            <button
+              onClick={() => handleTabChange('ticket-config')}
+              className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
+                activeTab === 'ticket-config'
+                  ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <TicketIcon className='w-5 h-5' />
+              <span>Cấu hình vé</span>
+            </button>
 
-          {/* Tab Navigation */}
-          <nav className='flex-1 p-4'>
-            <div className='space-y-2'>
-              <button
-                onClick={() => handleTabChange('ticket-config')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                  activeTab === 'ticket-config'
-                    ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200/50'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <TicketIcon className='w-5 h-5' />
-                <span className='font-medium'>Cấu hình vé</span>
-              </button>
-
-              <button
-                onClick={() => handleTabChange('seat-setup')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                  activeTab === 'seat-setup'
-                    ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200/50'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <Armchair className='w-5 h-5' />
-                <span className='font-medium'>Thiết lập chỗ ngồi</span>
-              </button>
-            </div>
-          </nav>
-
-          {/* Footer Info */}
-          <div className='p-4 border-t border-gray-200 bg-gray-50'>
-            <div className='text-xs text-gray-500'>
-              <p className='font-semibold text-gray-700 mb-1'>Hướng dẫn:</p>
-              <ul className='space-y-1 pl-3'>
-                <li className='list-disc'>Cấu hình vé trước</li>
-                <li className='list-disc'>Sau đó setup chỗ ngồi</li>
-              </ul>
-            </div>
+            <button
+              onClick={() => handleTabChange('seat-setup')}
+              className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
+                activeTab === 'seat-setup'
+                  ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
+                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Armchair className='w-5 h-5' />
+              <span>Thiết lập chỗ ngồi</span>
+            </button>
           </div>
         </div>
 
-        {/* Main Content Area */}
+        {/* Main Content Area - Full Width */}
         <div className='flex-1 overflow-hidden'>
           {activeTab === 'seat-setup' ? (
             /* Full-height mode for EditorSeat (allows zoom) */
-            <div className='h-full flex flex-col'>
-              {/* Header */}
-              <div className='bg-white border-b border-gray-200 px-8 py-4 shadow-sm flex-shrink-0'>
-                <h1 className='text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
-                  Thiết lập chỗ ngồi
-                </h1>
-                <p className='text-gray-600 mt-1 text-sm'>Thiết kế và quản lý sơ đồ chỗ ngồi cho sự kiện</p>
-              </div>
-
-              {/* EditorSeat - Full height, no padding constraints */}
-              <div className='content-area flex-1 overflow-hidden'>
-                <EditorSeat eventCode={eventCode} eventId={eventId} />
-              </div>
+            <div className='content-area h-full overflow-hidden'>
+              <EditorSeat eventCode={eventCode} eventId={eventId} />
             </div>
           ) : (
             /* Standard scrollable mode for TicketConfig */
-            <div className='h-full overflow-y-auto'>
-              {/* Header */}
-              <div className='bg-white border-b border-gray-200 px-8 py-6 shadow-sm'>
-                <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
-                  Quản lý vé trong sự kiện
-                </h1>
-                <p className='text-gray-600 mt-2'>Quản lý và theo dõi tất cả các loại vé của sự kiện</p>
-              </div>
-
-              {/* Content */}
-              <div className='content-area p-8'>
-                <TicketConfig />
-              </div>
+            <div className='content-area h-full overflow-y-auto p-8'>
+              <TicketConfig />
             </div>
           )}
         </div>
