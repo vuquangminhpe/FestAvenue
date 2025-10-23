@@ -27,7 +27,7 @@ export const generateSeatsForSection = (
         if (!section.points.length || isPointInPolygon({ x, y }, section.points)) {
           const seatId = `${section.id}-R${row + 1}-S${col + 1}`
           const status = seatStatuses.get(seatId) || 'available'
-          const seatPrice = section.price || 10
+          const seatPrice = section.price || 0
           seats.push({
             id: seatId,
             x,
@@ -36,7 +36,6 @@ export const generateSeatsForSection = (
             number: col + 1,
             section: section.id,
             status: status,
-            category: section.category === 'vip' ? 'vip' : 'standard',
             price: seatPrice
           })
         }

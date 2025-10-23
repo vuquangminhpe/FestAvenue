@@ -149,28 +149,39 @@ export default function TicketManagement() {
 
         {/* Main Content Area */}
         <div className='flex-1 overflow-hidden'>
-          <div className='h-full overflow-y-auto'>
-            {/* Header */}
-            <div className='bg-white border-b border-gray-200 px-8 py-6 shadow-sm'>
-              <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
-                {activeTab === 'ticket-config' ? 'Quản lý vé trong sự kiện' : 'Thiết lập chỗ ngồi'}
-              </h1>
-              <p className='text-gray-600 mt-2'>
-                {activeTab === 'ticket-config'
-                  ? 'Quản lý và theo dõi tất cả các loại vé của sự kiện'
-                  : 'Thiết kế và quản lý sơ đồ chỗ ngồi cho sự kiện'}
-              </p>
-            </div>
+          {activeTab === 'seat-setup' ? (
+            /* Full-height mode for EditorSeat (allows zoom) */
+            <div className='h-full flex flex-col'>
+              {/* Header */}
+              <div className='bg-white border-b border-gray-200 px-8 py-4 shadow-sm flex-shrink-0'>
+                <h1 className='text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
+                  Thiết lập chỗ ngồi
+                </h1>
+                <p className='text-gray-600 mt-1 text-sm'>Thiết kế và quản lý sơ đồ chỗ ngồi cho sự kiện</p>
+              </div>
 
-            {/* Content */}
-            <div className='content-area p-8'>
-              {activeTab === 'ticket-config' ? (
-                <TicketConfig />
-              ) : (
+              {/* EditorSeat - Full height, no padding constraints */}
+              <div className='content-area flex-1 overflow-hidden'>
                 <EditorSeat eventCode={eventCode} eventId={eventId} />
-              )}
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Standard scrollable mode for TicketConfig */
+            <div className='h-full overflow-y-auto'>
+              {/* Header */}
+              <div className='bg-white border-b border-gray-200 px-8 py-6 shadow-sm'>
+                <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent'>
+                  Quản lý vé trong sự kiện
+                </h1>
+                <p className='text-gray-600 mt-2'>Quản lý và theo dõi tất cả các loại vé của sự kiện</p>
+              </div>
+
+              {/* Content */}
+              <div className='content-area p-8'>
+                <TicketConfig />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

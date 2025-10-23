@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as d3 from 'd3'
 import { useMutation } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
@@ -62,7 +62,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const seatManagerRef = useRef(new SeatInteractionManager())
 
   // Seat Management Hook
-  const { capacity, isLoadingEvent, createSeatingChart, isCreating, validateCapacity, tickets, isLoadingTickets } =
+  const { capacity, isLoadingEvent, createSeatingChart, isCreating, tickets, isLoadingTickets } =
     useSeatManagement(eventCode)
   console.log(capacity)
 
@@ -76,6 +76,8 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const [labelText, setLabelText] = useState('')
   const [editingSeatTicket, setEditingSeatTicket] = useState<string | null>(null)
   const [selectedTicketId, setSelectedTicketId] = useState('')
+  const [bulkRowNumber, setBulkRowNumber] = useState<number>(1)
+  const [bulkRowTicketId, setBulkRowTicketId] = useState<string>('')
   const [mapData, setMapData] = useState<SeatMapData>({
     sections: [],
     stage: { x: 350, y: 50, width: 300, height: 80 },
@@ -83,25 +85,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   })
   const [is3DView, setIs3DView] = useState(false)
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
-  const [layoutParams, setLayoutParams] = useState({
-    rows: 15,
-    seatsPerRow: 20,
-    vipRows: 3,
-    balcony: true,
-    boxSeats: true,
-    tables: 12,
-    seatsPerTable: 10,
-    columns: 3,
-    guestCount: 150,
-    ceremonySide: true,
-    upperDeck: true,
-    headTableSeats: 8,
-    cols: 16,
-    layers: 3,
-    aisles: 2,
-    symmetry: true,
-    density: 'medium' as 'high' | 'medium' | 'low'
-  })
+
   const [sectionConfig, setSectionConfig] = useState({
     rows: 8,
     seatsPerRow: 12,
@@ -223,7 +207,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
         bounds: bounds,
         shape: 'polygon',
         labelPosition: { x: centerX, y: centerY },
-        price: 10
+        price: 0
       }
 
       section.seats = generateSeatsForSection(section, seatStatuses)
@@ -405,7 +389,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
       seatsPerRow: sectionConfig.seatsPerRow,
       shape: selectedShape === 'polygon' ? 'custom' : selectedShape,
       labelPosition: center,
-      price: 10 // Default price
+      price: 0
     }
 
     newSection.seats = generateSeatsForSection(newSection, seatStatuses)
@@ -434,7 +418,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
       bounds,
       shape: 'polygon',
       labelPosition: { x: centerX, y: centerY },
-      price: 10 // Default price
+      price: 0
     }
 
     newSection.seats = generateSeatsForSection(newSection, seatStatuses)
@@ -857,16 +841,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
             .attr('cx', seat.x)
             .attr('cy', seat.y)
             .attr('r', 5)
-            .attr(
-              'fill',
-              status === 'locked'
-                ? '#6b7280'
-                : status === 'occupied'
-                ? '#ef4444'
-                : seat.category === 'vip'
-                ? '#ffd700'
-                : '#22c55e'
-            )
+            .attr('fill', status === 'locked' ? '#6b7280' : status === 'occupied' ? '#ef4444' : '#22c55e')
             .attr('stroke', '#fff')
             .attr('stroke-width', 1)
             .attr('pointer-events', 'none')
@@ -1146,10 +1121,12 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
         return newMap
       })
 
-      // Update seat object in mapData to remove email
+      // Update seat object in mapData to remove email and set status to available
       const updatedSections = mapData.sections.map((section) => ({
         ...section,
-        seats: section.seats?.map((seat) => (seat.id === seatId ? { ...seat, email: undefined } : seat))
+        seats: section.seats?.map((seat) =>
+          seat.id === seatId ? { ...seat, email: undefined, status: 'available' as const } : seat
+        )
       }))
       setMapData({ ...mapData, sections: updatedSections })
     } else {
@@ -1167,10 +1144,10 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     seatManagerRef.current.setSeatStatus(seatId, 'locked')
     setSeatEmails((prev) => new Map(prev).set(seatId, email))
 
-    // Update seat object in mapData to include email
+    // Update seat object in mapData to include email and set status to locked
     const updatedSections = mapData.sections.map((section) => ({
       ...section,
-      seats: section.seats?.map((seat) => (seat.id === seatId ? { ...seat, email } : seat))
+      seats: section.seats?.map((seat) => (seat.id === seatId ? { ...seat, email, status: 'locked' as const } : seat))
     }))
     setMapData({ ...mapData, sections: updatedSections })
 
@@ -1201,16 +1178,43 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const updateSeatTicket = () => {
     if (!editingSeatTicket || !selectedTicketId) return
 
+    // Find the selected ticket to get its price
+    const selectedTicket = tickets.find((t) => t.id === selectedTicketId)
+    const ticketPrice = selectedTicket?.price || 0
+
     const updatedSections = mapData.sections.map((section) => ({
       ...section,
       seats: section.seats?.map((seat) =>
-        seat.id === editingSeatTicket ? { ...seat, ticketId: selectedTicketId } : seat
+        seat.id === editingSeatTicket ? { ...seat, ticketId: selectedTicketId, price: ticketPrice } : seat
       )
     }))
 
     setMapData({ ...mapData, sections: updatedSections })
     setEditingSeatTicket(null)
     setSelectedTicketId('')
+  }
+
+  const assignTicketToRow = () => {
+    if (!selectedSection || !bulkRowTicketId || !bulkRowNumber) return
+
+    // Find the selected ticket to get its price
+    const selectedTicket = tickets.find((t) => t.id === bulkRowTicketId)
+    const ticketPrice = selectedTicket?.price || 0
+
+    const updatedSections = mapData.sections.map((section) => {
+      if (section.id === selectedSection.id) {
+        return {
+          ...section,
+          seats: section.seats?.map((seat) =>
+            seat.row === bulkRowNumber ? { ...seat, ticketId: bulkRowTicketId, price: ticketPrice } : seat
+          )
+        }
+      }
+      return section
+    })
+
+    setMapData({ ...mapData, sections: updatedSections })
+    setBulkRowTicketId('')
   }
 
   const deleteSection = (sectionId: string) => {
@@ -1279,16 +1283,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   return (
     <div className='w-full h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 text-gray-900 p-4'>
       <div className='max-w-7xl mx-auto h-full flex flex-col gap-4'>
-        <Card className='bg-white/90 backdrop-blur-xl border-blue-200 shadow-2xl'>
-          <CardHeader className='pb-3'>
-            <div className='flex items-center justify-between'>
-              <CardTitle className='text-2xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-blue-300 bg-clip-text text-transparent'>
-                🎬 Thiết Kế Sơ Đồ Chỗ Ngồi Nâng Cao
-              </CardTitle>
-            </div>
-          </CardHeader>
-        </Card>
-
         <div className='flex-1 flex gap-4'>
           <Card className='w-80 bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl overflow-y-auto'>
             <CardContent className='p-4 space-y-4'>
@@ -1296,8 +1290,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 <>
                   <Alert className='bg-purple-600/20 border-purple-500/50'>
                     <AlertDescription className='text-xs text-black'>
-                      💡 <strong>Mẹo nhanh:</strong>
-                      <br />
                       • Nhấp đúp hoặc chuột phải vào nhãn khu vực để đổi tên
                       <br />
                       • Hoặc dùng công cụ Nhãn + nhấp vào khu vực
@@ -1307,11 +1299,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
 
                   {/* Image Import Section */}
                   <div className='space-y-2 pb-3 border-b border-purple-500/30'>
-                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
-                      <Sparkles className='w-4 h-4' />
-                      Phát Hiện Ghế Bằng AI
-                    </h3>
-                    <p className='text-xs text-slate-400'>Tải ảnh lên và để AI tự động phát hiện ghế ngồi</p>
                     <input
                       ref={imageInputRef}
                       type='file'
@@ -1535,58 +1522,65 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                         Màu Sắc
                       </h3>
                       <div className='space-y-2'>
-                        <div className='flex items-center justify-between'>
-                          <label className='text-xs text-gray-400'>Dùng Gradient</label>
-                          <input
-                            type='checkbox'
-                            checked={colorPicker.useGradient}
-                            onChange={(e) => setColorPicker({ ...colorPicker, useGradient: e.target.checked })}
-                            className='rounded'
-                          />
+                        {/* Color Inputs in Single Row */}
+                        <div className='flex gap-2 items-end'>
+                          {!colorPicker.useGradient ? (
+                            <>
+                              <div className='flex-1'>
+                                <label className='text-xs text-gray-400 block mb-1'>Màu Tô</label>
+                                <input
+                                  type='color'
+                                  value={colorPicker.fill}
+                                  onChange={(e) => setColorPicker({ ...colorPicker, fill: e.target.value })}
+                                  className='w-full h-9 rounded cursor-pointer'
+                                />
+                              </div>
+                              <div className='flex-1'>
+                                <label className='text-xs text-gray-400 block mb-1'>Màu Viền</label>
+                                <input
+                                  type='color'
+                                  value={colorPicker.stroke}
+                                  onChange={(e) => setColorPicker({ ...colorPicker, stroke: e.target.value })}
+                                  className='w-full h-9 rounded cursor-pointer'
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className='flex-1'>
+                                <label className='text-xs text-gray-400 block mb-1'>Gradient Từ</label>
+                                <input
+                                  type='color'
+                                  value={colorPicker.gradientFrom}
+                                  onChange={(e) => setColorPicker({ ...colorPicker, gradientFrom: e.target.value })}
+                                  className='w-full h-9 rounded cursor-pointer'
+                                />
+                              </div>
+                              <div className='flex-1'>
+                                <label className='text-xs text-gray-400 block mb-1'>Gradient Đến</label>
+                                <input
+                                  type='color'
+                                  value={colorPicker.gradientTo}
+                                  onChange={(e) => setColorPicker({ ...colorPicker, gradientTo: e.target.value })}
+                                  className='w-full h-9 rounded cursor-pointer'
+                                />
+                              </div>
+                            </>
+                          )}
+                          <Button
+                            onClick={() => setColorPicker({ ...colorPicker, useGradient: !colorPicker.useGradient })}
+                            variant={colorPicker.useGradient ? 'default' : 'outline'}
+                            size='sm'
+                            className={`h-9 px-3 ${
+                              colorPicker.useGradient
+                                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                                : 'border-purple-500/50 hover:bg-purple-600/20'
+                            }`}
+                            title={colorPicker.useGradient ? 'Tắt Gradient' : 'Bật Gradient'}
+                          >
+                            <Sparkles className='w-4 h-4' />
+                          </Button>
                         </div>
-                        {!colorPicker.useGradient ? (
-                          <>
-                            <div>
-                              <label className='text-xs text-gray-400'>Màu Tô</label>
-                              <input
-                                type='color'
-                                value={colorPicker.fill}
-                                onChange={(e) => setColorPicker({ ...colorPicker, fill: e.target.value })}
-                                className='w-full h-8 rounded cursor-pointer'
-                              />
-                            </div>
-                            <div>
-                              <label className='text-xs text-gray-400'>Màu Viền</label>
-                              <input
-                                type='color'
-                                value={colorPicker.stroke}
-                                onChange={(e) => setColorPicker({ ...colorPicker, stroke: e.target.value })}
-                                className='w-full h-8 rounded cursor-pointer'
-                              />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <label className='text-xs text-gray-400'>Gradient Từ</label>
-                              <input
-                                type='color'
-                                value={colorPicker.gradientFrom}
-                                onChange={(e) => setColorPicker({ ...colorPicker, gradientFrom: e.target.value })}
-                                className='w-full h-8 rounded cursor-pointer'
-                              />
-                            </div>
-                            <div>
-                              <label className='text-xs text-gray-400'>Gradient Đến</label>
-                              <input
-                                type='color'
-                                value={colorPicker.gradientTo}
-                                onChange={(e) => setColorPicker({ ...colorPicker, gradientTo: e.target.value })}
-                                className='w-full h-8 rounded cursor-pointer'
-                              />
-                            </div>
-                          </>
-                        )}
                         {selectedSection && (
                           <Button
                             onClick={() => {
@@ -1635,13 +1629,22 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                             <Select
                               value={selectedSection.ticketId || ''}
                               onValueChange={(ticketId) => {
+                                // Find the selected ticket to get its price
+                                const selectedTicket = tickets.find((t) => t.id === ticketId)
+                                const ticketPrice = selectedTicket?.price || 0
+
                                 const updatedSections = mapData.sections.map((s) =>
                                   s.id === selectedSection.id
-                                    ? { ...s, ticketId, seats: s.seats?.map((seat) => ({ ...seat, ticketId })) }
+                                    ? {
+                                        ...s,
+                                        ticketId,
+                                        price: ticketPrice,
+                                        seats: s.seats?.map((seat) => ({ ...seat, ticketId, price: ticketPrice }))
+                                      }
                                     : s
                                 )
                                 setMapData({ ...mapData, sections: updatedSections })
-                                setSelectedSection({ ...selectedSection, ticketId })
+                                setSelectedSection({ ...selectedSection, ticketId, price: ticketPrice })
                               }}
                             >
                               <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
@@ -1674,12 +1677,92 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                     </div>
                   )}
 
+                  {/* Bulk Row Ticket Assignment */}
+                  {selectedSection && selectedSection.seats && selectedSection.seats.length > 0 && (
+                    <div className='space-y-3 pt-4 border-t border-purple-500/30'>
+                      <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                        🎟️ Gán Vé Theo Hàng
+                      </h3>
+                      <div className='space-y-2'>
+                        {isLoadingTickets ? (
+                          <div className='text-xs text-gray-400'>Đang tải...</div>
+                        ) : tickets.length === 0 ? (
+                          <Alert className='bg-yellow-600/20 border-yellow-600/50'>
+                            <AlertDescription className='text-xs text-yellow-200'>
+                              Chưa có loại vé. Tạo vé trong tab "Cấu hình vé".
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <>
+                            <div>
+                              <label className='text-xs text-gray-400 mb-1 block'>Chọn hàng</label>
+                              <Select
+                                value={bulkRowNumber.toString()}
+                                onValueChange={(value) => setBulkRowNumber(parseInt(value))}
+                              >
+                                <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
+                                  <SelectValue placeholder='Chọn hàng...' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: selectedSection.rows }, (_, i) => i + 1).map((rowNum) => (
+                                    <SelectItem key={rowNum} value={rowNum.toString()}>
+                                      Hàng {rowNum}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <label className='text-xs text-gray-400 mb-1 block'>Chọn loại vé</label>
+                              <Select value={bulkRowTicketId} onValueChange={setBulkRowTicketId}>
+                                <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
+                                  <SelectValue placeholder='Chọn loại vé...' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tickets.map((ticket) => (
+                                    <SelectItem key={ticket.id} value={ticket.id}>
+                                      {ticket.name} -{' '}
+                                      {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <Button
+                              onClick={assignTicketToRow}
+                              disabled={!bulkRowTicketId}
+                              className='w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 disabled:opacity-50'
+                              size='sm'
+                            >
+                              Gán Vé Cho Hàng {bulkRowNumber}
+                            </Button>
+
+                            {bulkRowTicketId &&
+                              (() => {
+                                const ticket = tickets.find((t) => t.id === bulkRowTicketId)
+                                return ticket ? (
+                                  <div className='bg-orange-600/20 border border-orange-500/50 rounded p-2 text-xs'>
+                                    <div className='font-semibold text-orange-200'>{ticket.name}</div>
+                                    <div className='text-orange-300'>
+                                      {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    </div>
+                                  </div>
+                                ) : null
+                              })()}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {(editTool === 'draw' || editTool === 'shape') && (
                     <div className='space-y-2'>
                       <h3 className='text-sm font-semibold text-purple-300'>Cấu Hình Khu Vực</h3>
-                      <div className='space-y-2'>
-                        <div>
-                          <label className='text-xs text-gray-400'>Số Hàng</label>
+                      <div className='flex gap-2'>
+                        <div className='flex-1'>
+                          <label className='text-xs text-gray-400 block mb-1'>Số Hàng</label>
                           <input
                             type='number'
                             value={sectionConfig.rows}
@@ -1691,8 +1774,8 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                             max='30'
                           />
                         </div>
-                        <div>
-                          <label className='text-xs text-gray-400'>Ghế Mỗi Hàng</label>
+                        <div className='flex-1'>
+                          <label className='text-xs text-gray-400 block mb-1'>Ghế Mỗi Hàng</label>
                           <input
                             type='number'
                             value={sectionConfig.seatsPerRow}
@@ -1726,7 +1809,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                       </AlertDescription>
                     </Alert>
                   )}
-
+                  {/* 
                   <div className='space-y-3'>
                     <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                       <Sparkles className='w-4 h-4' />
@@ -1767,7 +1850,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                         />
                       </div>
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className='space-y-2'>
                     <h3 className='text-sm font-semibold text-purple-300'>Các Khu Vực</h3>
@@ -1817,7 +1900,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 </>
               )}
 
-              <div className='space-y-2 pt-4 border-t border-purple-500/30'>
+              {/* <div className='space-y-2 pt-4 border-t border-purple-500/30'>
                 <h3 className='text-sm font-semibold text-purple-300'>Thống Kê</h3>
                 <div className='text-xs space-y-1 text-gray-400'>
                   <div>Khu vực: {mapData.sections.length}</div>
@@ -1842,55 +1925,20 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                     </span>
                   </div>
                 </div>
-              </div>
+              </div> */}
+            </CardContent>
+          </Card>
 
-              <div className='space-y-2 pt-4 border-t border-purple-500/30'>
-                {/* Capacity Info */}
-                {!isLoadingEvent &&
-                  capacity > 0 &&
-                  (() => {
-                    const seatingData = {
-                      ...mapData,
-                      seatStatuses: Array.from(seatStatuses.entries())
-                    }
-                    const validation = validateCapacity(seatingData)
-                    const totalSeats = validation.totalSeats || 0
-                    const isOverCapacity = totalSeats > capacity
-
-                    return (
-                      <Alert
-                        className={
-                          isOverCapacity ? 'bg-red-500/20 border-red-500/30' : 'bg-blue-500/20 border-blue-500/30'
-                        }
-                      >
-                        <AlertCircle className={`w-4 h-4 ${isOverCapacity ? 'text-red-400' : 'text-blue-400'}`} />
-                        <AlertDescription className={`text-sm ${isOverCapacity ? 'text-red-200' : 'text-blue-200'}`}>
-                          Sức chứa sự kiện: <strong>{capacity}</strong> chỗ
-                          {mapData.sections.length > 0 && (
-                            <>
-                              <br />
-                              Tổng số ghế hiện tại:{' '}
-                              <strong className={isOverCapacity ? 'text-red-300' : ''}>{totalSeats}</strong>
-                              {isOverCapacity && (
-                                <>
-                                  <br />
-                                  <span className='text-red-300 font-semibold'>
-                                    ⚠️ Vượt quá {totalSeats - capacity} chỗ!
-                                  </span>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </AlertDescription>
-                      </Alert>
-                    )
-                  })()}
-
+          <Card className='flex-1 bg-slate-800/60 backdrop-blur-xl border-purple-500/30 relative overflow-hidden shadow-2xl'>
+            {/* Floating Action Toolbar */}
+            <div className='absolute top-4 right-4 z-50 flex flex-col gap-2 animate-in slide-in-from-right duration-500'>
+              {/* Primary Actions */}
+              <div className='flex flex-col gap-2 bg-slate-900/95 backdrop-blur-xl p-3 rounded-xl border border-purple-500/30 shadow-2xl'>
                 {/* Save Button */}
                 <Button
                   onClick={handleSaveSeatingChart}
                   disabled={isCreating || isLoadingEvent || mapData.sections.length === 0}
-                  className='w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
+                  className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
                   size='sm'
                 >
                   {isCreating ? (
@@ -1901,7 +1949,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                   ) : (
                     <>
                       <Save className='w-4 h-4 mr-1' />
-                      Lưu sơ đồ chỗ ngồi
+                      Lưu sơ đồ
                     </>
                   )}
                 </Button>
@@ -1909,17 +1957,66 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 {/* Export Button */}
                 <Button
                   onClick={exportToJSON}
-                  className='w-full bg-gradient-to-r from-green-600 to-emerald-600'
+                  disabled={mapData.sections.length === 0}
+                  className='bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
                   size='sm'
                 >
                   <Download className='w-4 h-4 mr-1' />
-                  Xuất Bố Cục
+                  Xuất JSON
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className='flex-1 bg-slate-800/60 backdrop-blur-xl border-purple-500/30 relative overflow-hidden shadow-2xl'>
+                {/* Capacity Display */}
+                {!isLoadingEvent && capacity > 0 && (
+                  <div className='px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold text-center'>
+                    <div className='text-[10px] opacity-90 uppercase tracking-wider mb-1'>Sức chứa sự kiện</div>
+                    <div className='text-lg font-bold'>{capacity.toLocaleString()}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Capacity Info Badge */}
+              {(() => {
+                let totalSeats = 0
+                mapData.sections.forEach((section) => {
+                  if (section.seats) {
+                    totalSeats += section.seats.length
+                  }
+                })
+
+                return totalSeats > 0 ? (
+                  <div
+                    className={`px-4 py-3 rounded-xl shadow-2xl backdrop-blur-xl transition-all duration-500 text-xs font-semibold animate-in fade-in zoom-in ${
+                      totalSeats > capacity
+                        ? 'bg-gradient-to-br from-red-600/95 to-red-700/95 text-white border border-red-400/50 shadow-red-500/30'
+                        : 'bg-gradient-to-br from-blue-600/95 to-blue-700/95 text-white border border-blue-400/50 shadow-blue-500/30'
+                    }`}
+                  >
+                    <div className='flex flex-col items-center gap-1'>
+                      <span className='text-[10px] opacity-90 uppercase tracking-wider'>Tổng ghế</span>
+                      <span className='text-2xl font-bold'>{totalSeats}</span>
+                      <div className='h-px w-full bg-white/20 my-1'></div>
+                      <span className='text-xs opacity-90'>Sức chứa: {capacity}</span>
+                      {totalSeats > capacity && (
+                        <div className='mt-1 px-2 py-1 bg-white/20 rounded text-[10px] text-red-100 animate-pulse font-bold'>
+                          ⚠️ Vượt {totalSeats - capacity} ghế
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              {/* Section Count Badge */}
+              {mapData.sections.length > 0 && (
+                <div className='px-4 py-2 rounded-xl bg-purple-600/90 backdrop-blur-xl border border-purple-400/50 shadow-lg text-white text-xs font-semibold animate-in fade-in duration-500'>
+                  <div className='flex flex-col items-center gap-1'>
+                    <span className='text-[10px] opacity-90 uppercase tracking-wider'>Khu vực</span>
+                    <span className='text-xl font-bold'>{mapData.sections.length}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <CardContent className='p-0 h-full'>
               {!is3DView ? (
                 <svg
