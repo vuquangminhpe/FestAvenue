@@ -62,8 +62,19 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const seatManagerRef = useRef(new SeatInteractionManager())
 
   // Seat Management Hook
-  const { capacity, isLoadingEvent, createSeatingChart, isCreating, tickets, isLoadingTickets } =
-    useSeatManagement(eventCode)
+  const {
+    capacity,
+    isLoadingEvent,
+    createSeatingChart,
+    updateSeatingChart,
+    isCreating,
+    isUpdating,
+    tickets,
+    isLoadingTickets,
+    existingStructure,
+    isLoadingStructure,
+    hasExistingStructure
+  } = useSeatManagement(eventCode)
   console.log(capacity)
 
   const [mode] = useState<'edit'>('edit')
@@ -131,6 +142,145 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
       seatManagerRef.current.setSeatStatus(seatId, status)
     })
   }, [seatStatuses])
+
+  // Load existing structure when available
+  useEffect(() => {
+    // Only load once when structure is available and not loading
+    if (existingStructure && !isLoadingStructure) {
+      console.log('Loading existing structure:', existingStructure)
+
+      // Load mapData from existing structure
+      if (existingStructure.sections && Array.isArray(existingStructure.sections)) {
+        // Debug: Log first section's points to check coordinates
+        if (existingStructure.sections.length > 0) {
+          const firstSection = existingStructure.sections[0]
+          console.log('First section points:', firstSection.points)
+          console.log('First section bounds:', firstSection.bounds)
+          if (firstSection.seats && firstSection.seats.length > 0) {
+            console.log('First seat position:', { x: firstSection.seats[0].x, y: firstSection.seats[0].y })
+          }
+        }
+
+        // Calculate overall bounds to check if structure is properly positioned
+        let overallMinX = Infinity
+        let overallMaxX = -Infinity
+        let overallMinY = Infinity
+        let overallMaxY = -Infinity
+
+        existingStructure.sections.forEach((section: any) => {
+          if (section.bounds) {
+            overallMinX = Math.min(overallMinX, section.bounds.minX)
+            overallMaxX = Math.max(overallMaxX, section.bounds.maxX)
+            overallMinY = Math.min(overallMinY, section.bounds.minY)
+            overallMaxY = Math.max(overallMaxY, section.bounds.maxY)
+          } else if (section.points) {
+            section.points.forEach((point: any) => {
+              overallMinX = Math.min(overallMinX, point.x)
+              overallMaxX = Math.max(overallMaxX, point.x)
+              overallMinY = Math.min(overallMinY, point.y)
+              overallMaxY = Math.max(overallMaxY, point.y)
+            })
+          }
+        })
+
+        console.log('Structure bounds:', { minX: overallMinX, maxX: overallMaxX, minY: overallMinY, maxY: overallMaxY })
+
+        // Transform structure if coordinates are outside viewport (0-1000, 0-600)
+        const viewportWidth = 1000
+        const viewportHeight = 600
+        let transformedSections = existingStructure.sections
+
+        // Check if structure is outside viewport
+        const needsTransform =
+          overallMinX < 0 || overallMinY < 0 || overallMaxX > viewportWidth || overallMaxY > viewportHeight
+
+        if (needsTransform) {
+          console.log('Structure is outside viewport, transforming...')
+
+          // Calculate offset to move structure into viewport
+          // Add padding of 50px from edges
+          const structureWidth = overallMaxX - overallMinX
+          const structureHeight = overallMaxY - overallMinY
+
+          // Calculate center position in viewport
+          const targetCenterX = viewportWidth / 2
+          const targetCenterY = viewportHeight / 2
+
+          // Calculate current center
+          const currentCenterX = overallMinX + structureWidth / 2
+          const currentCenterY = overallMinY + structureHeight / 2
+
+          // Calculate offset
+          const offsetX = targetCenterX - currentCenterX
+          const offsetY = targetCenterY - currentCenterY
+
+          console.log('Transform offset:', { offsetX, offsetY })
+
+          // Transform all sections
+          transformedSections = existingStructure.sections.map((section: any) => {
+            const transformedPoints = section.points?.map((p: any) => ({
+              x: p.x + offsetX,
+              y: p.y + offsetY
+            }))
+
+            const transformedSeats = section.seats?.map((seat: any) => ({
+              ...seat,
+              x: seat.x + offsetX,
+              y: seat.y + offsetY
+            }))
+
+            return {
+              ...section,
+              points: transformedPoints || section.points,
+              seats: transformedSeats || section.seats,
+              bounds: section.bounds
+                ? {
+                    minX: section.bounds.minX + offsetX,
+                    maxX: section.bounds.maxX + offsetX,
+                    minY: section.bounds.minY + offsetY,
+                    maxY: section.bounds.maxY + offsetY
+                  }
+                : undefined,
+              labelPosition: section.labelPosition
+                ? {
+                    x: section.labelPosition.x + offsetX,
+                    y: section.labelPosition.y + offsetY
+                  }
+                : undefined,
+              position: section.position
+                ? {
+                    x: section.position.x + offsetX,
+                    y: section.position.y + offsetY
+                  }
+                : undefined
+            }
+          })
+
+          console.log('Transformed first section points:', transformedSections[0]?.points)
+        }
+
+        const newMapData = {
+          sections: transformedSections,
+          stage: existingStructure.stage || { x: 350, y: 50, width: 300, height: 80 },
+          aisles: existingStructure.aisles || []
+        }
+
+        console.log('Setting mapData:', {
+          sectionsCount: newMapData.sections.length,
+          stage: newMapData.stage,
+          aislesCount: newMapData.aisles.length
+        })
+        setMapData(newMapData)
+      }
+
+      // Load seatStatuses if available
+      if (existingStructure && existingStructure.seatStatuses && Array.isArray(existingStructure.seatStatuses)) {
+        const statusMap = new Map(existingStructure.seatStatuses)
+        console.log('Setting seat statuses:', statusMap.size)
+        setSeatStatuses(statusMap as any)
+      }
+    }
+  }, [existingStructure, isLoadingStructure])
 
   // API Mutation for image polygon extraction
   const extractPolygonsMutation = useMutation({
@@ -1276,8 +1426,12 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
       ticketsForSeats
     }
 
-    // The validation will be done inside the mutation hook
-    createSeatingChart(bodyData)
+    // Use update if structure exists, otherwise create new
+    if (hasExistingStructure) {
+      updateSeatingChart(bodyData)
+    } else {
+      createSeatingChart(bodyData)
+    }
   }
 
   return (
@@ -1759,7 +1913,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
 
                   {(editTool === 'draw' || editTool === 'shape') && (
                     <div className='space-y-2'>
-                      <h3 className='text-sm font-semibold text-purple-300'>Cấu Hình Khu Vực</h3>
                       <div className='flex gap-2'>
                         <div className='flex-1'>
                           <label className='text-xs text-gray-400 block mb-1'>Số Hàng</label>
@@ -1937,19 +2090,19 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 {/* Save Button */}
                 <Button
                   onClick={handleSaveSeatingChart}
-                  disabled={isCreating || isLoadingEvent || mapData.sections.length === 0}
+                  disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
                   className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
                   size='sm'
                 >
-                  {isCreating ? (
+                  {isCreating || isUpdating ? (
                     <>
                       <Loader2 className='w-4 h-4 mr-1 animate-spin' />
-                      Đang lưu...
+                      {hasExistingStructure ? 'Đang cập nhật...' : 'Đang lưu...'}
                     </>
                   ) : (
                     <>
                       <Save className='w-4 h-4 mr-1' />
-                      Lưu sơ đồ
+                      {hasExistingStructure ? 'Cập nhật sơ đồ' : 'Lưu sơ đồ'}
                     </>
                   )}
                 </Button>

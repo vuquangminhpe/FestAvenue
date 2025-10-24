@@ -50,6 +50,48 @@ export const useEventTickets = (eventCode: string) => {
 }
 
 /**
+ * Hook để lấy structure đã tồn tại của event
+ */
+export const useExistingStructure = (eventCode: string) => {
+  return useQuery({
+    queryKey: ['seatingStructure', eventCode],
+    queryFn: async () => {
+      try {
+        const response = await serviceTicketManagementApi.getStructureSeatByEventCode(eventCode)
+        console.log('Raw API response:', response)
+        return response
+      } catch (error: any) {
+        // If 404 or no structure found, return null instead of throwing
+        if (error?.response?.status === 404 || error?.status === 404) {
+          console.log('No existing structure found for event:', eventCode)
+          return null
+        }
+        throw error
+      }
+    },
+    enabled: !!eventCode,
+    staleTime: 60000, // 1 minute
+    retry: false, // Không retry nếu chưa có structure
+    select: (data) => {
+      if (!data) return null
+
+      const structureString = data?.data?.seatingChartStructure
+
+      if (!structureString) return null
+
+      try {
+        const parsed = JSON.parse(structureString)
+        console.log('Parsed structure from API:', parsed)
+        return parsed
+      } catch (error) {
+        console.error('Failed to parse seating structure:', error)
+        return null
+      }
+    }
+  })
+}
+
+/**
  * Validate số lượng seat không vượt quá capacity
  */
 export const validateSeatCapacity = (
@@ -197,7 +239,7 @@ export const useUpdateSeatingChart = (eventCode: string) => {
   const capacity = eventData?.data?.capacity || 0
 
   return useMutation({
-    mutationFn: async (data: bodyCreateSeatingChart & { id: string }) => {
+    mutationFn: async (data: bodyCreateSeatingChart) => {
       // Validate capacity trước khi gửi
       const validation = validateSeatCapacity(data.seatingChartStructure, capacity)
 
@@ -206,7 +248,7 @@ export const useUpdateSeatingChart = (eventCode: string) => {
       }
 
       // Ensure seatingChartStructure is string
-      const bodyData = {
+      const bodyData: bodyCreateSeatingChart = {
         ...data,
         seatingChartStructure:
           typeof data.seatingChartStructure === 'string'
@@ -218,7 +260,7 @@ export const useUpdateSeatingChart = (eventCode: string) => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: seatKeys.list(variables.eventCode) })
-      queryClient.invalidateQueries({ queryKey: seatKeys.detail(variables.id) })
+      queryClient.invalidateQueries({ queryKey: ['seatingStructure', variables.eventCode] })
 
       const validation = validateSeatCapacity(variables.seatingChartStructure, capacity)
 
@@ -259,11 +301,13 @@ export const useDeleteSeatingChart = () => {
 export const useSeatManagement = (eventCode: string) => {
   const { data: eventData, isLoading: isLoadingEvent } = useEventCapacity(eventCode)
   const { data: tickets, isLoading: isLoadingTickets } = useEventTickets(eventCode)
+  const { data: existingStructure, isLoading: isLoadingStructure } = useExistingStructure(eventCode)
   const createMutation = useCreateSeatingChart(eventCode)
   const updateMutation = useUpdateSeatingChart(eventCode)
   const deleteMutation = useDeleteSeatingChart()
 
   const capacity = eventData?.data?.capacity || 0
+  const hasExistingStructure = !!existingStructure
 
   return {
     // Event data
@@ -274,6 +318,11 @@ export const useSeatManagement = (eventCode: string) => {
     // Tickets data
     tickets: tickets || [],
     isLoadingTickets,
+
+    // Structure data
+    existingStructure,
+    isLoadingStructure,
+    hasExistingStructure,
 
     // Mutations
     createSeatingChart: createMutation.mutate,

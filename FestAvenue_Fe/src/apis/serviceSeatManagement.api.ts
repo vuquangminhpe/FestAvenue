@@ -7,7 +7,7 @@ const serviceSeatManagementApi = {
     const data = await http.post<APIResponse<{ message: string }>>('/seating-chart/create-seating-chart', body)
     return data?.data
   },
-  updateSeatingChart: async (body: bodyCreateSeatingChart & { id: string }) => {
+  updateSeatingChart: async (body: bodyCreateSeatingChart) => {
     const data = await http.put<APIResponse<{ message: string }>>('/seating-chart/update-seating-chart', body)
     return data?.data
   },

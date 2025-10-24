@@ -28,6 +28,12 @@ const serviceTicketManagementApi = {
   getAllTicketSearchFilter: async (body: TicketSearchRequest) => {
     const data = await http.post<APIResponse<TicketResponse>>(`/tickets/get-all-ticket-search-filter-paging`, body)
     return data?.data
+  },
+  getStructureSeatByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<{ seatingChartStructure: string; id: string }>>(
+      `/seating-chart/event/${eventCode}/structure`
+    )
+    return data?.data
   }
 }
 export default serviceTicketManagementApi
