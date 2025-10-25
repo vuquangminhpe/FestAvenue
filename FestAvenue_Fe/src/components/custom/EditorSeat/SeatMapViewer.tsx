@@ -125,6 +125,23 @@ class SeatInteractionManager {
   }
 }
 
+const buildInitialSeatStatusMap = (
+  mapData: SeatMapData,
+  externalStatuses: Map<string, 'available' | 'occupied' | 'locked'>
+) => {
+  const merged = new Map(externalStatuses)
+
+  mapData.sections.forEach((section) => {
+    section.seats?.forEach((seat) => {
+      if (!merged.has(seat.id) && seat.status) {
+        merged.set(seat.id, seat.status)
+      }
+    })
+  })
+
+  return merged
+}
+
 // Helper functions
 const calculateBounds = (points: Point[]) => {
   if (points.length === 0) {
@@ -173,8 +190,12 @@ export default function SeatMapViewer({
   readonly = false,
   showControls = true
 }: SeatMapViewerProps) {
+  const deriveInitialSeatStatuses = useCallback(
+    () => buildInitialSeatStatusMap(mapData, initialSeatStatuses),
+    [mapData, initialSeatStatuses]
+  )
   const [seatStatuses, setSeatStatuses] =
-    useState<Map<string, 'available' | 'occupied' | 'locked'>>(initialSeatStatuses)
+    useState<Map<string, 'available' | 'occupied' | 'locked'>>(deriveInitialSeatStatuses)
   const [totalPrice, setTotalPrice] = useState(0)
   const [is3DView, setIs3DView] = useState(false)
   const [selectedSection, setSelectedSection] = useState<Section | null>(null)
@@ -182,6 +203,23 @@ export default function SeatMapViewer({
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
   const seatManagerRef = useRef(new SeatInteractionManager())
+
+  useEffect(() => {
+    const mergedStatuses = deriveInitialSeatStatuses()
+    setSeatStatuses((prev) => {
+      let hasChange = false
+      const updated = new Map(prev)
+
+      mergedStatuses.forEach((status, seatId) => {
+        if (!updated.has(seatId)) {
+          updated.set(seatId, status)
+          hasChange = true
+        }
+      })
+
+      return hasChange ? updated : prev
+    })
+  }, [deriveInitialSeatStatuses])
 
   // Load GSAP
   useEffect(() => {
