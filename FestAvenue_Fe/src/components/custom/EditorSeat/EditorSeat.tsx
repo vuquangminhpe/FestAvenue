@@ -73,7 +73,9 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     isLoadingTickets,
     existingStructure,
     isLoadingStructure,
-    hasExistingStructure
+    hasExistingStructure,
+    deleteSeatingChartByEventCode,
+    isDeletingByEventCode
   } = useSeatManagement(eventCode)
   const [mode] = useState<'edit'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
@@ -169,7 +171,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           }
         })
 
-
         // Transform structure if coordinates are outside viewport (0-1000, 0-600)
         const viewportWidth = 1000
         const viewportHeight = 600
@@ -180,7 +181,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           overallMinX < 0 || overallMinY < 0 || overallMaxX > viewportWidth || overallMaxY > viewportHeight
 
         if (needsTransform) {
-
           // Calculate offset to move structure into viewport
           // Add padding of 50px from edges
           const structureWidth = overallMaxX - overallMinX
@@ -237,7 +237,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                 : undefined
             }
           })
-
         }
 
         const newMapData = {
@@ -246,7 +245,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           aisles: existingStructure.aisles || []
         }
 
-      
         setMapData(newMapData)
       }
 
@@ -1410,12 +1408,33 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     }
   }
 
+  const handleDeleteSeatMap = () => {
+    if (!hasExistingStructure) return
+    const confirmed = window.confirm('Bạn có chắc chắn muốn xóa sơ đồ ghế hiện tại?')
+    if (!confirmed) return
+
+    deleteSeatingChartByEventCode(eventCode, {
+      onSuccess: () => {
+        setMapData({
+          sections: [],
+          stage: { x: 350, y: 50, width: 300, height: 80 },
+          aisles: []
+        })
+        setSeatStatuses(new Map<string, 'available' | 'occupied' | 'locked'>())
+        setSelectedSection(null)
+        setIs3DView(false)
+        setEmailLockModal(null)
+        setSeatEmails(new Map<string, string>())
+      }
+    })
+  }
+
   return (
     <div className='w-full h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 text-gray-900 p-4'>
       <div className='max-w-7xl mx-auto h-full flex flex-col gap-4'>
         <div className='flex-1 flex gap-4'>
-          <Card className='w-80 bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl overflow-y-auto'>
-            <CardContent className='p-4 space-y-4'>
+          <Card className='w-80 h-full flex flex-col bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl'>
+            <CardContent className='flex-1 overflow-y-auto p-4 space-y-4'>
               {mode === 'edit' && (
                 <>
                   <Alert className='bg-purple-600/20 border-purple-500/50'>
@@ -2093,6 +2112,27 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                   <Download className='w-4 h-4 mr-1' />
                   Xuất JSON
                 </Button>
+
+                {hasExistingStructure && (
+                  <Button
+                    onClick={handleDeleteSeatMap}
+                    disabled={isDeletingByEventCode}
+                    className='bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg hover:shadow-red-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+                    size='sm'
+                  >
+                    {isDeletingByEventCode ? (
+                      <>
+                        <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                        Đang xóa...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className='w-4 h-4 mr-1' />
+                        Xóa sơ đồ ghế
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 {/* Capacity Display */}
                 {!isLoadingEvent && capacity > 0 && (

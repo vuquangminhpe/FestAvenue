@@ -292,6 +292,27 @@ export const useDeleteSeatingChart = () => {
 }
 
 /**
+ * Hook để xóa seating chart theo event code
+ */
+export const useDeleteSeatingChartByEventCode = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (eventCode: string) => serviceTicketManagementApi.deleteSeatByEventCode(eventCode),
+    onSuccess: (response, eventCode) => {
+      queryClient.invalidateQueries({ queryKey: seatKeys.lists() })
+      queryClient.invalidateQueries({ queryKey: seatKeys.list(eventCode) })
+      queryClient.invalidateQueries({ queryKey: ['seatingStructure', eventCode] })
+      toast.success(response?.data?.messages || 'Xóa sơ đồ ghế thành công!')
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Có lỗi xảy ra khi xóa sơ đồ ghế'
+      toast.error(errorMessage)
+    }
+  })
+}
+
+/**
  * Hook tổng hợp để quản lý seating chart
  */
 export const useSeatManagement = (eventCode: string) => {
@@ -301,6 +322,7 @@ export const useSeatManagement = (eventCode: string) => {
   const createMutation = useCreateSeatingChart(eventCode)
   const updateMutation = useUpdateSeatingChart(eventCode)
   const deleteMutation = useDeleteSeatingChart()
+  const deleteByEventCodeMutation = useDeleteSeatingChartByEventCode()
 
   const capacity = eventData?.data?.capacity || 0
   const hasExistingStructure = !!existingStructure
@@ -324,11 +346,13 @@ export const useSeatManagement = (eventCode: string) => {
     createSeatingChart: createMutation.mutate,
     updateSeatingChart: updateMutation.mutate,
     deleteSeatingChart: deleteMutation.mutate,
+    deleteSeatingChartByEventCode: deleteByEventCodeMutation.mutate,
 
     // Mutation states
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isDeletingByEventCode: deleteByEventCodeMutation.isPending,
 
     // Utility
     validateCapacity: (seatingChartStructure: string | object) => validateSeatCapacity(seatingChartStructure, capacity)

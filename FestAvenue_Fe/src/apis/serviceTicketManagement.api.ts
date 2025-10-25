@@ -34,6 +34,12 @@ const serviceTicketManagementApi = {
       `/seating-chart/event/${eventCode}/structure`
     )
     return data?.data
+  },
+  deleteSeatByEventCode: async (eventCode: string) => {
+    const data = await http.delete<APIResponse<{ messages: string }>>(
+      `/seating-chart/delete-seating-char-by-event-code/${eventCode}`
+    )
+    return data?.data
   }
 }
 export default serviceTicketManagementApi
