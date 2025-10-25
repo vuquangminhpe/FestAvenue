@@ -36,8 +36,6 @@ export function HashtagsInput({ form }: HashtagsInputProps) {
     mutationFn: AIApis.generateTagsInEvent,
     onSuccess: (response) => {
       if (response) {
-        console.log(response)
-
         setGeneratedData(response)
         setShowGenerated(true)
         toast.success('Đã tạo gợi ý hashtags thành công!', {

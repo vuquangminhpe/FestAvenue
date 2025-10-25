@@ -12,11 +12,9 @@ interface EmailLockModalProps {
   onCancel: () => void
 }
 
-export default function EmailLockModal({ seatId, seatLabel, currentEmail, onConfirm, onCancel }: EmailLockModalProps) {
+export default function EmailLockModal({ seatLabel, currentEmail, onConfirm, onCancel }: EmailLockModalProps) {
   const [email, setEmail] = useState(currentEmail || '')
   const [error, setError] = useState('')
-  console.log(seatId)
-
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return re.test(email)

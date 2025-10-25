@@ -58,8 +58,6 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
       ? ownerCheckData.data
       : false
   const packageDetail = eventPackagesData?.data
-  console.log(packageDetail)
-
   const servicePackages = packageDetail?.servicePackages || []
   const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 

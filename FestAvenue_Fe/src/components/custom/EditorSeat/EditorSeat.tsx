@@ -75,8 +75,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     isLoadingStructure,
     hasExistingStructure
   } = useSeatManagement(eventCode)
-  console.log(capacity)
-
   const [mode] = useState<'edit'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
   const [selectedShape, setSelectedShape] = useState<ShapeType>('polygon')
@@ -147,20 +145,8 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   useEffect(() => {
     // Only load once when structure is available and not loading
     if (existingStructure && !isLoadingStructure) {
-      console.log('Loading existing structure:', existingStructure)
-
       // Load mapData from existing structure
       if (existingStructure.sections && Array.isArray(existingStructure.sections)) {
-        // Debug: Log first section's points to check coordinates
-        if (existingStructure.sections.length > 0) {
-          const firstSection = existingStructure.sections[0]
-          console.log('First section points:', firstSection.points)
-          console.log('First section bounds:', firstSection.bounds)
-          if (firstSection.seats && firstSection.seats.length > 0) {
-            console.log('First seat position:', { x: firstSection.seats[0].x, y: firstSection.seats[0].y })
-          }
-        }
-
         // Calculate overall bounds to check if structure is properly positioned
         let overallMinX = Infinity
         let overallMaxX = -Infinity
@@ -183,7 +169,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           }
         })
 
-        console.log('Structure bounds:', { minX: overallMinX, maxX: overallMaxX, minY: overallMinY, maxY: overallMaxY })
 
         // Transform structure if coordinates are outside viewport (0-1000, 0-600)
         const viewportWidth = 1000
@@ -195,7 +180,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           overallMinX < 0 || overallMinY < 0 || overallMaxX > viewportWidth || overallMaxY > viewportHeight
 
         if (needsTransform) {
-          console.log('Structure is outside viewport, transforming...')
 
           // Calculate offset to move structure into viewport
           // Add padding of 50px from edges
@@ -213,8 +197,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           // Calculate offset
           const offsetX = targetCenterX - currentCenterX
           const offsetY = targetCenterY - currentCenterY
-
-          console.log('Transform offset:', { offsetX, offsetY })
 
           // Transform all sections
           transformedSections = existingStructure.sections.map((section: any) => {
@@ -256,7 +238,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
             }
           })
 
-          console.log('Transformed first section points:', transformedSections[0]?.points)
         }
 
         const newMapData = {
@@ -265,18 +246,13 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
           aisles: existingStructure.aisles || []
         }
 
-        console.log('Setting mapData:', {
-          sectionsCount: newMapData.sections.length,
-          stage: newMapData.stage,
-          aislesCount: newMapData.aisles.length
-        })
+      
         setMapData(newMapData)
       }
 
       // Load seatStatuses if available
       if (existingStructure && existingStructure.seatStatuses && Array.isArray(existingStructure.seatStatuses)) {
         const statusMap = new Map(existingStructure.seatStatuses)
-        console.log('Setting seat statuses:', statusMap.size)
         setSeatStatuses(statusMap as any)
       }
     }

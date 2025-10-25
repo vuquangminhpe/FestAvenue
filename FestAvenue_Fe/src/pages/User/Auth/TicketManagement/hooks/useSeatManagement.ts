@@ -58,12 +58,9 @@ export const useExistingStructure = (eventCode: string) => {
     queryFn: async () => {
       try {
         const response = await serviceTicketManagementApi.getStructureSeatByEventCode(eventCode)
-        console.log('Raw API response:', response)
         return response
       } catch (error: any) {
-        // If 404 or no structure found, return null instead of throwing
         if (error?.response?.status === 404 || error?.status === 404) {
-          console.log('No existing structure found for event:', eventCode)
           return null
         }
         throw error
@@ -81,7 +78,6 @@ export const useExistingStructure = (eventCode: string) => {
 
       try {
         const parsed = JSON.parse(structureString)
-        console.log('Parsed structure from API:', parsed)
         return parsed
       } catch (error) {
         console.error('Failed to parse seating structure:', error)
