@@ -98,8 +98,8 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
 
   const [sectionConfig, setSectionConfig] = useState({
-    rows: 8,
-    seatsPerRow: 12,
+    rows: 3,
+    seatsPerRow: 4,
     name: 'New Section'
   })
   const [colorPicker, setColorPicker] = useState({
@@ -1434,7 +1434,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
       <div className='max-w-7xl mx-auto h-full flex flex-col gap-4'>
         <div className='flex-1 flex gap-4'>
           <Card className='w-80 h-full flex flex-col bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl'>
-            <CardContent className='flex-1 overflow-y-auto p-4 space-y-4'>
+            <CardContent className='flex-1 overflow-y-auto max-h-[800px] p-4 space-y-4'>
               {mode === 'edit' && (
                 <>
                   <Alert className='bg-purple-600/20 border-purple-500/50'>
@@ -1915,7 +1915,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                             type='number'
                             value={sectionConfig.rows}
                             onChange={(e) =>
-                              setSectionConfig({ ...sectionConfig, rows: parseInt(e.target.value) || 8 })
+                              setSectionConfig({ ...sectionConfig, rows: parseInt(e.target.value) || 2 })
                             }
                             className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
                             min='1'
@@ -1928,7 +1928,7 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                             type='number'
                             value={sectionConfig.seatsPerRow}
                             onChange={(e) =>
-                              setSectionConfig({ ...sectionConfig, seatsPerRow: parseInt(e.target.value) || 12 })
+                              setSectionConfig({ ...sectionConfig, seatsPerRow: parseInt(e.target.value) || 3 })
                             }
                             className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
                             min='1'
