@@ -37,7 +37,7 @@ const Category = lazy(() => import('./pages/Admin/Process/Category'))
 const Packages = lazy(() => import('./pages/Admin/Process/Packages'))
 const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
 const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
-
+const SeatMapViewerPage = lazy(() => import('./pages/User/Auth/TicketManagement/SeatMapViewerPage'))
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents/UserManagementInEvent'))
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
@@ -254,6 +254,16 @@ export default function useRouteElement() {
       )
     },
     {
+      path: path.user.event.details,
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <EventDetails />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
       path: path.auth.resetPassword,
       element: (
         <SuspenseWrapper>
@@ -388,12 +398,11 @@ export default function useRouteElement() {
                 </SuspenseWrapper>
               )
             },
-
             {
-              path: path.user.event.details,
+              path: path.user.event.ticketDetails,
               element: (
                 <SuspenseWrapper>
-                  <EventDetails />
+                  <SeatMapViewerPage />
                 </SuspenseWrapper>
               )
             },

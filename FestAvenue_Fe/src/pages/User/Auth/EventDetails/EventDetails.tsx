@@ -11,9 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import GoongMap from '@/components/custom/GoongMap/GoongMap'
 import VideoHLSPlayer from '@/components/custom/VideoHLSPlayer/VideoHLSPlayer'
-import { getIdFromNameId } from '@/utils/utils'
-import { useParams } from 'react-router-dom'
+import { generateNameId, getIdFromNameId } from '@/utils/utils'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useEventDetailsData } from './hooks'
+import path from '@/constants/path'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -69,17 +70,32 @@ const eventPosts = [
 const EventDetails: React.FC = () => {
   const eventParams = useParams()
   const eventCode = getIdFromNameId(eventParams.eventId as string)
-
+  const navigate = useNavigate()
   // Use custom hooks for data fetching
   const { event, tickets, isLoading } = useEventDetailsData(eventCode)
 
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   const heroRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const relatedRef = useRef<HTMLDivElement>(null)
+
+  // Hero images array
+  const heroImages = [event?.bannerUrl, event?.logoUrl].filter(Boolean)
+
+  // Auto-slide hero images
+  useEffect(() => {
+    if (!event || heroImages.length <= 1) return
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length)
+    }, 5000) // Change image every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [event, heroImages.length])
 
   // GSAP Animations
   useEffect(() => {
@@ -196,8 +212,6 @@ const EventDetails: React.FC = () => {
     return event?.endTimeEventTime || ''
   }
 
- 
-
   const getTicketSaleStatus = () => {
     if (!event?.startTicketSaleTime || !event?.endTicketSaleTime) {
       return { isActive: true, message: '' }
@@ -210,7 +224,9 @@ const EventDetails: React.FC = () => {
     if (now < startSaleDate) {
       return {
         isActive: false,
-        message: `Bán vé bắt đầu từ ${formatDate(event.startTicketSaleTime)} lúc ${formatTime(event.startTicketSaleTime)}`
+        message: `Bán vé bắt đầu từ ${formatDate(event.startTicketSaleTime)} lúc ${formatTime(
+          event.startTicketSaleTime
+        )}`
       }
     }
 
@@ -270,7 +286,9 @@ const EventDetails: React.FC = () => {
 
   const handleTwitterShare = () => {
     const text = getShareText()
-    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`
+    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(
+      text
+    )}`
     window.open(twitterUrl, '_blank', 'width=600,height=400')
   }
 
@@ -314,147 +332,245 @@ const EventDetails: React.FC = () => {
         <meta name='keywords' content={event.hashtags?.join(', ')} />
       </Helmet>
       {/* Hero Section */}
-      <div ref={heroRef} className='relative h-[500px] overflow-hidden'>
+      <div ref={heroRef} className='relative h-[650px] overflow-hidden'>
+        {/* Image Slider */}
         <div className='absolute inset-0'>
-          <img src={event.bannerUrl} alt={event.eventName} className='w-full h-full object-cover' />
+          {heroImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img src={image} alt={`${event.eventName} - Image ${index + 1}`} className='w-full h-full object-cover' />
+            </div>
+          ))}
           <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent' />
         </div>
 
-        <div className='relative z-10 container mx-auto px-4 h-full flex items-end pb-12'>
-          <div className='text-white space-y-4 max-w-3xl'>
-            <Badge className='bg-cyan-500 text-white hover:bg-cyan-600'>
-              <Calendar className='w-3 h-3 mr-1' />
-              {getEventStartDate() && formatDate(getEventStartDate())}
-            </Badge>
-            <h1 className='text-5xl md:text-6xl font-bold leading-tight'>{event.eventName}</h1>
-            <p className='text-lg text-gray-200'>{event.shortDescription}</p>
+        {/* Indicator Dots */}
+        {heroImages.length > 1 && (
+          <div className='absolute bottom-1 left-1/2 transform -translate-x-1/2 z-20 flex gap-2'>
+            {heroImages.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentImageIndex(index)}
+                className={`transition-all duration-300 rounded-full ${
+                  index === currentImageIndex ? 'w-8 h-2 bg-white' : 'w-2 h-2 bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
 
-            <div className='flex flex-wrap gap-4 pt-4'>
-              {ticketSaleStatus.isActive ? (
-                <Button
-                  size='lg'
-                  className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg'
-                >
-                  <Tag className='w-4 h-4 mr-2' />
-                  Đặt vé ngay
-                </Button>
-              ) : (
-                <div className='flex flex-col gap-2'>
+        <div className='relative z-10 container mx-auto px-4 h-full flex items-end pb-12'>
+          <div className='w-full grid grid-cols-1 lg:grid-cols-3 gap-6 items-end'>
+            {/* Left: Event Info */}
+            <div className='text-white space-y-4 lg:col-span-2'>
+              <Badge className='bg-cyan-500 text-white hover:bg-cyan-600'>
+                <Calendar className='w-3 h-3 mr-1' />
+                {getEventStartDate() && formatDate(getEventStartDate())}
+              </Badge>
+              <h1 className='text-5xl md:text-6xl font-bold leading-tight'>{event.eventName}</h1>
+              <p className='text-lg text-gray-200'>{event.shortDescription}</p>
+
+              <div className='flex flex-wrap gap-4 pt-4'>
+                {ticketSaleStatus.isActive ? (
                   <Button
+                    onClick={() =>
+                      navigate(
+                        `${path.user.event.ticketDetails_event}/${generateNameId({
+                          id: event.eventCode,
+                          name: event.eventName,
+                          id_2: event.organization.name
+                        })}`
+                      )
+                    }
                     size='lg'
-                    disabled
-                    className='bg-gray-400 text-white cursor-not-allowed'
+                    className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg'
                   >
                     <Tag className='w-4 h-4 mr-2' />
                     Đặt vé ngay
                   </Button>
-                  <p className='text-sm text-amber-200 bg-black/30 px-3 py-1 rounded'>{ticketSaleStatus.message}</p>
-                </div>
-              )}
-              <Button
-                size='lg'
-                variant='outline'
-                className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
-                onClick={() => setIsBookmarked(!isBookmarked)}
-              >
-                <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                Lưu
-              </Button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    size='lg'
-                    variant='outline'
-                    className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
-                  >
-                    <Share2 className='w-4 h-4 mr-2' />
-                    Chia sẻ
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className='sm:max-w-lg'>
-                  <DialogHeader>
-                    <DialogTitle>Chia sẻ sự kiện</DialogTitle>
-                  </DialogHeader>
-                  <div className='flex flex-col gap-4 py-4'>
-                    {/* Share Preview */}
-                    <div className='bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200'>
-                      <div className='text-sm font-semibold text-gray-900 mb-1'>{event.eventName}</div>
-                      <div className='text-xs text-gray-600 mb-2'>{event.shortDescription}</div>
-                      <div className='flex flex-wrap gap-1 mb-2'>
-                        {event.hashtags?.map((tag: string, index: number) => (
-                          <span key={index} className='text-xs text-blue-600 font-medium'>
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div className='text-xs text-gray-500 break-all'>{shareUrl}</div>
-                    </div>
-
-                    {/* Copy Button */}
+                ) : (
+                  <div className='flex flex-col gap-2'>
                     <Button
-                      onClick={handleCopyContent}
-                      variant='outline'
-                      className='w-full border-cyan-300 hover:bg-cyan-50'
-                      disabled={isCopied}
+                      onClick={() =>
+                        navigate(
+                          `${path.user.event.ticketDetails_event}/${generateNameId({
+                            id: event.eventCode,
+                            name: event.eventName,
+                            id_2: event.organization.name
+                          })}`
+                        )
+                      }
+                      size='lg'
+                      disabled
+                      className='bg-gray-400 text-white cursor-not-allowed'
                     >
-                      {isCopied ? (
-                        <>
-                          <CheckCircle2 className='w-4 h-4 mr-2 text-green-600' />
-                          Đã copy!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className='w-4 h-4 mr-2' />
-                          Copy nội dung
-                        </>
-                      )}
+                      <Tag className='w-4 h-4 mr-2' />
+                      Đặt vé ngay
                     </Button>
-
-                    <div className='relative'>
-                      <div className='absolute inset-0 flex items-center'>
-                        <span className='w-full border-t border-gray-300' />
+                    <p className='text-sm text-amber-200 bg-black/30 px-3 py-1 rounded'>{ticketSaleStatus.message}</p>
+                  </div>
+                )}
+                <Button
+                  size='lg'
+                  variant='outline'
+                  className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
+                  onClick={() => setIsBookmarked(!isBookmarked)}
+                >
+                  <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
+                  Lưu
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      size='lg'
+                      variant='outline'
+                      className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
+                    >
+                      <Share2 className='w-4 h-4 mr-2' />
+                      Chia sẻ
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className='sm:max-w-lg'>
+                    <DialogHeader>
+                      <DialogTitle>Chia sẻ sự kiện</DialogTitle>
+                    </DialogHeader>
+                    <div className='flex flex-col gap-4 py-4'>
+                      {/* Share Preview */}
+                      <div className='bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg p-4 border border-cyan-200'>
+                        <div className='text-sm font-semibold text-gray-900 mb-1'>{event.eventName}</div>
+                        <div className='text-xs text-gray-600 mb-2'>{event.shortDescription}</div>
+                        <div className='flex flex-wrap gap-1 mb-2'>
+                          {event.hashtags?.map((tag: string, index: number) => (
+                            <span key={index} className='text-xs text-blue-600 font-medium'>
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        <div className='text-xs text-gray-500 break-all'>{shareUrl}</div>
                       </div>
-                      <div className='relative flex justify-center text-xs uppercase'>
-                        <span className='bg-white px-2 text-gray-500'>Hoặc chia sẻ trực tiếp</span>
-                      </div>
-                    </div>
 
-                    {/* Social Media Buttons */}
-                    <div className='grid grid-cols-2 gap-3'>
+                      {/* Copy Button */}
                       <Button
-                        onClick={handleFacebookShare}
+                        onClick={handleCopyContent}
                         variant='outline'
-                        className='w-full hover:bg-blue-50 border-blue-200'
+                        className='w-full border-cyan-300 hover:bg-cyan-50'
+                        disabled={isCopied}
                       >
-                        <FacebookIcon size={24} round className='mr-2' />
-                        Facebook
+                        {isCopied ? (
+                          <>
+                            <CheckCircle2 className='w-4 h-4 mr-2 text-green-600' />
+                            Đã copy!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className='w-4 h-4 mr-2' />
+                            Copy nội dung
+                          </>
+                        )}
                       </Button>
 
-                      <Button
-                        onClick={handleTwitterShare}
-                        variant='outline'
-                        className='w-full hover:bg-sky-50 border-sky-200'
-                      >
-                        <XIcon size={24} round className='mr-2' />
-                        Twitter/X
-                      </Button>
-                    </div>
+                      <div className='relative'>
+                        <div className='absolute inset-0 flex items-center'>
+                          <span className='w-full border-t border-gray-300' />
+                        </div>
+                        <div className='relative flex justify-center text-xs uppercase'>
+                          <span className='bg-white px-2 text-gray-500'>Hoặc chia sẻ trực tiếp</span>
+                        </div>
+                      </div>
 
-                    {/* Instructions */}
-                    <div className='bg-amber-50 border border-amber-200 rounded-lg p-3'>
-                      <p className='text-xs text-amber-800 mb-2'>
-                        <strong>Lưu ý về Facebook:</strong>
-                      </p>
-                      <ul className='text-xs text-amber-700 space-y-1 list-disc list-inside'>
-                        <li>Facebook chỉ hiển thị tiêu đề và ảnh từ link</li>
-                        <li>Để thêm hashtags, click "Copy nội dung" và paste vào bài post</li>
-                        <li>Twitter/X tự động thêm tên sự kiện và hashtags</li>
-                      </ul>
+                      {/* Social Media Buttons */}
+                      <div className='grid grid-cols-2 gap-3'>
+                        <Button
+                          onClick={handleFacebookShare}
+                          variant='outline'
+                          className='w-full hover:bg-blue-50 border-blue-200'
+                        >
+                          <FacebookIcon size={24} round className='mr-2' />
+                          Facebook
+                        </Button>
+
+                        <Button
+                          onClick={handleTwitterShare}
+                          variant='outline'
+                          className='w-full hover:bg-sky-50 border-sky-200'
+                        >
+                          <XIcon size={24} round className='mr-2' />
+                          Twitter/X
+                        </Button>
+                      </div>
+
+                      {/* Instructions */}
+                      <div className='bg-amber-50 border border-amber-200 rounded-lg p-3'>
+                        <p className='text-xs text-amber-800 mb-2'>
+                          <strong>Lưu ý về Facebook:</strong>
+                        </p>
+                        <ul className='text-xs text-amber-700 space-y-1 list-disc list-inside'>
+                          <li>Facebook chỉ hiển thị tiêu đề và ảnh từ link</li>
+                          <li>Để thêm hashtags, click "Copy nội dung" và paste vào bài post</li>
+                          <li>Twitter/X tự động thêm tên sự kiện và hashtags</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            {/* Right: Contact Info */}
+            {(event.publicContactEmail || event.publicContactPhone || event.website) && (
+              <div className='lg:col-span-1'>
+                <div className=' backdrop-blur-sm border-cyan-200 shadow-2xl rounded-xl'>
+                  <div className='p-6'>
+                    <h3 className='text-xl font-bold text-white mb-4 flex items-center'>
+                      <Users className='w-5 h-5 mr-2 text-white' />
+                      Thông tin liên hệ
+                    </h3>
+                    <div className='space-y-3 text-sm'>
+                      {event.publicContactEmail && (
+                        <div className='flex items-start gap-2'>
+                          <span className='font-semibold text-white min-w-[80px]'>Email:</span>
+                          <a
+                            href={`mailto:${event.publicContactEmail}`}
+                            className='text-cyan-600 font-bold hover:text-cyan-700 break-all'
+                          >
+                            {event.publicContactEmail}
+                          </a>
+                        </div>
+                      )}
+                      {event.publicContactPhone && (
+                        <div className='flex items-start gap-2'>
+                          <span className='font-semibold text-white min-w-[80px]'>Điện thoại:</span>
+                          <a
+                            href={`tel:${event.publicContactPhone}`}
+                            className='text-cyan-600 font-bold hover:text-cyan-700'
+                          >
+                            {event.publicContactPhone}
+                          </a>
+                        </div>
+                      )}
+                      {event.website && (
+                        <div className='flex items-start gap-2'>
+                          <span className='font-semibold text-white min-w-[80px]'>Website:</span>
+                          <a
+                            href={event.website}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-cyan-600 font-bold hover:text-cyan-700 break-all'
+                          >
+                            {event.website}
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -470,7 +586,9 @@ const EventDetails: React.FC = () => {
                 <CardContent className='p-4 text-center'>
                   <Calendar className='w-8 h-8 mx-auto mb-2 text-cyan-600' />
                   <p className='text-sm text-gray-600'>Ngày tổ chức</p>
-                  <p className='font-semibold text-gray-900'>{getEventStartDate() && formatDate(getEventStartDate())}</p>
+                  <p className='font-semibold text-gray-900'>
+                    {getEventStartDate() && formatDate(getEventStartDate())}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -726,46 +844,6 @@ const EventDetails: React.FC = () => {
                       <p className='text-sm text-red-600 text-center mt-2 font-medium'>{ticketSaleStatus.message}</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Contact Info */}
-            {(event.publicContactEmail || event.publicContactPhone) && (
-              <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg'>
-                <CardContent className='p-6'>
-                  <h3 className='text-xl font-bold text-gray-900 mb-4'>Thông tin liên hệ</h3>
-                  <div className='space-y-2 text-sm'>
-                    {event.publicContactEmail && (
-                      <div className='flex items-center gap-2'>
-                        <span className='font-semibold text-gray-700'>Email:</span>
-                        <a href={`mailto:${event.publicContactEmail}`} className='text-cyan-600 hover:text-cyan-700'>
-                          {event.publicContactEmail}
-                        </a>
-                      </div>
-                    )}
-                    {event.publicContactPhone && (
-                      <div className='flex items-center gap-2'>
-                        <span className='font-semibold text-gray-700'>Điện thoại:</span>
-                        <a href={`tel:${event.publicContactPhone}`} className='text-cyan-600 hover:text-cyan-700'>
-                          {event.publicContactPhone}
-                        </a>
-                      </div>
-                    )}
-                    {event.website && (
-                      <div className='flex items-center gap-2'>
-                        <span className='font-semibold text-gray-700'>Website:</span>
-                        <a
-                          href={event.website}
-                          target='_blank'
-                          rel='noopener noreferrer'
-                          className='text-cyan-600 hover:text-cyan-700 truncate'
-                        >
-                          {event.website}
-                        </a>
-                      </div>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             )}

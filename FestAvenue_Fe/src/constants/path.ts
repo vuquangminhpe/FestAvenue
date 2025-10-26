@@ -39,7 +39,9 @@ const path = {
       root: '/user/event',
       create_event: '/user/event/create_event',
       update_event: '/user/event/update_event',
-      details: '/user/event/:eventId'
+      details: '/user/event/:eventId',
+      ticketDetails: '/user/event/ticket/:eventCode',
+      ticketDetails_event: '/user/event/ticket'
     },
     my: {
       root: '/user/my',
