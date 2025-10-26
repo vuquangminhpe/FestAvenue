@@ -124,8 +124,8 @@ export default function MyEvents() {
           <div className='flex items-center gap-2 text-sm text-slate-600'>
             <Calendar className='w-4 h-4' />
             <span>
-              {eventVersion.startDate
-                ? format(new Date(eventVersion.startDate), 'dd MMM yyyy', { locale: vi })
+              {eventVersion.startEventLifecycleTime
+                ? format(new Date(eventVersion.startEventLifecycleTime), 'dd MMM yyyy', { locale: vi })
                 : 'Chưa có'}
             </span>
           </div>

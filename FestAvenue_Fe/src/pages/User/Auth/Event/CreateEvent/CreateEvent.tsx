@@ -62,7 +62,7 @@ function CreateEvent() {
   // Fetch event data if in update mode
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
     queryKey: ['event', eventId],
-    queryFn: () => eventApis.getEventById(eventId!),
+    queryFn: () => eventApis.getEventByEventCode(eventId!),
     enabled: !!eventId
   })
 
@@ -78,13 +78,12 @@ function CreateEvent() {
         categoryId: event.categoryId ?? '',
         visibility: event.visibility ?? defaultFormValues.visibility,
         capacity: event.capacity ?? defaultFormValues.capacity,
-        startEventLifecycleTime: event.startEventLifecycleTime ?? event.startDate ?? event.registrationStartDate ?? '',
-        endEventLifecycleTime: event.endEventLifecycleTime ?? event.endDate ?? event.registrationEndDate ?? '',
-        startTicketSaleTime:
-          event.startTicketSaleTime ?? event.registrationStartDate ?? event.startEventLifecycleTime ?? '',
-        endTicketSaleTime: event.endTicketSaleTime ?? event.registrationEndDate ?? event.endEventLifecycleTime ?? '',
-        startTimeEventTime: event.startTimeEventTime ?? event.startDate ?? '',
-        endTimeEventTime: event.endTimeEventTime ?? event.endDate ?? '',
+        startEventLifecycleTime: event.startEventLifecycleTime ?? '',
+        endEventLifecycleTime: event.endEventLifecycleTime ?? '',
+        startTicketSaleTime: event.startTicketSaleTime ?? event.startEventLifecycleTime ?? '',
+        endTicketSaleTime: event.endTicketSaleTime ?? event.endEventLifecycleTime ?? '',
+        startTimeEventTime: event.startTimeEventTime ?? '',
+        endTimeEventTime: event.endTimeEventTime ?? '',
         logoUrl: event.logoUrl ?? '',
         bannerUrl: event.bannerUrl ?? '',
         trailerUrl: event.trailerUrl ?? '',

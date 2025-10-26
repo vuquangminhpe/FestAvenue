@@ -19,7 +19,7 @@ export const seatKeys = {
 export const useEventCapacity = (eventCode: string) => {
   return useQuery({
     queryKey: ['event', eventCode],
-    queryFn: () => eventApis.getEventById(eventCode),
+    queryFn: () => eventApis.getEventByEventCode(eventCode),
     enabled: !!eventCode,
     staleTime: 60000 // 1 minute
   })

@@ -1,10 +1,11 @@
-const removeSpecialCharacter = (str: string) => {
+const removeSpecialCharacter = (str?: string) => {
   // eslint-disable-next-line no-useless-escape
-  return str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, '')
+  return str?.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'|\"|\&|\#|\[|\]|~|\$|_|`|-|{|}|\||\\/g, '')
 }
 export const generateNameId = ({ name, id, id_2 }: { name: string; id: string; id_2?: string }) => {
-  const formattedName = removeSpecialCharacter(name).replace(/\s/g, '-')
-  return `${id}-${formattedName}-${id_2}`
+  const formattedName = removeSpecialCharacter(name)?.replace(/\s/g, '-') || ''
+  const formattedName_id2 = removeSpecialCharacter(id_2 as string)?.replace(/\s/g, '-') || ''
+  return `${id}-${formattedName}-${formattedName_id2}`
 }
 
 export const getIdFromNameId = (nameId: string) => {

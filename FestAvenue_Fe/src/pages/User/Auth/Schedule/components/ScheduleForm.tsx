@@ -49,7 +49,7 @@ export default function ScheduleForm({
   // Fetch event data to get lifecycle times
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
     queryKey: ['event', eventId],
-    queryFn: () => eventApis.getEventById(eventId as string),
+    queryFn: () => eventApis.getEventByEventCode(eventId as string),
     enabled: !!eventId
   })
 
@@ -101,8 +101,8 @@ export default function ScheduleForm({
 
       // Validate against event lifecycle if available
       if (event) {
-        const lifecycleStart = event.startEventLifecycleTime || event.startDate
-        const lifecycleEnd = event.endEventLifecycleTime || event.endDate
+        const lifecycleStart = event.startEventLifecycleTime
+        const lifecycleEnd = event.endEventLifecycleTime
 
         if (lifecycleStart && lifecycleEnd) {
           const eventStart = new Date(lifecycleStart)
@@ -254,8 +254,8 @@ export default function ScheduleForm({
   const getLifecycleInfo = () => {
     if (!event) return null
 
-    const lifecycleStart = event.startEventLifecycleTime || event.startDate
-    const lifecycleEnd = event.endEventLifecycleTime || event.endDate
+    const lifecycleStart = event.startEventLifecycleTime
+    const lifecycleEnd = event.endEventLifecycleTime
 
     if (!lifecycleStart || !lifecycleEnd) return null
 

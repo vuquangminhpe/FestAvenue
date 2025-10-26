@@ -7,7 +7,7 @@ import type {
   EventSearchStaffFilter,
   EventTemp,
   EventVersionResForStaff,
-  ResEventById
+  ResEventByEventCode
 } from '@/types/event.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
@@ -49,8 +49,8 @@ const eventApis = {
     const data = await http.delete(`/event/delete-event/${eventId}`)
     return data?.data
   },
-  getEventById: async (eventId: string) => {
-    const data = await http.get<APIResponse<ResEventById>>(`/event/get-event-by-event-code/${eventId}`)
+  getEventByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<ResEventByEventCode>>(`/event/get-event-by-event-code/${eventCode}`)
     return data?.data
   }
 }

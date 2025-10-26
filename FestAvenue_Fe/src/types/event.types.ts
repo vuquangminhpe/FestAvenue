@@ -282,12 +282,6 @@ export interface ReqFilterOwnerEvent {
   startTimeEventTime?: string // ISO date string
   endTimeEventTime?: string // ISO date string
 
-  // Old fields for backward compatibility
-  startDate?: string // ISO date string - deprecated
-  endDate?: string // ISO date string - deprecated
-  registrationStartDate?: string // deprecated
-  registrationEndDate?: string // deprecated
-
   publicContactEmail: string
   publicContactPhone: string
   website: string
@@ -298,7 +292,7 @@ export interface ReqFilterOwnerEvent {
 
   messageResponse: string | null
 }
-export type ResEventById = ReqFilterOwnerEvent
+export type ResEventByEventCode = ReqFilterOwnerEvent
 export interface EventLocation {
   address: {
     street: string
