@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, AlertCircle } from 'lucide-react'
+import { X, AlertCircle, Calendar } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
 import ColorPicker from './ColorPicker'
 import SubTaskForm from './SubTaskForm'
+import { DateTimePicker } from './DateTimePicker'
 import {
   validateScheduleTitle,
   validateScheduleDescription,
@@ -32,8 +33,7 @@ export default function ScheduleForm({
   schedule,
   prefilledDateRange,
   onClose,
-  onSuccess,
-  eventId
+  onSuccess
 }: ScheduleFormProps) {
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
@@ -48,9 +48,9 @@ export default function ScheduleForm({
 
   // Fetch event data to get lifecycle times
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
-    queryKey: ['event', eventId],
-    queryFn: () => eventApis.getEventByEventCode(eventId as string),
-    enabled: !!eventId
+    queryKey: ['event', eventCode],
+    queryFn: () => eventApis.getEventByEventCode(eventCode as string),
+    enabled: !!eventCode
   })
 
   const event = eventData?.data
@@ -98,6 +98,7 @@ export default function ScheduleForm({
       if (end < now) {
         newErrors.endDate = 'Ngày kết thúc không thể trong quá khứ'
       }
+      console.log(event)
 
       // Validate against event lifecycle if available
       if (event) {
@@ -372,42 +373,60 @@ export default function ScheduleForm({
           {/* Date Range */}
           <div className='grid grid-cols-2 gap-4'>
             <div className='space-y-2'>
-              <Label htmlFor='startDate'>
+              <Label htmlFor='startDate' className='flex items-center gap-2 text-sm font-semibold text-gray-700'>
+                <div className='p-1.5 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg shadow-sm'>
+                  <Calendar className='w-4 h-4 text-white' />
+                </div>
                 Ngày bắt đầu <span className='text-red-500'>*</span>
               </Label>
-              <Input
-                id='startDate'
-                type='datetime-local'
-                value={formData.startDate}
-                onChange={(e) => {
-                  setFormData({ ...formData, startDate: e.target.value })
-                  if (errors.startDate) setErrors({ ...errors, startDate: '' })
+              <DateTimePicker
+                value={formData.startDate ? new Date(formData.startDate) : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    setFormData({ ...formData, startDate: date.toISOString().slice(0, 16) })
+                    if (errors.startDate) setErrors({ ...errors, startDate: '' })
+                  }
                 }}
-                min={lifecycleInfo ? lifecycleInfo.start.toISOString().slice(0, 16) : undefined}
-                max={lifecycleInfo ? lifecycleInfo.end.toISOString().slice(0, 16) : undefined}
-                className={errors.startDate ? 'border-red-500 focus:ring-red-500' : ''}
-                required
+                minDate={lifecycleInfo?.start}
+                maxDate={lifecycleInfo?.end}
+                error={!!errors.startDate}
+                variant='start'
+                placeholder='Chọn ngày bắt đầu'
               />
-              {errors.startDate && <p className='text-sm text-red-600'>{errors.startDate}</p>}
+              {errors.startDate && (
+                <p className='text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1'>
+                  <AlertCircle className='w-4 h-4' />
+                  {errors.startDate}
+                </p>
+              )}
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='endDate'>
+              <Label htmlFor='endDate' className='flex items-center gap-2 text-sm font-semibold text-gray-700'>
+                <div className='p-1.5 bg-gradient-to-br from-red-400 to-rose-500 rounded-lg shadow-sm'>
+                  <Calendar className='w-4 h-4 text-white' />
+                </div>
                 Ngày kết thúc <span className='text-red-500'>*</span>
               </Label>
-              <Input
-                id='endDate'
-                type='datetime-local'
-                value={formData.endDate}
-                onChange={(e) => {
-                  setFormData({ ...formData, endDate: e.target.value })
-                  if (errors.endDate) setErrors({ ...errors, endDate: '' })
+              <DateTimePicker
+                value={formData.endDate ? new Date(formData.endDate) : undefined}
+                onChange={(date) => {
+                  if (date) {
+                    setFormData({ ...formData, endDate: date.toISOString().slice(0, 16) })
+                    if (errors.endDate) setErrors({ ...errors, endDate: '' })
+                  }
                 }}
-                min={formData.startDate || (lifecycleInfo ? lifecycleInfo.start.toISOString().slice(0, 16) : undefined)}
-                max={lifecycleInfo ? lifecycleInfo.end.toISOString().slice(0, 16) : undefined}
-                className={errors.endDate ? 'border-red-500 focus:ring-red-500' : ''}
-                required
+                minDate={formData.startDate ? new Date(formData.startDate) : lifecycleInfo?.start}
+                maxDate={lifecycleInfo?.end}
+                error={!!errors.endDate}
+                variant='end'
+                placeholder='Chọn ngày kết thúc'
               />
-              {errors.endDate && <p className='text-sm text-red-600'>{errors.endDate}</p>}
+              {errors.endDate && (
+                <p className='text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1'>
+                  <AlertCircle className='w-4 h-4' />
+                  {errors.endDate}
+                </p>
+              )}
             </div>
           </div>
 

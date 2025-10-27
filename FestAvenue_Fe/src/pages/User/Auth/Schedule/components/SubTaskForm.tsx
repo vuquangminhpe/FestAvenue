@@ -26,6 +26,7 @@ import type { SubTask, DailyTimeSlot } from '../../../../../types/schedule.types
 import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useGetUsersInEvent } from '@/pages/User/Process/UserManagementInEvents/hooks/useUserManagement'
+import { DateTimePicker } from './DateTimePicker'
 
 interface SubTaskFormProps {
   eventCode: string
@@ -114,23 +115,6 @@ export default function SubTaskForm({
     if (!query) return users
     return users.filter((user) => user.name.toLowerCase().includes(query))
   }
-
-  // Get parent schedule date range in local datetime format for input
-  const parentStartLocal = useMemo(() => {
-    try {
-      return new Date(parentScheduleStart).toISOString().slice(0, 16)
-    } catch {
-      return ''
-    }
-  }, [parentScheduleStart])
-
-  const parentEndLocal = useMemo(() => {
-    try {
-      return new Date(parentScheduleEnd).toISOString().slice(0, 16)
-    } catch {
-      return ''
-    }
-  }, [parentScheduleEnd])
 
   const addSubTask = () => {
     onChange([
@@ -323,23 +307,6 @@ export default function SubTaskForm({
 
   const completedCount = subTasks.filter((st) => st.isCompleted).length
 
-  // Helper to convert ISO string to datetime-local format (YYYY-MM-DDTHH:mm)
-  const toDateTimeLocal = (isoString: string | undefined) => {
-    if (!isoString) return ''
-    try {
-      const date = new Date(isoString)
-      // Format: YYYY-MM-DDTHH:mm
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      const hours = String(date.getHours()).padStart(2, '0')
-      const minutes = String(date.getMinutes()).padStart(2, '0')
-      return `${year}-${month}-${day}T${hours}:${minutes}`
-    } catch {
-      return ''
-    }
-  }
-
   // Helper to check if dates span multiple days
   const isMultiDay = (subTask: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>) => {
     if (!subTask.startDate || !subTask.endDate) return false
@@ -531,43 +498,45 @@ export default function SubTaskForm({
                         />
 
                         {/* Date Range */}
-                        <div className='grid grid-cols-2 gap-2'>
-                          <div className='space-y-1'>
-                            <Label className='text-xs flex items-center gap-1'>
-                              <Calendar className='w-3 h-3' />
+                        <div className='grid grid-cols-2 gap-3'>
+                          <div className='space-y-1.5'>
+                            <Label className='text-xs flex items-center gap-1.5 font-semibold text-gray-700'>
+                              <div className='p-1 bg-gradient-to-br from-green-400 to-emerald-500 rounded shadow-sm'>
+                                <Calendar className='w-3 h-3 text-white' />
+                              </div>
                               Ngày bắt đầu
                             </Label>
-                            <Input
-                              type='datetime-local'
-                              value={toDateTimeLocal(subTask.startDate)}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  const date = new Date(e.target.value)
+                            <DateTimePicker
+                              value={subTask.startDate ? new Date(subTask.startDate) : undefined}
+                              onChange={(date) => {
+                                if (date) {
                                   updateSubTask(index, 'startDate', date.toISOString())
                                 }
                               }}
-                              min={parentStartLocal}
-                              max={parentEndLocal}
-                              className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
+                              minDate={parentScheduleStart ? new Date(parentScheduleStart) : undefined}
+                              maxDate={parentScheduleEnd ? new Date(parentScheduleEnd) : undefined}
+                              variant='start'
+                              placeholder='Chọn ngày bắt đầu'
                             />
                           </div>
-                          <div className='space-y-1'>
-                            <Label className='text-xs flex items-center gap-1'>
-                              <Calendar className='w-3 h-3' />
+                          <div className='space-y-1.5'>
+                            <Label className='text-xs flex items-center gap-1.5 font-semibold text-gray-700'>
+                              <div className='p-1 bg-gradient-to-br from-red-400 to-rose-500 rounded shadow-sm'>
+                                <Calendar className='w-3 h-3 text-white' />
+                              </div>
                               Ngày kết thúc
                             </Label>
-                            <Input
-                              type='datetime-local'
-                              value={toDateTimeLocal(subTask.endDate)}
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  const date = new Date(e.target.value)
+                            <DateTimePicker
+                              value={subTask.endDate ? new Date(subTask.endDate) : undefined}
+                              onChange={(date) => {
+                                if (date) {
                                   updateSubTask(index, 'endDate', date.toISOString())
                                 }
                               }}
-                              min={toDateTimeLocal(subTask.startDate) || parentStartLocal}
-                              max={parentEndLocal}
-                              className='text-xs h-8 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
+                              minDate={subTask.startDate ? new Date(subTask.startDate) : (parentScheduleStart ? new Date(parentScheduleStart) : undefined)}
+                              maxDate={parentScheduleEnd ? new Date(parentScheduleEnd) : undefined}
+                              variant='end'
+                              placeholder='Chọn ngày kết thúc'
                             />
                           </div>
                         </div>
@@ -605,24 +574,58 @@ export default function SubTaskForm({
                             </div>
 
                             {timeSlotsExpanded && (
-                              <div className='space-y-1.5 bg-blue-50/50 p-2 rounded max-h-40 overflow-y-auto'>
+                              <div className='space-y-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-3 rounded-lg border border-blue-200 shadow-inner max-h-64 overflow-y-auto scrollbar-thin'>
                                 {subTask.dailyTimeSlots.map((slot, slotIdx) => (
-                                  <div key={slot.date} className='grid grid-cols-3 gap-2 items-center text-xs'>
-                                    <div className='text-gray-700 font-medium'>
-                                      {format(parseISO(slot.date), 'dd/MM (EEE)', { locale: vi })}
+                                  <div
+                                    key={slot.date}
+                                    className='grid grid-cols-[minmax(100px,1fr)_1.2fr_1.2fr] gap-3 items-center bg-white p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200'
+                                  >
+                                    {/* Date Label */}
+                                    <div className='flex items-center gap-2'>
+                                      <div className='w-1.5 h-10 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full' />
+                                      <div>
+                                        <div className='text-sm font-bold text-gray-800'>
+                                          {format(parseISO(slot.date), 'dd/MM', { locale: vi })}
+                                        </div>
+                                        <div className='text-xs text-gray-500 font-medium'>
+                                          {format(parseISO(slot.date), 'EEE', { locale: vi })}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <Input
-                                      type='time'
-                                      value={slot.startTime}
-                                      onChange={(e) => updateTimeSlot(index, slotIdx, 'startTime', e.target.value)}
-                                      className='h-7 text-xs'
-                                    />
-                                    <Input
-                                      type='time'
-                                      value={slot.endTime}
-                                      onChange={(e) => updateTimeSlot(index, slotIdx, 'endTime', e.target.value)}
-                                      className='h-7 text-xs'
-                                    />
+
+                                    {/* Start Time */}
+                                    <div className='space-y-1'>
+                                      <label className='flex items-center gap-1.5 text-xs font-semibold text-green-700'>
+                                        <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse' />
+                                        Bắt đầu
+                                      </label>
+                                      <div className='relative group'>
+                                        <Clock className='absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-green-500 group-hover:text-green-600 transition-colors pointer-events-none' />
+                                        <Input
+                                          type='time'
+                                          value={slot.startTime}
+                                          onChange={(e) => updateTimeSlot(index, slotIdx, 'startTime', e.target.value)}
+                                          className='h-9 text-sm pl-9 pr-3 border-green-200 focus:border-green-400 focus:ring-green-300 hover:border-green-300 bg-gradient-to-r from-green-50/50 to-white transition-all duration-200'
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* End Time */}
+                                    <div className='space-y-1'>
+                                      <label className='flex items-center gap-1.5 text-xs font-semibold text-red-700'>
+                                        <div className='w-2 h-2 bg-red-500 rounded-full animate-pulse' />
+                                        Kết thúc
+                                      </label>
+                                      <div className='relative group'>
+                                        <Clock className='absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-500 group-hover:text-red-600 transition-colors pointer-events-none' />
+                                        <Input
+                                          type='time'
+                                          value={slot.endTime}
+                                          onChange={(e) => updateTimeSlot(index, slotIdx, 'endTime', e.target.value)}
+                                          className='h-9 text-sm pl-9 pr-3 border-red-200 focus:border-red-400 focus:ring-red-300 hover:border-red-300 bg-gradient-to-r from-red-50/50 to-white transition-all duration-200'
+                                        />
+                                      </div>
+                                    </div>
                                   </div>
                                 ))}
                               </div>

@@ -18,6 +18,7 @@ interface CalendarDayProps {
   onScheduleDragStart?: (scheduleId: string) => void
   onScheduleDrop?: () => void
   onScheduleClick?: (schedule: Schedule, date: Date) => void
+  lifecycleInfo?: { start: Date; end: Date } | null
 }
 
 export default function CalendarDay({
@@ -31,13 +32,36 @@ export default function CalendarDay({
   onMouseEnter,
   onScheduleDragStart,
   onScheduleDrop,
-  onScheduleClick
+  onScheduleClick,
+  lifecycleInfo
 }: CalendarDayProps) {
   const dayRef = useRef<HTMLDivElement>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const hasSchedules = schedules.length > 0
   const hasMoreThanTwo = schedules.length > 2
   const isActiveDay = isToday(date)
+  console.log(lifecycleInfo)
+
+  // Check if date is within event lifecycle
+  const isWithinLifecycle = () => {
+    if (!lifecycleInfo) return true // If no lifecycle info, allow drag
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const lifecycleStart = new Date(
+      lifecycleInfo.start.getFullYear(),
+      lifecycleInfo.start.getMonth(),
+      lifecycleInfo.start.getDate()
+    )
+
+    const lifecycleEnd = new Date(
+      lifecycleInfo.end.getFullYear(),
+      lifecycleInfo.end.getMonth(),
+      lifecycleInfo.end.getDate()
+    )
+    return dayStart >= lifecycleStart && dayStart <= lifecycleEnd
+  }
+
+  const canDragToThisDay = isWithinLifecycle()
+  console.log(canDragToThisDay)
 
   // Determine notification status for this day
   const getNotificationStatus = (): 'upcoming' | 'overdue' | 'none' => {
@@ -116,11 +140,15 @@ export default function CalendarDay({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+    // Visual feedback will be handled by CSS based on canDragToThisDay
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    onScheduleDrop?.()
+    // Only allow drop if date is within lifecycle
+    if (canDragToThisDay) {
+      onScheduleDrop?.()
+    }
   }
 
   const handleToggleExpand = (e: React.MouseEvent) => {
@@ -128,24 +156,42 @@ export default function CalendarDay({
     setIsExpanded(!isExpanded)
   }
 
+  // Wrap click handlers to prevent interaction with disabled days
+  const handleClick = () => {
+    if (!canDragToThisDay) return // Ignore clicks on disabled days
+    onClick()
+  }
+
+  const handleMouseDownWrapper = () => {
+    if (!canDragToThisDay) return // Ignore mouse down on disabled days
+    onMouseDown?.()
+  }
+
   return (
     <div
       ref={dayRef}
-      onClick={onClick}
-      onMouseDown={onMouseDown}
+      onClick={handleClick}
+      onMouseDown={handleMouseDownWrapper}
       onMouseEnter={onMouseEnter}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       className={`
-        relative p-3 pb-6 border border-gray-200 cursor-pointer
-        transition-all duration-200 hover:bg-gray-50
+        relative p-3 pb-6 border border-gray-200
+        transition-all duration-200
         ${!isCurrentMonth ? 'bg-gray-50 text-gray-400' : 'bg-white'}
         ${isActiveDay ? 'ring-2 ring-blue-500 ring-inset' : ''}
         ${isInDragRange ? 'bg-blue-100 ring-2 ring-blue-400' : ''}
-        ${isDragTarget ? 'ring-2 ring-green-400' : ''}
+        ${isDragTarget && canDragToThisDay ? 'ring-2 ring-green-400' : ''}
+        ${isDragTarget && !canDragToThisDay ? 'ring-2 ring-red-400 bg-red-50' : ''}
         ${isExpanded ? 'min-h-[140px]' : 'min-h-[100px]'}
+        ${!canDragToThisDay ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'}
       `}
     >
+      {/* Outside lifecycle indicator */}
+      {!canDragToThisDay && (
+        <div className='absolute inset-0  bg-gray-900/5 backdrop-blur-[4px] flex items-center justify-center pointer-events-none z-10'></div>
+      )}
+
       {/* Date number */}
       <div className='flex items-start justify-between mb-1'>
         <span
@@ -153,6 +199,7 @@ export default function CalendarDay({
           text-sm font-medium
           ${isActiveDay ? 'text-blue-600 font-bold' : ''}
           ${!isCurrentMonth ? 'text-gray-400' : 'text-gray-700'}
+          ${!canDragToThisDay ? 'opacity-40' : ''}
         `}
         >
           {format(date, 'd', { locale: vi })}

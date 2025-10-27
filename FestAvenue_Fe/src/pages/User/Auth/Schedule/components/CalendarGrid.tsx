@@ -11,6 +11,7 @@ interface CalendarGridProps {
   onDateRangeSelect?: (startDate: Date, endDate: Date) => void
   onScheduleDrop?: (scheduleId: string, newStartDate: Date) => void
   onScheduleClick?: (schedule: Schedule, date: Date) => void
+  lifecycleInfo?: { start: Date; end: Date } | null
 }
 
 const WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
@@ -21,7 +22,8 @@ export default function CalendarGrid({
   onDayClick,
   onDateRangeSelect,
   onScheduleDrop,
-  onScheduleClick
+  onScheduleClick,
+  lifecycleInfo
 }: CalendarGridProps) {
   const [dragStartDate, setDragStartDate] = useState<Date | null>(null)
   const [dragEndDate, setDragEndDate] = useState<Date | null>(null)
@@ -152,6 +154,7 @@ export default function CalendarGrid({
               onScheduleDragStart={handleScheduleDragStart}
               onScheduleDrop={() => handleScheduleDrop(date)}
               onScheduleClick={onScheduleClick}
+              lifecycleInfo={lifecycleInfo}
             />
           )
         })}

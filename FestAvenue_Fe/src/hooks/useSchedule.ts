@@ -85,8 +85,16 @@ export function useCreateSchedule() {
       return mapEventItemToSchedule(response.data)
     },
     onSuccess: (_, variables) => {
-      // Invalidate schedules list để refresh data
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.list(variables.eventCode) })
+      // Invalidate và refetch tất cả schedules lists cho eventCode này
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.lists(),
+        refetchType: 'active'
+      })
+      // Force refetch để đảm bảo data mới hiển thị ngay
+      queryClient.refetchQueries({
+        queryKey: scheduleKeys.list(variables.eventCode),
+        type: 'active'
+      })
     }
   })
 }
@@ -165,9 +173,20 @@ export function useDeleteSchedule() {
       return response?.data?.data ?? false
     },
     onSuccess: (_, scheduleId) => {
-      // Invalidate tất cả schedules lists
-      queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() })
+      // Remove detail cache của schedule đã xóa
       queryClient.removeQueries({ queryKey: scheduleKeys.detail(scheduleId) })
+
+      // Invalidate và force refetch tất cả schedules lists
+      queryClient.invalidateQueries({
+        queryKey: scheduleKeys.lists(),
+        refetchType: 'active'
+      })
+
+      // Force refetch ngay lập tức để cập nhật UI
+      queryClient.refetchQueries({
+        queryKey: scheduleKeys.lists(),
+        type: 'active'
+      })
     }
   })
 }

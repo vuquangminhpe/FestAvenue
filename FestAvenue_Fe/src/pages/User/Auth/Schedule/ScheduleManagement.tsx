@@ -17,6 +17,8 @@ import {
 } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 import { useSchedules, useUpdateSchedule } from '@/hooks/useSchedule'
 import { SERVICE_PACKAGE_NAMES } from '@/constants/servicePackages'
+import { useQuery } from '@tanstack/react-query'
+import eventApis from '@/apis/event.api'
 
 const sortByParamMap: Record<ScheduleFilterType['sortBy'], number> = {
   startDate: 1,
@@ -82,6 +84,24 @@ export default function ScheduleManagement() {
   }, [filter])
 
   const { data: schedules = [], isLoading } = useSchedules(eventCode, scheduleQueryFilters)
+
+  // Fetch event data để lấy lifecycle
+  const { data: eventData } = useQuery({
+    queryKey: ['event', eventCode],
+    queryFn: async () => {
+      const response = await eventApis.getEventByEventCode(eventCode)
+      return response?.data
+    },
+    enabled: !!eventCode
+  })
+
+  const lifecycleInfo = useMemo(() => {
+    if (!eventData) return null
+    return {
+      start: new Date(eventData?.startEventLifecycleTime as string),
+      end: new Date(eventData?.endEventLifecycleTime as string)
+    }
+  }, [eventData])
 
   const updateScheduleMutation = useUpdateSchedule()
 
@@ -155,6 +175,28 @@ export default function ScheduleManagement() {
     // Create new end date preserving the original time
     const newEnd = new Date(oldEnd)
     newEnd.setDate(newEnd.getDate() + diffDays)
+
+    // Validate lifecycle: Check if new dates are within event lifecycle
+    // This is a safety check - UI should prevent dropping on invalid dates
+    if (lifecycleInfo) {
+      const lifecycleStart = new Date(
+        lifecycleInfo.start.getFullYear(),
+        lifecycleInfo.start.getMonth(),
+        lifecycleInfo.start.getDate()
+      )
+      const lifecycleEnd = new Date(
+        lifecycleInfo.end.getFullYear(),
+        lifecycleInfo.end.getMonth(),
+        lifecycleInfo.end.getDate()
+      )
+      const newStartDay = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate())
+      const newEndDay = new Date(newEnd.getFullYear(), newEnd.getMonth(), newEnd.getDate())
+
+      if (newStartDay < lifecycleStart || newEndDay > lifecycleEnd) {
+        // Silently reject - user already sees X indicator
+        return
+      }
+    }
 
     // Update schedule with new dates
     try {
@@ -351,6 +393,7 @@ export default function ScheduleManagement() {
               onDateRangeSelect={handleDateRangeSelect}
               onScheduleDrop={handleScheduleDrop}
               onScheduleClick={handleScheduleClick}
+              lifecycleInfo={lifecycleInfo}
             />
           )}
         </div>
