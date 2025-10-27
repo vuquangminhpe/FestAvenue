@@ -109,7 +109,7 @@ const capacityValidator = z
   .number({ message: 'Sức chứa phải là số' })
   .int('Sức chứa phải là số nguyên')
   .min(1, 'Sức chứa tối thiểu là 1 người')
-  .max(1000000, 'Sức chứa tối đa là 1,000,000 người')
+  .max(1000, 'Sức chứa tối đa là 1,000 người')
   .refine((val) => val > 0, { message: 'Sức chứa phải lớn hơn 0' })
 
 // Validate coordinates
