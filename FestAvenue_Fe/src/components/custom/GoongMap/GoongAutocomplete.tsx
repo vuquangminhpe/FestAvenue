@@ -14,12 +14,14 @@ interface GoongAutocompleteProps {
       commune?: string
     }
   }) => void
+  onLocationOutsideVietnam?: () => void
   placeholder?: string
   className?: string
 }
 
 const GoongAutocomplete: React.FC<GoongAutocompleteProps> = ({
   onPlaceSelect,
+  onLocationOutsideVietnam,
   placeholder = 'Tìm kiếm địa điểm...',
   className = ''
 }) => {
@@ -70,6 +72,11 @@ const GoongAutocomplete: React.FC<GoongAutocompleteProps> = ({
     const placeDetail = await getPlaceDetail(placeId)
     if (placeDetail) {
       onPlaceSelect(placeDetail)
+    } else {
+      // Location is outside Vietnam or invalid
+      onLocationOutsideVietnam?.()
+      // Clear input
+      setInputValue('')
     }
   }
 

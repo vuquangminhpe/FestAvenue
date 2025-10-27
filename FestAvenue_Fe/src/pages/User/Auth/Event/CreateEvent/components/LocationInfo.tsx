@@ -1,13 +1,22 @@
-import { Suspense, lazy, useEffect, useMemo } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import type { UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
-import { MapPin } from 'lucide-react'
+import { MapPin, AlertTriangle } from 'lucide-react'
 import { useProvinceData } from '../hooks/useProvinceData'
 import { useGoongGeocoding } from '../hooks/useGoongGeocoding'
 import { useWatch } from 'react-hook-form'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 
 const GoongMap = lazy(() => import('@/components/custom/GoongMap/GoongMap'))
 const GoongAutocomplete = lazy(() => import('@/components/custom/GoongMap/GoongAutocomplete'))
@@ -18,6 +27,7 @@ interface LocationInfoProps {
 
 export function LocationInfo({ form }: LocationInfoProps) {
   const { provinces, selectedProvinceCode, setSelectedProvinceCode } = useProvinceData()
+  const [showWarningDialog, setShowWarningDialog] = useState(false)
 
   const { reverseGeocode, isLoading: isGeocodingLoading } = useGoongGeocoding()
   const coordinates = useWatch({
@@ -26,22 +36,22 @@ export function LocationInfo({ form }: LocationInfoProps) {
   })
 
   const handleMapClick = async (e: { lat: number; lng: number }) => {
-    // Update coordinates immediately with validation options
-    form.setValue('location.coordinates.latitude', e.lat, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true
-    })
-    form.setValue('location.coordinates.longitude', e.lng, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true
-    })
-
-    // Reverse geocode to get address from coordinates
+    // Reverse geocode to get address from coordinates FIRST
     const result = await reverseGeocode(e.lat, e.lng)
 
     if (result) {
+      // Only update coordinates if location is valid (inside Vietnam)
+      form.setValue('location.coordinates.latitude', e.lat, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true
+      })
+      form.setValue('location.coordinates.longitude', e.lng, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true
+      })
+
       // Auto-fill address details with validation options
       if (result.formatted_address) {
         form.setValue('location.address.street', result.formatted_address, {
@@ -70,6 +80,10 @@ export function LocationInfo({ form }: LocationInfoProps) {
           })
         }
       }
+    } else {
+      // Location is outside Vietnam - show warning dialog
+      // DO NOT update coordinates to keep map stable
+      setShowWarningDialog(true)
     }
   }
 
@@ -188,6 +202,7 @@ export function LocationInfo({ form }: LocationInfoProps) {
         <Suspense fallback={<div className='h-[42px] bg-white rounded-lg animate-pulse' />}>
           <GoongAutocomplete
             onPlaceSelect={handlePlaceSelect}
+            onLocationOutsideVietnam={() => setShowWarningDialog(true)}
             placeholder='Tìm kiếm địa điểm (VD: Bitexco, Nhà hát lớn Hà Nội...)'
           />
         </Suspense>
@@ -336,6 +351,38 @@ export function LocationInfo({ form }: LocationInfoProps) {
           )}
         />
       </div>
+
+      {/* Warning Dialog for locations outside Vietnam */}
+      <AlertDialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
+        <AlertDialogContent
+          className='border-4 border-red-300'
+          style={{
+            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+            boxShadow: '0 20px 50px rgba(220, 38, 38, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.3)'
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className='flex items-center gap-3 text-white text-2xl font-bold'>
+              <div className='p-3 bg-white/20 rounded-full backdrop-blur-sm'>
+                <AlertTriangle className='w-8 h-8 text-white' />
+              </div>
+              <span className='drop-shadow-lg'>Cảnh báo: Địa điểm không hợp lệ!</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-white/95 text-base font-semibold mt-4 leading-relaxed drop-shadow-md'>
+              Chúng tôi chỉ hỗ trợ các sự kiện tại Việt Nam, vui lòng sử dụng đúng mục đích, nếu không tài khoản của
+              bạn sẽ bị cấm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setShowWarningDialog(false)}
+              className='bg-white text-red-700 hover:bg-red-50 font-bold shadow-lg hover:shadow-xl transition-all'
+            >
+              Tôi đã hiểu
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
