@@ -26,6 +26,35 @@ export interface TicketType {
   color: string
 }
 
+export type SemiCircleOrientation = 'top' | 'bottom' | 'left' | 'right'
+
+export type PointConstraint =
+  | {
+      type: 'circle'
+      center: Point
+      radius: number
+    }
+  | {
+      type: 'ellipse'
+      center: Point
+      radiusX: number
+      radiusY: number
+      rotation?: number
+    }
+  | {
+      type: 'semi-circle'
+      center: Point
+      radius: number
+      orientation: SemiCircleOrientation
+    }
+  | {
+      type: 'arc'
+      center: Point
+      radius: number
+      startAngle: number
+      endAngle: number
+    }
+
 export interface Section {
   id: string
   name: string

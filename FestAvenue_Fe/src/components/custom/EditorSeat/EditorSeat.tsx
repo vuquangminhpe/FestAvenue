@@ -34,6 +34,7 @@ import type {
   EditTool,
   ExtractionResult,
   Point,
+  PointConstraint,
   SeatMapData,
   Section,
   ShapeType
@@ -46,6 +47,8 @@ import { SeatInteractionManager } from './classes/SeatInteractionManager'
 import { calculateBounds, lineIntersection, getPolygonColor } from './utils/geometry'
 import { generateShapePath } from './utils/shapes'
 import { generateSeatsForSection } from './utils/seats'
+import { projectPointToConstraint } from './utils/shapeTransforms'
+import PointEditorPanel from './components/PointEditorPanel'
 
 // Props interface
 interface AdvancedSeatMapDesignerProps {
@@ -117,6 +120,23 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
   const [splitFirstPoint, setSplitFirstPoint] = useState<Point | null>(null)
   const [editingPoints, setEditingPoints] = useState<{ sectionId: string; points: Point[] } | null>(null)
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
+  const [pointConstraint, setPointConstraint] = useState<PointConstraint | null>(null)
+  const pointConstraintRef = useRef<PointConstraint | null>(null)
+  const editingPointsRef = useRef<typeof editingPoints>(null)
+
+  useEffect(() => {
+    pointConstraintRef.current = pointConstraint
+  }, [pointConstraint])
+
+  useEffect(() => {
+    editingPointsRef.current = editingPoints
+  }, [editingPoints])
+
+  useEffect(() => {
+    if (editTool !== 'edit-points') {
+      setPointConstraint(null)
+    }
+  }, [editTool])
   const [emailLockModal, setEmailLockModal] = useState<{
     seatId: string
     seatLabel: string
@@ -456,17 +476,23 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
 
   const startEditingPoints = (section: Section) => {
     if (!section.points) return
+    setPointConstraint(null)
+    setSelectedPointIndex(null)
     setEditingPoints({ sectionId: section.id, points: [...section.points] })
     setEditTool('edit-points')
   }
 
   const updatePointPosition = (pointIndex: number, newPosition: Point) => {
-    if (!editingPoints) return
+    setEditingPoints((prev) => {
+      if (!prev) return prev
+      const newPoints = [...prev.points]
+      newPoints[pointIndex] = newPosition
+      return { ...prev, points: newPoints }
+    })
+  }
 
-    const newPoints = [...editingPoints.points]
-    newPoints[pointIndex] = newPosition
-
-    setEditingPoints({ ...editingPoints, points: newPoints })
+  const replaceEditingPoints = (points: Point[]) => {
+    setEditingPoints((prev) => (prev ? { ...prev, points } : prev))
   }
 
   const applyEditedPoints = () => {
@@ -496,6 +522,14 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
     setEditingPoints(null)
     setSelectedPointIndex(null)
     setEditTool('select')
+    setPointConstraint(null)
+  }
+
+  const cancelPointEditing = () => {
+    setEditingPoints(null)
+    setSelectedPointIndex(null)
+    setEditTool('select')
+    setPointConstraint(null)
   }
 
   const createShapeSection = (center: Point) => {
@@ -1198,6 +1232,20 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
             event.stopPropagation()
             setSelectedPointIndex(index)
 
+            const snapshot = editingPointsRef.current
+            const dragBounds = snapshot ? calculateBounds(snapshot.points) : null
+            const dragCenter = dragBounds
+              ? {
+                  x: (dragBounds.minX + dragBounds.maxX) / 2,
+                  y: (dragBounds.minY + dragBounds.maxY) / 2
+                }
+              : null
+            const averageRadius =
+              snapshot && dragCenter && snapshot.points.length > 0
+                ? snapshot.points.reduce((sum, pt) => sum + Math.hypot(pt.x - dragCenter.x, pt.y - dragCenter.y), 0) /
+                  snapshot.points.length
+                : null
+
             const onMouseMove = (moveEvent: MouseEvent) => {
               const svg = svgRef.current
               if (!svg) return
@@ -1207,7 +1255,40 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
               pt.y = moveEvent.clientY
               const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
 
-              updatePointPosition(index, { x: svgP.x, y: svgP.y })
+              let nextPoint: Point = { x: svgP.x, y: svgP.y }
+              const constraint = pointConstraintRef.current
+
+              if (constraint) {
+                nextPoint = projectPointToConstraint(nextPoint, constraint)
+              } else if (moveEvent.altKey && dragCenter && averageRadius) {
+                const angle = Math.atan2(nextPoint.y - dragCenter.y, nextPoint.x - dragCenter.x) || 0
+                nextPoint = {
+                  x: dragCenter.x + averageRadius * Math.cos(angle),
+                  y: dragCenter.y + averageRadius * Math.sin(angle)
+                }
+              } else if (moveEvent.shiftKey) {
+                const latest = editingPointsRef.current
+                if (latest && latest.points.length > 1) {
+                  const prevIndex = (index - 1 + latest.points.length) % latest.points.length
+                  const nextIndex = (index + 1) % latest.points.length
+                  const anchor =
+                    prevIndex !== index && latest.points[prevIndex]
+                      ? latest.points[prevIndex]
+                      : latest.points[nextIndex]
+
+                  if (anchor) {
+                    const deltaX = Math.abs(nextPoint.x - anchor.x)
+                    const deltaY = Math.abs(nextPoint.y - anchor.y)
+                    if (deltaX > deltaY) {
+                      nextPoint = { x: nextPoint.x, y: anchor.y }
+                    } else {
+                      nextPoint = { x: anchor.x, y: nextPoint.y }
+                    }
+                  }
+                }
+              }
+
+              updatePointPosition(index, nextPoint)
             }
 
             const onMouseUp = () => {
@@ -1604,29 +1685,14 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                   )}
 
                   {editTool === 'edit-points' && editingPoints && (
-                    <Alert className='bg-teal-600/20 border-teal-600/50'>
-                      <AlertDescription className='text-xs text-black'>
-                        <strong>Chế Độ Sửa Điểm</strong>
-                        <br />
-                        Kéo các điểm điều khiển để định hình lại đa giác.
-                        <br />
-                        <Button onClick={applyEditedPoints} size='sm' className='mt-2 w-full bg-teal-600'>
-                          Áp Dụng Thay Đổi
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            setEditingPoints(null)
-                            setSelectedPointIndex(null)
-                            setEditTool('select')
-                          }}
-                          size='sm'
-                          variant='outline'
-                          className='mt-1 w-full'
-                        >
-                          Hủy
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
+                    <PointEditorPanel
+                      editingPoints={editingPoints}
+                      selectedSection={selectedSection}
+                      onUpdatePoints={replaceEditingPoints}
+                      onApplyChanges={applyEditedPoints}
+                      onCancel={cancelPointEditing}
+                      onConstraintChange={setPointConstraint}
+                    />
                   )}
 
                   {editTool === 'label' && (
