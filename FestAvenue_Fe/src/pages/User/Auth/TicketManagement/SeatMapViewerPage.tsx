@@ -12,15 +12,10 @@ import { getIdFromNameId } from '@/utils/utils'
 import type { SeatMapData } from '@/types/seat.types'
 
 interface SeatLockEvent {
-  ChartId: string
-  SeatIndex: string
-  Email: string
-  IsSeatLock: boolean
-}
-
-interface LockSeatResult {
-  StatusCode: number
-  Message: string
+  chartId: string
+  seatIndex: string
+  email: string
+  isSeatLock: boolean
 }
 
 export default function SeatMapViewerPage() {
@@ -31,7 +26,6 @@ export default function SeatMapViewerPage() {
   const { data: structure, isLoading: isLoadingStructure, error } = useExistingStructure(eventCode)
   const { data: eventData } = useEventCapacity(eventCode)
 
-  const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [seatStatuses, setSeatStatuses] = useState<Map<string, 'available' | 'occupied' | 'locked'>>(new Map())
   const connectionRef = useRef<signalR.HubConnection | null>(null)
@@ -49,7 +43,7 @@ export default function SeatMapViewerPage() {
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl(`${configBase.baseURL}/seatingcharthub`, {
+          .withUrl(`${configBase.socketURLSeatingChart}/seatingcharthub`, {
             accessTokenFactory: () => token
           })
           .configureLogging(signalR.LogLevel.Information)
@@ -60,26 +54,41 @@ export default function SeatMapViewerPage() {
         newConnection.on('SeatLocked', (response: SeatLockEvent) => {
           console.log('SeatLocked event received:', response)
 
+          // Backend returns full seatIndex (e.g., 'imported-section-1761501557268-0-R1-S1')
           setSeatStatuses((prev) => {
             const newMap = new Map(prev)
-            newMap.set(response.SeatIndex, response.IsSeatLock ? 'locked' : 'available')
+            newMap.set(response.seatIndex, response.isSeatLock ? 'locked' : 'available')
             return newMap
           })
 
           // Show toast notification
-          if (response.Email === userProfile?.email) {
-            toast.success(response.IsSeatLock ? 'Đã khóa ghế thành công' : 'Đã mở khóa ghế')
+          if (response.email === userProfile?.email) {
+            toast.success(response.isSeatLock ? 'Đã khóa ghế thành công' : 'Đã mở khóa ghế')
           } else {
-            toast.info(`Ghế ${response.SeatIndex} đã được ${response.IsSeatLock ? 'khóa' : 'mở khóa'} bởi người khác`)
+            toast.info(`Ghế ${response.seatIndex} đã được ${response.isSeatLock ? 'khóa' : 'mở khóa'} bởi người khác`)
           }
         })
 
         // Handle LockSeatResult (direct response to caller)
-        newConnection.on('LockSeatResult', (result: LockSeatResult) => {
-          console.log('LockSeatResult received:', result)
+        newConnection.on('LockSeatResult', (result: any) => {
+          console.log('LockSeatResult received:', JSON.stringify(result, null, 2))
+          console.log('Result type:', typeof result)
+          console.log('Result keys:', result ? Object.keys(result) : 'null/undefined')
 
-          if (result.StatusCode !== 200) {
-            toast.error(result.Message || 'Không thể khóa ghế')
+          if (!result) {
+            toast.error('Không nhận được phản hồi từ server')
+            return
+          }
+
+          // Check both PascalCase and camelCase
+          const statusCode = result.StatusCode || result.statusCode
+          const message = result.Message || result.message
+
+          if (statusCode !== 200) {
+            toast.error(message || 'Không thể khóa ghế')
+            console.error('Lock seat failed:', { statusCode, message })
+          } else {
+            toast.success('Đã khóa ghế thành công')
           }
         })
 
@@ -108,7 +117,7 @@ export default function SeatMapViewerPage() {
 
           // Rejoin the seating chart group after reconnection
           try {
-            await newConnection.invoke('JoinSeatingChartGroup', { chartId: eventCode })
+            await newConnection.invoke('JoinSeatingChartGroup', eventCode)
           } catch (error) {
             console.error('Error rejoining group after reconnect:', error)
           }
@@ -117,13 +126,12 @@ export default function SeatMapViewerPage() {
         // Start connection
         await newConnection.start()
         setIsConnected(true)
-        setConnection(newConnection)
         connectionRef.current = newConnection
 
         console.log('SignalR connected successfully')
 
         // Join seating chart group
-        await newConnection.invoke('JoinSeatingChartGroup', { chartId: eventCode })
+        await newConnection.invoke('JoinSeatingChartGroup', eventCode)
         console.log('Joined seating chart group:', eventCode)
 
         toast.success('Đã kết nối đến sơ đồ chỗ ngồi')
@@ -141,7 +149,7 @@ export default function SeatMapViewerPage() {
       const conn = connectionRef.current
       if (conn) {
         conn
-          .invoke('LeaveSeatingChartGroup', { chartId: eventCode })
+          .invoke('LeaveSeatingChartGroup', eventCode)
           .then(() => {
             console.log('Left seating chart group:', eventCode)
           })
@@ -158,8 +166,11 @@ export default function SeatMapViewerPage() {
 
   // Handle seat status change (lock/unlock)
   const handleSeatStatusChange = async (seatId: string, status: 'available' | 'occupied') => {
-    if (!connection || !isConnected) {
+    const currentConnection = connectionRef.current
+
+    if (!currentConnection || currentConnection.state !== 'Connected') {
       toast.error('Chưa kết nối đến máy chủ')
+      console.log('Connection state:', currentConnection?.state)
       return
     }
 
@@ -169,11 +180,16 @@ export default function SeatMapViewerPage() {
     }
 
     try {
-      console.log('Locking seat:', { seatId, status, eventCode })
+      console.log('Locking seat:', {
+        seatId,
+        status,
+        eventCode,
+        email: userProfile.email
+      })
 
-      // Send LockSeat event to server
-      await connection.invoke('LockSeat', {
-        chartId: eventCode,
+      // Send LockSeat event to server (use full seatId as seatIndex)
+      await currentConnection.invoke('LockSeat', {
+        eventCode: eventCode,
         seatIndex: seatId,
         email: userProfile.email
       })

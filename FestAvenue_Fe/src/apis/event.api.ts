@@ -50,7 +50,9 @@ const eventApis = {
     return data?.data
   },
   getEventByEventCode: async (eventCode: string) => {
-    const data = await http.get<APIResponse<ResEventByEventCode>>(`/event/get-event-by-event-code/${eventCode}`)
+    const data = await http.get<APIResponse<ResEventByEventCode>>(
+      `/event/get-event-by-event-code?eventCode=${eventCode}`
+    )
     return data?.data
   }
 }
