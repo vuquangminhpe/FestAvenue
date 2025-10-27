@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -29,8 +29,48 @@ const templateComponents = {
 export default function TemplateEditor({ templateType, templateData, onSave, onBack }: TemplateEditorProps) {
   const [editedData, setEditedData] = useState<LandingTemplateProps>(templateData)
   const [showPreview, setShowPreview] = useState(false)
+  const [bannerSource, setBannerSource] = useState<'url' | 'upload'>(
+    templateData.bannerUrl?.startsWith('data:') ? 'upload' : 'url'
+  )
+  const [avatarSource, setAvatarSource] = useState<'url' | 'upload'>(
+    templateData.authorAvatar?.startsWith('data:') ? 'upload' : 'url'
+  )
+  const [imageSources, setImageSources] = useState<Record<string, 'url' | 'upload'>>(() => {
+    const initial: Record<string, 'url' | 'upload'> = {}
+    templateData.images.forEach((image) => {
+      initial[image.id] = image.url.startsWith('data:') ? 'upload' : 'url'
+    })
+    return initial
+  })
 
   const TemplateComponent = templateComponents[templateType]
+
+  const convertFileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result)
+        } else {
+          reject(new Error('Định dạng ảnh không hợp lệ'))
+        }
+      }
+      reader.onerror = () => reject(reader.error ?? new Error('Không thể đọc tệp ảnh'))
+      reader.readAsDataURL(file)
+    })
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>, onSuccess: (dataUrl: string) => void) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      const dataUrl = await convertFileToDataUrl(file)
+      onSuccess(dataUrl)
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   const handleSave = () => {
     onSave(editedData)
@@ -50,6 +90,7 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
       comments: []
     }
     setEditedData((prev) => ({ ...prev, images: [...prev.images, newImage] }))
+    setImageSources((prev) => ({ ...prev, [newImage.id]: 'url' }))
   }
 
   const updateImage = (index: number, field: keyof SocialMediaImage, value: any) => {
@@ -64,6 +105,14 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
       ...prev,
       images: prev.images.filter((_, i) => i !== index)
     }))
+    setImageSources((prev) => {
+      const next = { ...prev }
+      const imageId = editedData.images[index]?.id
+      if (imageId) {
+        delete next[imageId]
+      }
+      return next
+    })
   }
 
   const addSocialLink = () => {
@@ -163,12 +212,48 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
               <CardContent className='space-y-4'>
                 <div className='space-y-2'>
                   <Label htmlFor='bannerUrl'>URL Banner</Label>
-                  <Input
-                    id='bannerUrl'
-                    value={editedData.bannerUrl}
-                    onChange={(e) => updateField('bannerUrl', e.target.value)}
-                    placeholder='https://example.com/banner.jpg'
-                  />
+                  <Tabs
+                    value={bannerSource}
+                    onValueChange={(value) => {
+                      const nextValue = value as 'url' | 'upload'
+                      setBannerSource(nextValue)
+                      if (nextValue === 'url' && editedData.bannerUrl.startsWith('data:')) {
+                        updateField('bannerUrl', '')
+                      }
+                    }}
+                    className='space-y-3'
+                  >
+                    <TabsList className='grid grid-cols-2 w-full'>
+                      <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                      <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value='url' className='m-0 space-y-2'>
+                      <Input
+                        id='bannerUrl'
+                        value={editedData.bannerUrl}
+                        onChange={(e) => {
+                          setBannerSource('url')
+                          updateField('bannerUrl', e.target.value)
+                        }}
+                        placeholder='https://example.com/banner.jpg'
+                      />
+                    </TabsContent>
+                    <TabsContent value='upload' className='m-0 space-y-2'>
+                      <Input
+                        type='file'
+                        accept='image/*'
+                        onChange={(event) =>
+                          void handleImageUpload(event, (dataUrl) => {
+                            setBannerSource('upload')
+                            updateField('bannerUrl', dataUrl)
+                          })
+                        }
+                      />
+                      <p className='text-xs text-gray-500'>
+                        Ảnh sẽ được lưu dưới dạng dữ liệu base64 để hiển thị ngay.
+                      </p>
+                    </TabsContent>
+                  </Tabs>
                 </div>
                 <div className='space-y-2'>
                   <Label htmlFor='title'>Tiêu đề</Label>
@@ -218,12 +303,46 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                 </div>
                 <div className='space-y-2'>
                   <Label htmlFor='authorAvatar'>URL Avatar</Label>
-                  <Input
-                    id='authorAvatar'
-                    value={editedData.authorAvatar || ''}
-                    onChange={(e) => updateField('authorAvatar', e.target.value)}
-                    placeholder='https://example.com/avatar.jpg'
-                  />
+                  <Tabs
+                    value={avatarSource}
+                    onValueChange={(value) => {
+                      const nextValue = value as 'url' | 'upload'
+                      setAvatarSource(nextValue)
+                      if (nextValue === 'url' && editedData.authorAvatar?.startsWith('data:')) {
+                        updateField('authorAvatar', '')
+                      }
+                    }}
+                    className='space-y-3'
+                  >
+                    <TabsList className='grid grid-cols-2 w-full'>
+                      <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                      <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value='url' className='m-0 space-y-2'>
+                      <Input
+                        id='authorAvatar'
+                        value={editedData.authorAvatar || ''}
+                        onChange={(e) => {
+                          setAvatarSource('url')
+                          updateField('authorAvatar', e.target.value)
+                        }}
+                        placeholder='https://example.com/avatar.jpg'
+                      />
+                    </TabsContent>
+                    <TabsContent value='upload' className='m-0 space-y-2'>
+                      <Input
+                        type='file'
+                        accept='image/*'
+                        onChange={(event) =>
+                          void handleImageUpload(event, (dataUrl) => {
+                            setAvatarSource('upload')
+                            updateField('authorAvatar', dataUrl)
+                          })
+                        }
+                      />
+                      <p className='text-xs text-gray-500'>Ảnh tải lên sẽ được hiển thị ngay mà không cần URL.</p>
+                    </TabsContent>
+                  </Tabs>
                 </div>
                 <div className='space-y-2'>
                   <Label htmlFor='eventDate'>Ngày sự kiện</Label>
@@ -300,11 +419,45 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                     <CardContent className='space-y-4'>
                       <div className='space-y-2'>
                         <Label>URL hình ảnh</Label>
-                        <Input
-                          value={image.url}
-                          onChange={(e) => updateImage(index, 'url', e.target.value)}
-                          placeholder='https://example.com/image.jpg'
-                        />
+                        <Tabs
+                          value={imageSources[image.id] ?? 'url'}
+                          onValueChange={(value) => {
+                            const nextValue = value as 'url' | 'upload'
+                            setImageSources((prev) => ({ ...prev, [image.id]: nextValue }))
+                            if (nextValue === 'url' && image.url.startsWith('data:')) {
+                              updateImage(index, 'url', '')
+                            }
+                          }}
+                          className='space-y-3'
+                        >
+                          <TabsList className='grid grid-cols-2 w-full'>
+                            <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                            <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value='url' className='m-0 space-y-2'>
+                            <Input
+                              value={image.url}
+                              onChange={(e) => {
+                                setImageSources((prev) => ({ ...prev, [image.id]: 'url' }))
+                                updateImage(index, 'url', e.target.value)
+                              }}
+                              placeholder='https://example.com/image.jpg'
+                            />
+                          </TabsContent>
+                          <TabsContent value='upload' className='m-0 space-y-2'>
+                            <Input
+                              type='file'
+                              accept='image/*'
+                              onChange={(event) =>
+                                void handleImageUpload(event, (dataUrl) => {
+                                  setImageSources((prev) => ({ ...prev, [image.id]: 'upload' }))
+                                  updateImage(index, 'url', dataUrl)
+                                })
+                              }
+                            />
+                            <p className='text-xs text-gray-500'>Ảnh tải lên sẽ thay thế URL hiện tại.</p>
+                          </TabsContent>
+                        </Tabs>
                       </div>
                       <div className='space-y-2'>
                         <Label>Mô tả</Label>
