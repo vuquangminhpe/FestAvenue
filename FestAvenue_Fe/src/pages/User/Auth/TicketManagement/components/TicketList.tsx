@@ -28,7 +28,7 @@ export default function TicketList({ tickets, onUpdate, onDelete }: TicketListPr
     return (
       <div className='flex flex-col items-center justify-center py-16 text-gray-400'>
         <p className='text-lg mb-2'>Chưa có vé nào</p>
-        <p className='text-sm'>Nhấn "Add ticket" để tạo vé mới</p>
+        <p className='text-sm'>Nhấn "Tạo mới vé" để tạo vé mới</p>
       </div>
     )
   }
@@ -113,7 +113,7 @@ export default function TicketList({ tickets, onUpdate, onDelete }: TicketListPr
                     onClick={() => onUpdate(ticket)}
                     className='w-full hover:bg-cyan-50 hover:text-cyan-600 hover:border-cyan-300 transition-colors'
                   >
-                    Update
+                    Cập nhật vé
                   </Button>
                   <Button
                     size='sm'
@@ -121,7 +121,7 @@ export default function TicketList({ tickets, onUpdate, onDelete }: TicketListPr
                     onClick={() => onDelete(ticket.id)}
                     className='w-full hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors'
                   >
-                    Delete
+                    Xóa vé
                   </Button>
                 </div>
               </TableCell>

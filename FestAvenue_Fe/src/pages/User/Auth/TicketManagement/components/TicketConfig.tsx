@@ -148,7 +148,7 @@ export default function TicketConfig() {
           className='bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-6'
         >
           <Plus className='w-5 h-5 mr-2' />
-          Add ticket
+          Tạo mới vé
         </Button>
         <Button variant='outline' onClick={handleClearFilters} className='hover:bg-gray-50'>
           Lọc
@@ -198,7 +198,12 @@ export default function TicketConfig() {
       {/* Modals */}
       <AddTicketModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} eventCode={eventCode} />
 
-      <UpdateTicketModal isOpen={isUpdateModalOpen} ticket={selectedTicket} onClose={handleCloseUpdateModal} />
+      <UpdateTicketModal
+        isOpen={isUpdateModalOpen}
+        ticket={selectedTicket}
+        eventCode={eventCode}
+        onClose={handleCloseUpdateModal}
+      />
 
       {/* Delete Confirmation Dialog */}
       <DeleteConfirmDialog

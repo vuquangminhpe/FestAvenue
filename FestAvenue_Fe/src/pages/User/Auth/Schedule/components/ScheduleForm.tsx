@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
 import ColorPicker from './ColorPicker'
 import SubTaskForm from './SubTaskForm'
-import { DateTimePicker } from './DateTimePicker'
+import { DateTimePicker } from '../../../../../components/ui/DateTimePicker'
 import {
   validateScheduleTitle,
   validateScheduleDescription,

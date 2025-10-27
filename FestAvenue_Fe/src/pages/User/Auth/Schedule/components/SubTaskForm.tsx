@@ -26,7 +26,7 @@ import type { SubTask, DailyTimeSlot } from '../../../../../types/schedule.types
 import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useGetUsersInEvent } from '@/pages/User/Process/UserManagementInEvents/hooks/useUserManagement'
-import { DateTimePicker } from './DateTimePicker'
+import { DateTimePicker } from '../../../../../components/ui/DateTimePicker'
 
 interface SubTaskFormProps {
   eventCode: string
@@ -533,7 +533,13 @@ export default function SubTaskForm({
                                   updateSubTask(index, 'endDate', date.toISOString())
                                 }
                               }}
-                              minDate={subTask.startDate ? new Date(subTask.startDate) : (parentScheduleStart ? new Date(parentScheduleStart) : undefined)}
+                              minDate={
+                                subTask.startDate
+                                  ? new Date(subTask.startDate)
+                                  : parentScheduleStart
+                                  ? new Date(parentScheduleStart)
+                                  : undefined
+                              }
                               maxDate={parentScheduleEnd ? new Date(parentScheduleEnd) : undefined}
                               variant='end'
                               placeholder='Chọn ngày kết thúc'
