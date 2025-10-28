@@ -98,7 +98,6 @@ export default function ScheduleForm({
       if (end < now) {
         newErrors.endDate = 'Ngày kết thúc không thể trong quá khứ'
       }
-      console.log(event)
 
       // Validate against event lifecycle if available
       if (event) {

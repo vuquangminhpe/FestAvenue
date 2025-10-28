@@ -122,10 +122,10 @@ export default function PointEditorPanel({
           <Button
             size='sm'
             variant='ghost'
-            className='col-span-2 text-[11px] text-gray-600 hover:text-gray-900 hover:bg-white/40'
+            className='col-span-2 text-[11px] rounded-xl p-1 text-gray-600 hover:text-gray-900 hover:bg-white/40'
             onClick={clearConstraint}
           >
-            Thả tự do (tắt ràng buộc kéo thả)
+            Thả tự do
           </Button>
         </div>
       </AlertDescription>

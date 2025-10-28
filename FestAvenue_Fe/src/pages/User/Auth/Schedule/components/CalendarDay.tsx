@@ -40,7 +40,6 @@ export default function CalendarDay({
   const hasSchedules = schedules.length > 0
   const hasMoreThanTwo = schedules.length > 2
   const isActiveDay = isToday(date)
-  console.log(lifecycleInfo)
 
   // Check if date is within event lifecycle
   const isWithinLifecycle = () => {
@@ -61,7 +60,6 @@ export default function CalendarDay({
   }
 
   const canDragToThisDay = isWithinLifecycle()
-  console.log(canDragToThisDay)
 
   // Determine notification status for this day
   const getNotificationStatus = (): 'upcoming' | 'overdue' | 'none' => {
