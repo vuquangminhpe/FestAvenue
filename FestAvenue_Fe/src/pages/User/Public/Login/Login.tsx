@@ -44,10 +44,10 @@ const Login = () => {
       saveAccessTokenToLS(data?.data?.accessToken)
       setUserStore((data?.data as any)?.user)
       navigate(path.home)
-      toast.success(`${data?.message}` || 'Đăng nhập thành công')
+      toast.success('Đăng nhập thành công')
     },
-    onError: (error) => {
-      toast.error(`${error?.message}` || 'Sai tài khoản hoặc mật khẩu')
+    onError: () => {
+      toast.error('Bạn đã nhập sai tài khoản hoặc mật khẩu, vui lòng kiểm tra lại !!!')
     }
   })
 
@@ -57,13 +57,13 @@ const Login = () => {
     if (!formData.email) {
       newErrors.email = 'Email is required'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
+      newErrors.email = 'Email không được bỏ trống'
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = 'Mật khẩu là bắt buộc'
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters'
+      newErrors.password = 'Mật khẩu phải lớn hơn 6 ký tự'
     }
 
     setErrors(newErrors)
