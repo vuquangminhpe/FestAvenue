@@ -128,7 +128,7 @@ export default function StaffEventManagement() {
   return (
     <div className='w-full'>
       <Helmet>
-        <title>Quản lý sự kiện - Staff Panel</title>
+        <title>Quản lý sự kiện</title>
       </Helmet>
 
       {/* Header */}

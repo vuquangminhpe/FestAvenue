@@ -16,28 +16,28 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
 
   const menuItems = [
     {
-      label: 'Messages',
+      label: 'Tin nhắn',
       icon: MessageCircle,
       path: path.staff.messages,
       description: 'Quản lý tin nhắn và group chat'
     },
     {
-      label: 'Event Management',
+      label: 'Quản lí phê duyệt sự kiện',
       icon: Calendar,
       path: path.staff.events,
       description: 'Quản lý và phê duyệt sự kiện'
     },
     {
-      label: 'Users',
+      label: 'Quản lí người dùng',
       icon: Users,
       path: path.staff.users,
-      description: 'Quản lý người dùng'
+      description: ''
     },
     {
-      label: 'Settings',
+      label: 'Cài đặt hệ thống',
       icon: Settings,
       path: path.staff.settings,
-      description: 'Cài đặt hệ thống'
+      description: ''
     }
   ]
 
@@ -54,7 +54,7 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
       <div className={`bg-white shadow-lg transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-16'} flex flex-col`}>
         {/* Header */}
         <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-          {sidebarOpen && <h1 className='text-xl font-bold text-gray-800'>Staff Panel</h1>}
+          {sidebarOpen && <h1 className='text-xl font-bold text-gray-800'></h1>}
           <Button variant='ghost' size='sm' onClick={() => setSidebarOpen(!sidebarOpen)} className='hover:bg-gray-100'>
             {sidebarOpen ? <X className='w-4 h-4' /> : <Menu className='w-4 h-4' />}
           </Button>
@@ -109,9 +109,9 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
         {/* Top Bar */}
         <div className='bg-white shadow-sm border-b border-gray-200 p-4'>
           <div className='flex items-center justify-between'>
-            <h2 className='text-lg font-semibold text-gray-800'>Staff Dashboard</h2>
+            <h2 className='text-lg font-semibold text-gray-800'>Bảng điều khiển nhân viên</h2>
             <div className='flex items-center gap-2'>
-              <span className='text-sm text-gray-500'>Staff Mode</span>
+              <span className='text-sm text-gray-500'></span>
               <div className='w-2 h-2 bg-green-500 rounded-full'></div>
             </div>
           </div>
