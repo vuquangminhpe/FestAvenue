@@ -16,28 +16,28 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   const menuItems = [
     {
-      label: 'Accounts',
+      label: 'Tài khoản',
       icon: UserCog,
       path: path.admin.process.accounts,
       description: 'Quản lý tài khoản'
     },
     {
-      label: 'Analytics',
+      label: 'Phân tích',
       icon: TrendingUp,
       path: path.admin.process.analytics,
       description: 'Phân tích dữ liệu'
     },
     {
-      label: 'Category',
+      label: 'Thể loại',
       icon: BarChart3,
       path: path.admin.process.category,
       description: 'Thể loại sự kiện'
     },
     {
-      label: 'Package',
+      label: 'Gói sử dụng trong sự kiện',
       icon: Settings,
       path: path.admin.process.package,
-      description: 'Gói tiền sử dụng'
+      description: ''
     }
   ]
 
@@ -59,7 +59,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           {sidebarOpen && (
             <div className='flex items-center gap-2'>
               <Shield className='w-6 h-6 text-blue-400' />
-              <h1 className='text-xl font-bold'>Admin Panel</h1>
+              <h1 className='text-xl font-bold'>Bảng quản trị</h1>
             </div>
           )}
           <Button
@@ -121,9 +121,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         {/* Top Bar */}
         <div className='bg-white shadow-sm border-b border-gray-200 p-4'>
           <div className='flex items-center justify-between'>
-            <h2 className='text-lg font-semibold text-gray-800'>Admin Dashboard</h2>
+            <h2 className='text-lg font-semibold text-gray-800'>Trang dành cho quản trị viên</h2>
             <div className='flex items-center gap-2'>
-              <span className='text-sm text-gray-500'>Administrator</span>
+              <span className='text-sm text-gray-500'>Quản trị viên</span>
               <div className='w-2 h-2 bg-red-500 rounded-full'></div>
             </div>
           </div>
