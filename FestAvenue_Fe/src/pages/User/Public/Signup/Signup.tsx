@@ -95,35 +95,35 @@ const SignUp = () => {
     const newErrors: FormErrors = {}
 
     if (!formData.email) {
-      newErrors.email = 'Email is required'
+      newErrors.email = 'Email là bắt buộc'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
+      newErrors.email = 'Vui lòng hãy nhập email'
     }
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = 'Tên is required'
+      newErrors.firstName = 'Tên là bắt buộc'
     } else if (formData.firstName.trim().length < 2) {
-      newErrors.firstName = 'Tên must be at least 2 characters'
+      newErrors.firstName = 'Tên của bạn hãy nhập lớn hơn 2 ký tự'
     }
 
     if (!formData.lastName.trim()) {
       newErrors.lastName = 'Họ là bắt buộc'
     } else if (formData.lastName.trim().length < 2) {
-      newErrors.lastName = 'Last name must be at least 2 characters'
+      newErrors.lastName = 'Họ của bạn hãy nhập lớn hơn 2 ký tự'
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required'
+      newErrors.phone = 'Số điện thoại là bắt buộc'
     } else if (!/^[0-9]{9,11}$/.test(formData.phone)) {
-      newErrors.phone = 'Please enter a valid phone number'
+      newErrors.phone = 'Vui lòng hãy nhập số điện thoại của bạn'
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = 'Mật khẩu là bắt buộc'
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
+      newErrors.password = 'Mật khẩu phải lớn hơn 8 ký tự'
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number'
+      newErrors.password = 'Mật khẩu phải có 1 chữ hoa, 1 chữ thường, 1 số'
     }
 
     if (!formData.acceptTerms) {
