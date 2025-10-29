@@ -594,12 +594,22 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
 
     const g = svg.append('g').attr('class', 'main-group')
 
+    // Enable zoom and pan
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.3, 5])
+      .on('zoom', (event) => {
+        g.attr('transform', event.transform)
+      })
+
+    svg.call(zoom as any)
+
     if (mode === 'edit') {
       if (editTool === 'draw' && isDrawing) {
         svg.on('click', handleSvgClick)
       } else if (editTool === 'shape') {
         svg.on('click', (event) => {
-          const [x, y] = d3.pointer(event)
+          const [x, y] = d3.pointer(event, g.node())
           createShapeSection({ x, y })
         })
       } else if (editTool === 'split' && selectedSection) {
