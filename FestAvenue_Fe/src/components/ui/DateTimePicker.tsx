@@ -32,6 +32,8 @@ export function DateTimePicker({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value)
   const [hours, setHours] = useState(value ? value.getHours().toString().padStart(2, '0') : '08')
   const [minutes, setMinutes] = useState(value ? value.getMinutes().toString().padStart(2, '0') : '00')
+  const [hoursInput, setHoursInput] = useState(hours)
+  const [minutesInput, setMinutesInput] = useState(minutes)
 
   const variantConfig = {
     start: {
@@ -67,8 +69,12 @@ export function DateTimePicker({
   useEffect(() => {
     if (value) {
       setSelectedDate(value)
-      setHours(value.getHours().toString().padStart(2, '0'))
-      setMinutes(value.getMinutes().toString().padStart(2, '0'))
+      const h = value.getHours().toString().padStart(2, '0')
+      const m = value.getMinutes().toString().padStart(2, '0')
+      setHours(h)
+      setMinutes(m)
+      setHoursInput(h)
+      setMinutesInput(m)
     }
   }, [value])
 
@@ -85,6 +91,8 @@ export function DateTimePicker({
   const handleTimeChange = (newHours: string, newMinutes: string) => {
     setHours(newHours)
     setMinutes(newMinutes)
+    setHoursInput(newHours)
+    setMinutesInput(newMinutes)
 
     if (selectedDate) {
       const newDate = new Date(selectedDate)
@@ -93,10 +101,38 @@ export function DateTimePicker({
     }
   }
 
+  const handleHoursInputChange = (value: string) => {
+    // Allow empty or numeric input
+    if (value === '' || /^\d{0,2}$/.test(value)) {
+      setHoursInput(value)
+    }
+  }
+
+  const handleMinutesInputChange = (value: string) => {
+    // Allow empty or numeric input
+    if (value === '' || /^\d{0,2}$/.test(value)) {
+      setMinutesInput(value)
+    }
+  }
+
+  const handleHoursBlur = () => {
+    const val = parseInt(hoursInput) || 0
+    const validHours = Math.max(0, Math.min(23, val)).toString().padStart(2, '0')
+    handleTimeChange(validHours, minutes)
+  }
+
+  const handleMinutesBlur = () => {
+    const val = parseInt(minutesInput) || 0
+    const validMinutes = Math.max(0, Math.min(59, val)).toString().padStart(2, '0')
+    handleTimeChange(hours, validMinutes)
+  }
+
   const handleClear = () => {
     setSelectedDate(undefined)
     setHours('08')
     setMinutes('00')
+    setHoursInput('08')
+    setMinutesInput('00')
     onChange?.(undefined)
   }
 
@@ -174,30 +210,26 @@ export function DateTimePicker({
             <div className='flex gap-1 items-center '>
               <label className='text-xs text-gray-500 mb-1 block'>Giờ</label>
               <Input
-                type='number'
-                min='0'
-                max='23'
-                value={hours}
-                onChange={(e) => {
-                  const val = Math.max(0, Math.min(23, parseInt(e.target.value) || 0))
-                  handleTimeChange(val.toString().padStart(2, '0'), minutes)
-                }}
-                className='text-center font-bold text-lg h-8 p-0'
+                type='text'
+                inputMode='numeric'
+                value={hoursInput}
+                onChange={(e) => handleHoursInputChange(e.target.value)}
+                onBlur={handleHoursBlur}
+                placeholder='00'
+                className='text-center font-bold text-lg h-8 p-0 w-12'
               />
             </div>
             {/* Minutes */}
             <div className='flex gap-1 items-center'>
               <label className='text-xs text-gray-500 mb-1 block'>Phút</label>
               <Input
-                type='number'
-                min='0'
-                max='59'
-                value={minutes}
-                onChange={(e) => {
-                  const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
-                  handleTimeChange(hours, val.toString().padStart(2, '0'))
-                }}
-                className='text-center font-bold text-lg h-8 p-0'
+                type='text'
+                inputMode='numeric'
+                value={minutesInput}
+                onChange={(e) => handleMinutesInputChange(e.target.value)}
+                onBlur={handleMinutesBlur}
+                placeholder='00'
+                className='text-center font-bold text-lg h-8 p-0 w-12'
               />
             </div>
           </div>

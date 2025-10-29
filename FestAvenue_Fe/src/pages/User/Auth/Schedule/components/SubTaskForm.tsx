@@ -14,7 +14,8 @@ import {
   Copy,
   Loader2,
   UserPlus,
-  Check
+  Check,
+  AlertCircle
 } from 'lucide-react'
 import { Badge } from '../../../../../components/ui/badge'
 import { Button } from '../../../../../components/ui/button'
@@ -22,6 +23,7 @@ import { Input } from '../../../../../components/ui/input'
 import { Label } from '../../../../../components/ui/label'
 import { Textarea } from '../../../../../components/ui/textarea'
 import { Checkbox } from '../../../../../components/ui/checkbox'
+import { Alert, AlertDescription } from '../../../../../components/ui/alert'
 import type { SubTask, DailyTimeSlot } from '../../../../../types/schedule.types'
 import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -34,6 +36,7 @@ interface SubTaskFormProps {
   onChange: (subTasks: Omit<SubTask, 'id' | 'createdAt' | 'updatedAt' | 'completedAt'>[]) => void
   parentScheduleStart: string // ISO date string from parent schedule
   parentScheduleEnd: string // ISO date string from parent schedule
+  errors?: Record<string, string> // Validation errors from parent form
 }
 
 type FilterStatus = 'all' | 'completed' | 'pending'
@@ -43,7 +46,8 @@ export default function SubTaskForm({
   subTasks,
   onChange,
   parentScheduleStart,
-  parentScheduleEnd
+  parentScheduleEnd,
+  errors = {}
 }: SubTaskFormProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -467,25 +471,45 @@ export default function SubTaskForm({
                 const multiDay = isMultiDay(subTask)
                 const timeSlotsExpanded = expandedTimeSlots[index]
 
+                // Get errors for this subtask
+                const titleError = errors[`subTask_${index}_title`]
+                const dateError = errors[`subTask_${index}_date`]
+                const timeSlotError = errors[`subTask_${index}_timeSlot`]
+                const hasError = titleError || dateError || timeSlotError
+
                 return (
                   <div
                     key={index}
                     className={`border rounded-lg p-3 space-y-3 transition-all duration-200 hover:shadow-md ${
-                      subTask.isCompleted ? 'bg-green-50 border-green-200' : 'border-gray-200 bg-white'
+                      subTask.isCompleted ? 'bg-green-50 border-green-200' : hasError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'
                     }`}
                     style={{
                       animation: `slideInFromLeft 0.3s ease-out ${idx * 50}ms both`
                     }}
                   >
+                    {/* Error Summary Banner */}
+                    {hasError && (
+                      <Alert className='bg-red-50 border-red-200'>
+                        <AlertCircle className='w-4 h-4 text-red-600' />
+                        <AlertDescription className='text-sm text-red-800'>
+                          <strong>Subtask #{index + 1} có lỗi:</strong>
+                          <ul className='mt-1 ml-4 list-disc'>
+                            {titleError && <li>{titleError}</li>}
+                            {dateError && <li>{dateError}</li>}
+                            {timeSlotError && <li>{timeSlotError}</li>}
+                          </ul>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
                     <div className='flex items-start justify-between gap-2'>
                       <div className='flex-1 space-y-2'>
                         {/* Title */}
                         <Input
                           value={subTask.title}
                           onChange={(e) => updateSubTask(index, 'title', e.target.value)}
-                          placeholder='Tiêu đề subtask'
-                          required
-                          className='h-9 transition-all duration-200 focus:ring-2 focus:ring-blue-500'
+                          placeholder='Tiêu đề subtask (tùy chọn)'
+                          className={`h-9 transition-all duration-200 focus:ring-2 ${titleError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
                         />
 
                         {/* Description */}
@@ -517,6 +541,7 @@ export default function SubTaskForm({
                               maxDate={parentScheduleEnd ? new Date(parentScheduleEnd) : undefined}
                               variant='start'
                               placeholder='Chọn ngày bắt đầu'
+                              error={!!dateError}
                             />
                           </div>
                           <div className='space-y-1.5'>
@@ -528,6 +553,7 @@ export default function SubTaskForm({
                             </Label>
                             <DateTimePicker
                               value={subTask.endDate ? new Date(subTask.endDate) : undefined}
+                              error={!!dateError}
                               onChange={(date) => {
                                 if (date) {
                                   updateSubTask(index, 'endDate', date.toISOString())
@@ -549,16 +575,19 @@ export default function SubTaskForm({
 
                         {/* Daily Time Slots for Multi-day Tasks */}
                         {multiDay && subTask.dailyTimeSlots && subTask.dailyTimeSlots.length > 0 && (
-                          <div className='space-y-2 border-t pt-2'>
+                          <div className={`space-y-2 border-t pt-2 ${timeSlotError ? 'border-red-300' : ''}`}>
                             <div className='flex items-center justify-between'>
                               <button
                                 type='button'
                                 onClick={() => toggleTimeSlots(index)}
-                                className='text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1'
+                                className={`text-xs font-medium flex items-center gap-1 ${
+                                  timeSlotError ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700'
+                                }`}
                               >
                                 <Clock className='w-3 h-3' />
                                 Thời gian theo ngày ({subTask.dailyTimeSlots.length} ngày)
-                                {timeSlotsExpanded ? (
+                                {timeSlotError && <AlertCircle className='w-3 h-3 animate-pulse' />}
+                                {timeSlotsExpanded || timeSlotError ? (
                                   <ChevronUp className='w-3 h-3' />
                                 ) : (
                                   <ChevronDown className='w-3 h-3' />
@@ -579,8 +608,12 @@ export default function SubTaskForm({
                               )}
                             </div>
 
-                            {timeSlotsExpanded && (
-                              <div className='space-y-2 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-3 rounded-lg border border-blue-200 shadow-inner max-h-64 overflow-y-auto scrollbar-thin'>
+                            {(timeSlotsExpanded || timeSlotError) && (
+                              <div className={`space-y-2 bg-gradient-to-br p-3 rounded-lg shadow-inner max-h-64 overflow-y-auto scrollbar-thin ${
+                                timeSlotError
+                                  ? 'from-red-50 via-pink-50 to-orange-50 border border-red-300'
+                                  : 'from-blue-50 via-indigo-50 to-purple-50 border border-blue-200'
+                              }`}>
                                 {subTask.dailyTimeSlots.map((slot, slotIdx) => (
                                   <div
                                     key={slot.date}

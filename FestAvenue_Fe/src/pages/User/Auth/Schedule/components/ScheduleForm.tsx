@@ -210,6 +210,7 @@ export default function ScheduleForm({
 
     // Validate form
     if (!validateForm()) {
+      console.log('❌ Validation failed with errors:', errors)
       // Scroll to first error
       const firstError = Object.keys(errors)[0]
       const element = document.getElementById(firstError)
@@ -222,11 +223,14 @@ export default function ScheduleForm({
       ...formData,
       title: sanitizeTitle(formData.title),
       description: sanitizeDescription(formData.description),
-      subTasks: formData.subTasks.map((st) => ({
-        ...st,
-        title: sanitizeTitle(st.title),
-        description: sanitizeDescription(st.description)
-      }))
+      // Filter out empty subtasks (no title and no meaningful data)
+      subTasks: formData.subTasks
+        .filter((st) => st.title.trim().length > 0) // Only keep subtasks with title
+        .map((st) => ({
+          ...st,
+          title: sanitizeTitle(st.title),
+          description: sanitizeDescription(st.description)
+        }))
     }
 
     try {
@@ -443,6 +447,7 @@ export default function ScheduleForm({
                 formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString()
               }
               parentScheduleEnd={formData.endDate ? new Date(formData.endDate).toISOString() : new Date().toISOString()}
+              errors={errors}
             />
           </div>
 
@@ -451,9 +456,7 @@ export default function ScheduleForm({
             <Button type='button' variant='outline' onClick={onClose}>
               Hủy
             </Button>
-            <Button type='submit' disabled={isSubmitting || isLoadingEvent}>
-              {isSubmitting ? 'Đang lưu...' : schedule ? 'Cập nhật' : 'Tạo mới'}
-            </Button>
+            <Button type='submit'>{isSubmitting ? 'Đang lưu...' : schedule ? 'Cập nhật' : 'Tạo mới'}</Button>
           </div>
         </form>
       </div>

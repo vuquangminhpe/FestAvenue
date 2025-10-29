@@ -200,6 +200,43 @@ export default function ScheduleManagement() {
 
     // Update schedule with new dates
     try {
+      // Update subtasks dates as well to keep them in sync
+      const updatedSubTasks = schedule.subTasks.map((st) => {
+        if (!st.startDate || !st.endDate) {
+          return {
+            title: st.title,
+            description: st.description,
+            isCompleted: st.isCompleted,
+            assigneeId: st.assigneeId,
+            assigneeName: st.assigneeName,
+            startDate: st.startDate,
+            endDate: st.endDate,
+            dailyTimeSlots: st.dailyTimeSlots
+          }
+        }
+
+        // Apply the same date shift to subtask dates
+        const subTaskOldStart = new Date(st.startDate)
+        const subTaskOldEnd = new Date(st.endDate)
+
+        const subTaskNewStart = new Date(subTaskOldStart)
+        subTaskNewStart.setDate(subTaskNewStart.getDate() + diffDays)
+
+        const subTaskNewEnd = new Date(subTaskOldEnd)
+        subTaskNewEnd.setDate(subTaskNewEnd.getDate() + diffDays)
+
+        return {
+          title: st.title,
+          description: st.description,
+          isCompleted: st.isCompleted,
+          assigneeId: st.assigneeId,
+          assigneeName: st.assigneeName,
+          startDate: subTaskNewStart.toISOString(),
+          endDate: subTaskNewEnd.toISOString(),
+          dailyTimeSlots: st.dailyTimeSlots
+        }
+      })
+
       await updateScheduleMutation.mutateAsync({
         scheduleId,
         eventCode,
@@ -209,16 +246,7 @@ export default function ScheduleManagement() {
           startDate: newStart.toISOString(),
           endDate: newEnd.toISOString(),
           color: schedule.color,
-          subTasks: schedule.subTasks.map((st) => ({
-            title: st.title,
-            description: st.description,
-            isCompleted: st.isCompleted,
-            assigneeId: st.assigneeId,
-            assigneeName: st.assigneeName,
-            startDate: st.startDate,
-            endDate: st.endDate,
-            dailyTimeSlots: st.dailyTimeSlots
-          }))
+          subTasks: updatedSubTasks
         }
       })
     } catch (error) {
