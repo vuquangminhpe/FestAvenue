@@ -5,12 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useWatch, type UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
 import { visibilityOptions } from '../constants'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { CalendarIcon, AlertCircle } from 'lucide-react'
-import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { DateTimePicker } from '@/components/ui/DateTimePicker'
+import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -173,46 +169,23 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Bắt đầu vòng đời <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          // Set time to current time
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                          // Trigger validation for dependent fields
-                          setTimeout(() => {
-                            form.trigger(['endEventLifecycleTime', 'startTicketSaleTime'])
-                          }, 0)
-                        }
-                      }}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                        // Trigger validation for dependent fields
+                        setTimeout(() => {
+                          form.trigger(['endEventLifecycleTime', 'startTicketSaleTime'])
+                        }, 0)
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ bắt đầu'
+                    minDate={new Date()}
+                    variant='start'
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -226,54 +199,29 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Kết thúc vòng đời <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                        disabled={!lifecycleStart}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                          // Trigger validation for dependent fields
-                          setTimeout(() => {
-                            form.trigger([
-                              'startTicketSaleTime',
-                              'endTicketSaleTime',
-                              'startTimeEventTime',
-                              'endTimeEventTime'
-                            ])
-                          }, 0)
-                        }
-                      }}
-                      disabled={(date) => {
-                        const startDate = form.getValues('startEventLifecycleTime')
-                        return !startDate || date < new Date(startDate)
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                        // Trigger validation for dependent fields
+                        setTimeout(() => {
+                          form.trigger([
+                            'startTicketSaleTime',
+                            'endTicketSaleTime',
+                            'startTimeEventTime',
+                            'endTimeEventTime'
+                          ])
+                        }, 0)
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ kết thúc'
+                    minDate={lifecycleStart ? new Date(lifecycleStart) : undefined}
+                    disabled={!lifecycleStart}
+                    variant='end'
+                  />
+                </FormControl>
                 <FormDescription className='text-xs'>Phải sau thời điểm bắt đầu vòng đời</FormDescription>
                 <FormMessage />
               </FormItem>
@@ -322,55 +270,25 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Bắt đầu bán vé <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                        disabled={!isLifecycleComplete}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                          // Trigger validation for dependent fields
-                          setTimeout(() => {
-                            form.trigger(['endTicketSaleTime', 'startTimeEventTime'])
-                          }, 0)
-                        }
-                      }}
-                      disabled={(date) => {
-                        const startLifecycle = form.getValues('startEventLifecycleTime')
-                        const endLifecycle = form.getValues('endEventLifecycleTime')
-                        return (
-                          !startLifecycle ||
-                          !endLifecycle ||
-                          date < new Date(startLifecycle) ||
-                          date > new Date(endLifecycle)
-                        )
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                        // Trigger validation for dependent fields
+                        setTimeout(() => {
+                          form.trigger(['endTicketSaleTime', 'startTimeEventTime'])
+                        }, 0)
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ bắt đầu bán vé'
+                    minDate={lifecycleStart ? new Date(lifecycleStart) : undefined}
+                    maxDate={lifecycleEnd ? new Date(lifecycleEnd) : undefined}
+                    disabled={!isLifecycleComplete}
+                    variant='start'
+                  />
+                </FormControl>
                 <FormDescription className='text-xs'>Phải nằm trong vòng đời sự kiện</FormDescription>
                 <FormMessage />
               </FormItem>
@@ -385,52 +303,25 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Kết thúc bán vé <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                        disabled={!ticketSaleStart}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                          // Trigger validation for dependent fields
-                          setTimeout(() => {
-                            form.trigger(['startTimeEventTime', 'endTimeEventTime'])
-                          }, 0)
-                        }
-                      }}
-                      disabled={(date) => {
-                        const startTicket = form.getValues('startTicketSaleTime')
-                        const endLifecycle = form.getValues('endEventLifecycleTime')
-                        return (
-                          !startTicket || !endLifecycle || date < new Date(startTicket) || date > new Date(endLifecycle)
-                        )
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                        // Trigger validation for dependent fields
+                        setTimeout(() => {
+                          form.trigger(['startTimeEventTime', 'endTimeEventTime'])
+                        }, 0)
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ kết thúc bán vé'
+                    minDate={ticketSaleStart ? new Date(ticketSaleStart) : undefined}
+                    maxDate={lifecycleEnd ? new Date(lifecycleEnd) : undefined}
+                    disabled={!ticketSaleStart}
+                    variant='end'
+                  />
+                </FormControl>
                 <FormDescription className='text-xs'>
                   Phải sau thời điểm bắt đầu bán vé và trong vòng đời
                 </FormDescription>
@@ -481,52 +372,25 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Bắt đầu sự kiện <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                        disabled={!isTicketSaleComplete}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                          // Trigger validation for dependent fields
-                          setTimeout(() => {
-                            form.trigger('endTimeEventTime')
-                          }, 0)
-                        }
-                      }}
-                      disabled={(date) => {
-                        const startTicket = form.getValues('startTicketSaleTime')
-                        const endLifecycle = form.getValues('endEventLifecycleTime')
-                        return (
-                          !startTicket || !endLifecycle || date < new Date(startTicket) || date > new Date(endLifecycle)
-                        )
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                        // Trigger validation for dependent fields
+                        setTimeout(() => {
+                          form.trigger('endTimeEventTime')
+                        }, 0)
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ bắt đầu sự kiện'
+                    minDate={ticketSaleStart ? new Date(ticketSaleStart) : undefined}
+                    maxDate={lifecycleEnd ? new Date(lifecycleEnd) : undefined}
+                    disabled={!isTicketSaleComplete}
+                    variant='start'
+                  />
+                </FormControl>
                 <FormDescription className='text-xs'>Phải sau thời điểm bắt đầu bán vé</FormDescription>
                 <FormMessage />
               </FormItem>
@@ -541,48 +405,21 @@ export function EventDetails({ form }: EventDetailsProps) {
                 <FormLabel className='text-base font-semibold text-slate-700'>
                   Kết thúc sự kiện <span className='text-red-500'>*</span>
                 </FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal bg-white border-slate-200',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                        disabled={!eventStart}
-                      >
-                        {field.value ? (
-                          format(new Date(field.value), 'PPP HH:mm', { locale: vi })
-                        ) : (
-                          <span>Chọn ngày giờ</span>
-                        )}
-                        <CalendarIcon className='ml-auto h-4 w-4 opacity-50' />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className='w-auto p-0' align='start'>
-                    <Calendar
-                      mode='single'
-                      selected={field.value ? new Date(field.value) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const now = new Date()
-                          date.setHours(now.getHours(), now.getMinutes(), 0, 0)
-                          field.onChange(date.toISOString())
-                        }
-                      }}
-                      disabled={(date) => {
-                        const startEvent = form.getValues('startTimeEventTime')
-                        const endLifecycle = form.getValues('endEventLifecycleTime')
-                        return (
-                          !startEvent || !endLifecycle || date < new Date(startEvent) || date > new Date(endLifecycle)
-                        )
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <FormControl>
+                  <DateTimePicker
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date) {
+                        field.onChange(date.toISOString())
+                      }
+                    }}
+                    placeholder='Chọn ngày và giờ kết thúc sự kiện'
+                    minDate={eventStart ? new Date(eventStart) : undefined}
+                    maxDate={lifecycleEnd ? new Date(lifecycleEnd) : undefined}
+                    disabled={!eventStart}
+                    variant='end'
+                  />
+                </FormControl>
                 <FormDescription className='text-xs'>
                   Phải sau thời điểm bắt đầu sự kiện và trong vòng đời
                 </FormDescription>

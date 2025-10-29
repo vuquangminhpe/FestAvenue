@@ -3,10 +3,10 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useNavigate, useParams } from 'react-router'
 import userApi from '@/apis/user.api'
-import eventApis from '@/apis/event.api'
+import eventApis, { type updateEventWithOrg } from '@/apis/event.api'
 import type { EventFormData } from '../types'
 import path from '@/constants/path'
-import { EventTempStatusValues } from '@/types/event.types'
+import { EventTempStatusValues, type createEvent } from '@/types/event.types'
 import { getIdFromNameId } from '@/utils/utils'
 
 interface OrganizationData {
@@ -49,7 +49,7 @@ export const useCreateEvent = () => {
 
   // Update event mutation
   const updateEventMutation = useMutation({
-    mutationFn: (data: any) => eventApis.updateEvent(data),
+    mutationFn: (data: updateEventWithOrg) => eventApis.updateEvent(data),
     onSuccess: () => {
       toast.success('Cập nhật sự kiện thành công!', {
         description: 'Sự kiện của bạn đã được cập nhật'
@@ -65,7 +65,7 @@ export const useCreateEvent = () => {
 
   // Create event mutation
   const createEventMutation = useMutation({
-    mutationFn: (data: any) => eventApis.createEvent(data),
+    mutationFn: (data: createEvent) => eventApis.createEvent(data),
     onSuccess: () => {
       toast.success('Tạo sự kiện thành công!', {
         description: 'Sự kiện của bạn đang chờ phê duyệt từ staff'
@@ -145,15 +145,32 @@ export const useCreateEvent = () => {
       })
 
       // Prepare event data
-      const eventData = {
-        ...data,
+      const eventData: createEvent = {
+        name: data.name,
+        description: data.description,
+        shortDescription: data.shortDescription,
+        categoryId: data.categoryId,
+        status: EventTempStatusValues.Draft,
+        visibility: data.visibility,
+        capacity: data.capacity,
+        startEventLifecycleTime: data.startEventLifecycleTime,
+        endEventLifecycleTime: data.endEventLifecycleTime,
+        startTicketSaleTime: data.startTicketSaleTime,
+        endTicketSaleTime: data.endTicketSaleTime,
+        startTimeEventTime: data.startTimeEventTime,
+        endTimeEventTime: data.endTimeEventTime,
         logoUrl: uploadedUrls.logo || data.logoUrl,
         bannerUrl: uploadedUrls.banner || data.bannerUrl,
         trailerUrl: uploadedUrls.trailer || data.trailerUrl,
-        status: EventTempStatusValues.Draft,
+        website: data.website,
+        publicContactEmail: data.publicContactEmail,
+        publicContactPhone: data.publicContactPhone,
+        location: data.location,
+        hashtags: data.hashtags,
         organization: {
           name: data.name,
           description: data.description,
+          logo: '',
           website: data.website || '',
           contact: {
             email: data.organization.contact.email,
@@ -165,10 +182,11 @@ export const useCreateEvent = () => {
 
       // Create or update event
       if (isUpdateMode && eventId) {
-        await updateEventMutation.mutateAsync({
+        const updateData: updateEventWithOrg = {
           ...eventData,
-          eventCode: getDataByEventId?.data?.eventCode as unknown as any
-        })
+          eventCode: getDataByEventId?.data?.eventCode || ''
+        }
+        await updateEventMutation.mutateAsync(updateData)
       } else {
         await createEventMutation.mutateAsync(eventData)
       }

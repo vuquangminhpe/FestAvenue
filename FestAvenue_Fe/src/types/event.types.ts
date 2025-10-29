@@ -3,8 +3,8 @@ import type { EventStatus, EventVisibility } from '@/constants/enum'
 interface Address {
   street: string
   city: string
-  state: string
-  postalCode: string
+  state?: string
+  postalCode?: string
   country: string
 }
 
@@ -14,7 +14,7 @@ interface Coordinates {
 }
 
 interface Location {
-  venueId: string
+  venueId?: string
   address: Address
   coordinates: Coordinates
 }
@@ -94,48 +94,50 @@ export interface createEvent {
   name: string
   description: string
   shortDescription: string
-  eventType: number
   categoryId: string
   status: number
   visibility: number
   capacity: number
-  startDate: string
-  endDate: string
-  registrationStartDate: string
-  registrationEndDate: string
+  // New time fields - Event Lifecycle covers all
+  startEventLifecycleTime: string
+  endEventLifecycleTime: string
+  startTicketSaleTime: string
+  endTicketSaleTime: string
+  startTimeEventTime: string
+  endTimeEventTime: string
   logoUrl: string
   bannerUrl: string
-  trailerUrl: string
-  website: string
-  publicContactEmail: string
-  publicContactPhone: string
+  trailerUrl?: string
+  website?: string
+  publicContactEmail?: string
+  publicContactPhone?: string
   location: Location
-  hashtags: string[]
-  messageResponse: string
+  hashtags?: string[]
   organization: Organization
 }
 export interface EventType {
   name: string
   description: string
   shortDescription: string
-  eventType: number
   categoryId: string
   status: number
   visibility: number
   capacity: number
-  startDate: string
-  endDate: string
-  registrationStartDate: string
-  registrationEndDate: string
+  // New time fields - Event Lifecycle covers all
+  startEventLifecycleTime: string
+  endEventLifecycleTime: string
+  startTicketSaleTime: string
+  endTicketSaleTime: string
+  startTimeEventTime: string
+  endTimeEventTime: string
   logoUrl: string
   bannerUrl: string
-  trailerUrl: string
-  website: string
-  publicContactEmail: string
-  publicContactPhone: string
+  trailerUrl?: string
+  website?: string
+  publicContactEmail?: string
+  publicContactPhone?: string
   location: Location
-  hashtags: string[]
-  messageResponse: string
+  hashtags?: string[]
   organization: Organization
 }
 interface OrganizationContact {
