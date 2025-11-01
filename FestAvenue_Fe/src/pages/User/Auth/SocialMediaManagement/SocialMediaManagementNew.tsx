@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Loader2, Lock, Plus, List, FileText } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { SocialMediaList, SocialMediaDetail, TemplateSelector, TemplateEditor } from './components'
+import { SocialMediaForm, SocialMediaList, SocialMediaDetail } from './components'
 import { getIdFromNameId } from '@/utils/utils'
 import {
   useCheckIsEventOwner,
@@ -10,10 +10,8 @@ import {
   useUserPermissionsInEvent
 } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 import { useUsersStore } from '@/contexts/app.context'
-import type { TemplateType } from './types'
-import type { LandingTemplateProps } from '@/components/custom/landing_template'
 
-type ViewType = 'list' | 'selectTemplate' | 'edit' | 'detail'
+type ViewType = 'list' | 'create' | 'edit' | 'detail'
 
 export default function SocialMediaManagement() {
   const [searchParams] = useSearchParams()
@@ -43,45 +41,16 @@ export default function SocialMediaManagement() {
   // State management
   const [currentView, setCurrentView] = useState<ViewType>('list')
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null)
   const [activeTab, setActiveTab] = useState('list')
-
-  // Initial template data
-  const getInitialTemplateData = (): LandingTemplateProps => ({
-    bannerUrl: '',
-    title: '',
-    subtitle: '',
-    description: '',
-    authorName: userName,
-    authorAvatar: userAvatar,
-    eventDate: '',
-    eventLocation: '',
-    content: '',
-    images: [],
-    relatedEvents: [],
-    socialLinks: []
-  })
 
   // Handlers
   const handleCreate = () => {
-    setCurrentView('selectTemplate')
+    setCurrentView('create')
     setSelectedPostId(null)
-    setSelectedTemplate(null)
     setActiveTab('create')
   }
 
-  const handleTemplateSelect = (templateType: TemplateType) => {
-    setSelectedTemplate(templateType)
-    setCurrentView('edit')
-  }
-
-  const handleTemplatePreview = (templateType: TemplateType) => {
-    // TODO: Show preview modal
-    console.log('Preview template:', templateType)
-  }
-
   const handleEdit = (postId: string) => {
-    // TODO: Load post data and set template type
     setSelectedPostId(postId)
     setCurrentView('edit')
     setActiveTab('create')
@@ -171,31 +140,17 @@ export default function SocialMediaManagement() {
           {/* Create/Edit Tab */}
           <TabsContent value='create'>
             <div className='bg-white rounded-lg shadow-sm p-6'>
-              {currentView === 'selectTemplate' && (
-                <TemplateSelector
-                  selectedTemplate={selectedTemplate}
-                  onSelectTemplate={handleTemplateSelect}
-                  onPreview={handleTemplatePreview}
-                />
-              )}
-              {currentView === 'edit' && selectedTemplate && (
-                <>
-                  <h2 className='text-2xl font-bold mb-6'>
-                    {selectedPostId ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
-                  </h2>
-                  <TemplateEditor
-                    templateType={selectedTemplate}
-                    templateData={getInitialTemplateData()}
-                    eventCode={eventCode}
-                    authorId={userId}
-                    authorName={userName}
-                    authorAvatar={userAvatar}
-                    postId={selectedPostId || undefined}
-                    onSave={handleFormSuccess}
-                    onBack={handleBackToList}
-                  />
-                </>
-              )}
+              <h2 className='text-2xl font-bold mb-6'>
+                {currentView === 'edit' ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+              </h2>
+              <SocialMediaForm
+                eventCode={eventCode}
+                authorId={userId}
+                authorName={userName}
+                authorAvatar={userAvatar}
+                initialData={null} // TODO: Load data when editing
+                onSuccess={handleFormSuccess}
+              />
             </div>
           </TabsContent>
 

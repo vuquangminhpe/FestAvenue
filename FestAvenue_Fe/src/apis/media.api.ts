@@ -12,6 +12,17 @@ const mediaApis = {
       }
     })
     return data
+  },
+  uploadsStorage: async (file: File) => {
+    const formDataBody = new FormData()
+    formDataBody.append('file', file)
+    const data = await http.post<APIResponse<{ data: string }>>('/storage/upload-file', formDataBody, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 0
+    })
+    return data?.data
   }
 }
 export default mediaApis

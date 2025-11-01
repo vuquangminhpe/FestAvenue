@@ -5,15 +5,25 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/custom/landing_template'
 import type { LandingTemplateProps, SocialMediaImage, SocialLink } from '@/components/custom/landing_template'
 import type { TemplateType } from '../types'
+import serviceSocialMediaApis from '@/apis/serviceSocialMedia.api'
+import mediaApis from '@/apis/media.api'
+import type { BodySocialPost } from '@/types/serviceSocialMedia.types'
+import { toast } from 'sonner'
+import { format } from 'date-fns'
 
 interface TemplateEditorProps {
   templateType: TemplateType
   templateData: LandingTemplateProps
-  onSave: (data: LandingTemplateProps) => void
+  eventCode: string
+  authorId: string
+  authorName: string
+  authorAvatar: string
+  postId?: string // For edit mode
+  onSave: () => void // Simplified callback
   onBack: () => void
 }
 
@@ -26,54 +36,162 @@ const templateComponents = {
   template6: Template6
 }
 
-export default function TemplateEditor({ templateType, templateData, onSave, onBack }: TemplateEditorProps) {
+// Map template type to number
+const templateTypeToNumber: Record<TemplateType, number> = {
+  template1: 1,
+  template2: 2,
+  template3: 3,
+  template4: 4,
+  template5: 5,
+  template6: 6
+}
+
+// Map social platform string to number
+const socialPlatformToNumber: Record<string, number> = {
+  facebook: 1,
+  twitter: 2,
+  instagram: 3,
+  linkedin: 4,
+  tiktok: 5,
+  youtube: 6
+}
+
+export default function TemplateEditor({
+  templateType,
+  templateData,
+  eventCode,
+  authorId,
+  authorName,
+  authorAvatar,
+  postId,
+  onSave,
+  onBack
+}: TemplateEditorProps) {
   const [editedData, setEditedData] = useState<LandingTemplateProps>(templateData)
   const [showPreview, setShowPreview] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
   const [bannerSource, setBannerSource] = useState<'url' | 'upload'>(
-    templateData.bannerUrl?.startsWith('data:') ? 'upload' : 'url'
+    templateData.bannerUrl?.startsWith('data:') || templateData.bannerUrl?.startsWith('http') ? 'url' : 'upload'
   )
   const [avatarSource, setAvatarSource] = useState<'url' | 'upload'>(
-    templateData.authorAvatar?.startsWith('data:') ? 'upload' : 'url'
+    templateData.authorAvatar?.startsWith('data:') || templateData.authorAvatar?.startsWith('http') ? 'url' : 'upload'
   )
   const [imageSources, setImageSources] = useState<Record<string, 'url' | 'upload'>>(() => {
     const initial: Record<string, 'url' | 'upload'> = {}
     templateData.images.forEach((image) => {
-      initial[image.id] = image.url.startsWith('data:') ? 'upload' : 'url'
+      initial[image.id] = image.url.startsWith('data:') || image.url.startsWith('http') ? 'url' : 'upload'
     })
     return initial
   })
 
   const TemplateComponent = templateComponents[templateType]
 
-  const convertFileToDataUrl = (file: File) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result)
-        } else {
-          reject(new Error('Định dạng ảnh không hợp lệ'))
-        }
+  // Upload file to server and return URL
+  const uploadFileToServer = async (file: File, uploadKey: string): Promise<string> => {
+    setUploadingFiles((prev) => ({ ...prev, [uploadKey]: true }))
+    try {
+      const response = await mediaApis.uploadsStorage(file)
+      if (response?.data) {
+        toast.success('Tải ảnh lên thành công!')
+        // Response structure: { data: string }
+        return typeof response.data === 'string' ? response.data : (response.data as any).data || ''
       }
-      reader.onerror = () => reject(reader.error ?? new Error('Không thể đọc tệp ảnh'))
-      reader.readAsDataURL(file)
-    })
+      throw new Error('Upload failed: No URL returned')
+    } catch (error: any) {
+      console.error('Upload error:', error)
+      toast.error(error?.message || 'Không thể tải ảnh lên')
+      throw error
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, [uploadKey]: false }))
+    }
+  }
 
-  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>, onSuccess: (dataUrl: string) => void) => {
+  const handleImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    onSuccess: (url: string) => void,
+    uploadKey: string
+  ) => {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Vui lòng chọn file ảnh')
+      return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Kích thước ảnh tối đa 10MB')
+      return
+    }
+
     try {
-      const dataUrl = await convertFileToDataUrl(file)
-      onSuccess(dataUrl)
+      const url = await uploadFileToServer(file, uploadKey)
+      onSuccess(url)
     } catch (error) {
-      console.error(error)
+      console.error('Failed to upload image:', error)
     }
   }
 
-  const handleSave = () => {
-    onSave(editedData)
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      // Convert template data to API format
+      const apiBody: BodySocialPost = {
+        title: editedData.title,
+        templateNumber: templateTypeToNumber[templateType],
+        subtitle: editedData.subtitle || '',
+        description: editedData.description,
+        bannerUrl: editedData.bannerUrl,
+        statusPostSocialMedia: 1, // 1 = Published
+        body: editedData.content,
+        imageInPosts: editedData.images.map((img) => ({
+          url: img.url,
+          caption: img.caption || ''
+        })),
+        videoUrl: '',
+        audioUrl: '',
+        eventCode,
+        authorId,
+        authorName,
+        authorAvatar,
+        publishDate: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss"),
+        expiryDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm:ss"), // 30 days from now
+        socialLinks: editedData.socialLinks.map((link) => ({
+          platform: socialPlatformToNumber[link.platform] || 1,
+          url: link.url
+        }))
+      }
+
+      if (postId) {
+        // Update existing post
+        await serviceSocialMediaApis.updatePostSocialMedia({
+          ...apiBody,
+          postSocialMediaId: postId
+        })
+        toast.success('Cập nhật bài viết thành công!')
+      } else {
+        // Create new post
+        await serviceSocialMediaApis.createPostSocialMedia(apiBody)
+        toast.success('Tạo bài viết thành công!')
+      }
+
+      // Call parent onSave
+      onSave()
+
+      // Navigate back to list
+      setTimeout(() => {
+        onBack()
+      }, 1000)
+    } catch (error: any) {
+      console.error('Error saving post:', error)
+      toast.error(error?.message || 'Có lỗi xảy ra khi lưu bài viết')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const updateField = (field: keyof LandingTemplateProps, value: any) => {
@@ -147,9 +265,22 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                 <ArrowLeft className='w-4 h-4' />
                 Quay lại chỉnh sửa
               </Button>
-              <Button onClick={handleSave} className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'>
-                <Save className='w-4 h-4' />
-                Lưu thay đổi
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save className='w-4 h-4' />
+                    Lưu thay đổi
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -184,9 +315,22 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                 <Eye className='w-4 h-4' />
                 Xem trước
               </Button>
-              <Button onClick={handleSave} className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'>
-                <Save className='w-4 h-4' />
-                Lưu thay đổi
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className='w-4 h-4 animate-spin' />
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <Save className='w-4 h-4' />
+                    Lưu thay đổi
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -242,16 +386,25 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                       <Input
                         type='file'
                         accept='image/*'
+                        disabled={uploadingFiles['banner']}
                         onChange={(event) =>
-                          void handleImageUpload(event, (dataUrl) => {
-                            setBannerSource('upload')
-                            updateField('bannerUrl', dataUrl)
-                          })
+                          void handleImageUpload(
+                            event,
+                            (url) => {
+                              setBannerSource('upload')
+                              updateField('bannerUrl', url)
+                            },
+                            'banner'
+                          )
                         }
                       />
-                      <p className='text-xs text-gray-500'>
-                        Ảnh sẽ được lưu dưới dạng dữ liệu base64 để hiển thị ngay.
-                      </p>
+                      {uploadingFiles['banner'] && (
+                        <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                          <Loader2 className='w-4 h-4 animate-spin' />
+                          <span>Đang tải ảnh lên...</span>
+                        </div>
+                      )}
+                      <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -333,14 +486,25 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                       <Input
                         type='file'
                         accept='image/*'
+                        disabled={uploadingFiles['avatar']}
                         onChange={(event) =>
-                          void handleImageUpload(event, (dataUrl) => {
-                            setAvatarSource('upload')
-                            updateField('authorAvatar', dataUrl)
-                          })
+                          void handleImageUpload(
+                            event,
+                            (url) => {
+                              setAvatarSource('upload')
+                              updateField('authorAvatar', url)
+                            },
+                            'avatar'
+                          )
                         }
                       />
-                      <p className='text-xs text-gray-500'>Ảnh tải lên sẽ được hiển thị ngay mà không cần URL.</p>
+                      {uploadingFiles['avatar'] && (
+                        <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                          <Loader2 className='w-4 h-4 animate-spin' />
+                          <span>Đang tải ảnh lên...</span>
+                        </div>
+                      )}
+                      <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
                     </TabsContent>
                   </Tabs>
                 </div>
@@ -448,14 +612,25 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
                             <Input
                               type='file'
                               accept='image/*'
+                              disabled={uploadingFiles[`image-${image.id}`]}
                               onChange={(event) =>
-                                void handleImageUpload(event, (dataUrl) => {
-                                  setImageSources((prev) => ({ ...prev, [image.id]: 'upload' }))
-                                  updateImage(index, 'url', dataUrl)
-                                })
+                                void handleImageUpload(
+                                  event,
+                                  (url) => {
+                                    setImageSources((prev) => ({ ...prev, [image.id]: 'upload' }))
+                                    updateImage(index, 'url', url)
+                                  },
+                                  `image-${image.id}`
+                                )
                               }
                             />
-                            <p className='text-xs text-gray-500'>Ảnh tải lên sẽ thay thế URL hiện tại.</p>
+                            {uploadingFiles[`image-${image.id}`] && (
+                              <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                                <Loader2 className='w-4 h-4 animate-spin' />
+                                <span>Đang tải ảnh lên...</span>
+                              </div>
+                            )}
+                            <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
                           </TabsContent>
                         </Tabs>
                       </div>
@@ -562,8 +737,15 @@ export default function TemplateEditor({ templateType, templateData, onSave, onB
               <Button variant='outline' onClick={() => setShowPreview(true)}>
                 Xem trước
               </Button>
-              <Button onClick={handleSave} className='bg-gradient-to-r from-cyan-400 to-blue-400'>
-                Lưu thay đổi
+              <Button onClick={handleSave} disabled={isSaving} className='bg-gradient-to-r from-cyan-400 to-blue-400'>
+                {isSaving ? (
+                  <>
+                    <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                    Đang lưu...
+                  </>
+                ) : (
+                  'Lưu thay đổi'
+                )}
               </Button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 /**
- * Service Package Names - Exact names from backend API
+ * Service Package Names
  * Sử dụng exact name để tránh conflict khi backend thay đổi tên package
  */
 export const SERVICE_PACKAGE_NAMES = {
