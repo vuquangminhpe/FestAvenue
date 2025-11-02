@@ -354,3 +354,18 @@ export interface EventVersionResForStaff {
   result: EventVersion[]
   pagination: Pagination
 }
+export interface bodySearchWithAI {
+  SearchText?: string
+  SearchImage?: File
+}
+export interface bodySearchEvent {
+  searchText: string
+  categoryId?: string
+  fromEventDate?: string
+  toEventDate?: string
+  pagination: {
+    pageIndex?: number
+    isPaging: true
+    pageSize: number
+  }
+}

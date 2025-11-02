@@ -41,7 +41,9 @@ const path = {
       update_event: '/user/event/update_event',
       details: '/user/event/:eventId',
       ticketDetails: '/user/event/ticket/:eventCode',
-      ticketDetails_event: '/user/event/ticket'
+      ticketDetails_event: '/user/event/ticket',
+      social_media_detail: '/user/event/post/:postId',
+      social_media_detail_base: '/user/event/post'
     },
     my: {
       root: '/user/my',

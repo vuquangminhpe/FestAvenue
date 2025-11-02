@@ -3,15 +3,19 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import type { SocialMediaImage, ReactionType } from './types'
-import { Heart, ThumbsUp, Laugh, Frown, Angry, Sparkles, Send, X } from 'lucide-react'
+import { Heart, ThumbsUp, Laugh, Frown, Angry, Sparkles, Send, X, Pencil, Trash2, Check, XCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 interface CommentModalProps {
   isOpen: boolean
   onClose: () => void
   image: SocialMediaImage | null
+  currentUserId?: string | null
   onComment?: (imageId: string, comment: string) => void
+  onDeleteComment?: (commentId: string, imageId: string) => void
+  onUpdateComment?: (commentId: string, imageId: string, newContent: string) => void
   onLike?: (imageId: string) => void
   onReaction?: (imageId: string, reactionType: ReactionType) => void
 }
@@ -25,9 +29,20 @@ const reactionEmojis: Record<ReactionType, { icon: any; label: string; color: st
   angry: { icon: Angry, label: 'Phẫn Nộ', color: 'text-orange-600', bgColor: 'bg-orange-100 hover:bg-orange-200' }
 }
 
-export default function CommentModal({ isOpen, onClose, image, onComment, onReaction }: CommentModalProps) {
+export default function CommentModal({
+  isOpen,
+  onClose,
+  image,
+  currentUserId,
+  onComment,
+  onDeleteComment,
+  onUpdateComment,
+  onReaction
+}: CommentModalProps) {
   const [newComment, setNewComment] = useState('')
   const [showReactionPicker, setShowReactionPicker] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
 
   if (!image) return null
 
@@ -44,6 +59,30 @@ export default function CommentModal({ isOpen, onClose, image, onComment, onReac
       onReaction(image.id, type)
     }
     setShowReactionPicker(false)
+  }
+
+  const handleEditComment = (commentId: string, currentContent: string) => {
+    setEditingCommentId(commentId)
+    setEditContent(currentContent)
+  }
+
+  const handleSaveEdit = (commentId: string) => {
+    if (editContent.trim() && onUpdateComment) {
+      onUpdateComment(commentId, image.id, editContent.trim())
+      setEditingCommentId(null)
+      setEditContent('')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null)
+    setEditContent('')
+  }
+
+  const handleDeleteComment = (commentId: string) => {
+    if (onDeleteComment) {
+      onDeleteComment(commentId, image.id)
+    }
   }
 
   const getInitials = (name: string) => {
@@ -184,25 +223,88 @@ export default function CommentModal({ isOpen, onClose, image, onComment, onReac
             <div className='flex-1 overflow-y-auto px-6 py-4'>
               {image.comments && image.comments.length > 0 ? (
                 <div className='space-y-4'>
-                  {image.comments.map((comment) => (
-                    <div key={comment.id} className='flex gap-3 animate-in fade-in slide-in-from-bottom-2'>
-                      <Avatar className='w-10 h-10 flex-shrink-0 ring-2 ring-purple-100'>
-                        <AvatarImage src={comment.userAvatar} />
-                        <AvatarFallback className='bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold'>
-                          {getInitials(comment.userName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className='flex-1 min-w-0'>
-                        <div className='bg-gray-100 rounded-2xl px-4 py-3 hover:bg-gray-200 transition-colors'>
-                          <p className='font-semibold text-sm text-gray-900 mb-1'>{comment.userName}</p>
-                          <p className='text-gray-800 text-sm leading-relaxed break-words'>{comment.content}</p>
+                  {image.comments.map((comment) => {
+                    const isOwner = currentUserId && comment.userId === currentUserId
+                    const isEditing = editingCommentId === comment.id
+
+                    return (
+                      <div key={comment.id} className='flex gap-3 animate-in fade-in slide-in-from-bottom-2 group'>
+                        <Avatar className='w-10 h-10 flex-shrink-0 ring-2 ring-purple-100'>
+                          <AvatarImage src={comment.userAvatar} />
+                          <AvatarFallback className='bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold'>
+                            {getInitials(comment.userName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className='flex-1 min-w-0'>
+                          {isEditing ? (
+                            <div className='space-y-2'>
+                              <Textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className='min-h-[70px] max-h-[120px] resize-none rounded-xl text-sm bg-white border-2 border-purple-400'
+                                autoFocus
+                              />
+                              <div className='flex gap-2'>
+                                <Button
+                                  size='sm'
+                                  onClick={() => handleSaveEdit(comment.id)}
+                                  disabled={!editContent.trim()}
+                                  className='bg-green-600 hover:bg-green-700 text-white'
+                                >
+                                  <Check className='w-4 h-4 mr-1' />
+                                  Lưu
+                                </Button>
+                                <Button size='sm' variant='outline' onClick={handleCancelEdit}>
+                                  <XCircle className='w-4 h-4 mr-1' />
+                                  Hủy
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className='relative bg-gray-100 rounded-2xl px-4 py-3 hover:bg-gray-200 transition-colors'>
+                                <p className='font-semibold text-sm text-gray-900 mb-1'>{comment.userName}</p>
+                                <p className='text-gray-800 text-sm leading-relaxed break-words pr-16'>{comment.content}</p>
+                                {isOwner && (
+                                  <div className='absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => handleEditComment(comment.id, comment.content)}
+                                          className='p-1.5 rounded-lg bg-white hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors shadow-sm'
+                                        >
+                                          <Pencil className='w-3.5 h-3.5' />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Chỉnh sửa</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          onClick={() => handleDeleteComment(comment.id)}
+                                          className='p-1.5 rounded-lg bg-white hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors shadow-sm'
+                                        >
+                                          <Trash2 className='w-3.5 h-3.5' />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Xóa</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                )}
+                              </div>
+                              <p className='text-xs text-gray-500 mt-1.5 ml-4 font-medium'>
+                                {formatTime(comment.createdAt)}
+                              </p>
+                            </>
+                          )}
                         </div>
-                        <p className='text-xs text-gray-500 mt-1.5 ml-4 font-medium'>
-                          {formatTime(comment.createdAt)}
-                        </p>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className='flex flex-col items-center justify-center h-full text-gray-400 py-8'>

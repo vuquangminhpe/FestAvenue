@@ -1,12 +1,15 @@
 import type { APIResponse } from '@/types/API.types'
 import type {
   bodyApproveEventForStaff,
+  bodySearchEvent,
+  bodySearchWithAI,
   createEvent,
   EventFilterList,
   EventSearchFilter,
   EventSearchStaffFilter,
   EventTemp,
   EventVersionResForStaff,
+  ReqFilterOwnerEvent,
   ResEventByEventCode
 } from '@/types/event.types'
 import http from '@/utils/http'
@@ -53,6 +56,25 @@ const eventApis = {
     const data = await http.get<APIResponse<ResEventByEventCode>>(
       `/event/get-event-by-event-code?eventCode=${eventCode}`
     )
+    return data?.data
+  },
+  getRelatedEvents: async (eventCode: string) => {
+    const data = await http.get<APIResponse<ResEventByEventCode[]>>(`/event/get-related-events?eventCode=${eventCode}`)
+    return data?.data
+  },
+  searchEventWithAI: async (body: bodySearchWithAI) => {
+    const formdata = new FormData()
+    formdata.append('SearchText', body?.SearchImage as any)
+    formdata.append('SearchImage', body?.SearchImage as any)
+    const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-event-with-ai', formdata)
+    return data?.data
+  },
+  getTop20EventFeaturedEvent: async () => {
+    const data = await http.get<APIResponse<ReqFilterOwnerEvent[]>>('/event/get-top20-featured-events')
+    return data?.data
+  },
+  searchEventsWithPaging: async (body: bodySearchEvent) => {
+    const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-events-with-paging', body)
     return data?.data
   }
 }

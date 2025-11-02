@@ -58,10 +58,15 @@ export interface LandingTemplateProps {
   relatedEvents: RelatedEvent[]
   socialLinks: SocialLink[]
 
+  // User info
+  currentUserId?: string | null
+
   // Actions
   onLike?: (imageId: string) => void
   onReaction?: (imageId: string, reactionType: ReactionType) => void
   onComment?: (imageId: string, comment: string) => void
+  onDeleteComment?: (commentId: string, imageId: string) => void
+  onUpdateComment?: (commentId: string, imageId: string, newContent: string) => void
   onShare?: () => void
   onRegister?: () => void
 }

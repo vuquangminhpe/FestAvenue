@@ -266,7 +266,10 @@ export default function Template2(props: LandingTemplateProps) {
         isOpen={isCommentModalOpen}
         onClose={() => setIsCommentModalOpen(false)}
         image={selectedImage}
+        currentUserId={props.currentUserId}
         onComment={props.onComment}
+        onDeleteComment={props.onDeleteComment}
+        onUpdateComment={props.onUpdateComment}
         onLike={props.onLike}
         onReaction={props.onReaction}
       />

@@ -26,6 +26,7 @@ const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/Creat
 const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule/ScheduleManagement'))
 const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/EventAnalytics'))
 const EventDetails = lazy(() => import('./pages/User/Auth/EventDetails/EventDetails'))
+const SocialMediaDetail = lazy(() => import('./pages/User/Auth/SocialMediaDetail/SocialMediaDetail'))
 const StaffLogin = lazy(() => import('./pages/Staff/Auth/Login'))
 const AdminLogin = lazy(() => import('./pages/Admin/Auth/Login'))
 const StaffLayout = lazy(() => import('./layouts/StaffLayout'))
@@ -259,6 +260,16 @@ export default function useRouteElement() {
         <SuspenseWrapper>
           <MainLayout>
             <EventDetails />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
+    },
+    {
+      path: path.user.event.social_media_detail,
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <SocialMediaDetail />
           </MainLayout>
         </SuspenseWrapper>
       )

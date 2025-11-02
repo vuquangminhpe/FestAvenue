@@ -38,7 +38,10 @@ const AIApis = {
     return data?.data
   },
   generateTagsInEvent: async (body: bodyGenerateTags) => {
-    const data = await http.post<resGenerateTags>('https://minh9972t12-autoGenerateTags.hf.space/generate-tags', body)
+    const data = await http.post<resGenerateTags>(
+      'https://minh9972t12-autoGenerateTags.hf.space/generate-hashtags',
+      body
+    )
     return data?.data
   },
   moderateContentInEvent: async (body: bodyModerateContent) => {

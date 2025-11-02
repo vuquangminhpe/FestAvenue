@@ -15,64 +15,16 @@ import { generateNameId, getIdFromNameId } from '@/utils/utils'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useEventDetailsData } from './hooks'
 import path from '@/constants/path'
+import type { top5latestRes } from '@/types/serviceSocialMedia.types'
 
 gsap.registerPlugin(ScrollTrigger)
-
-// Mock data for related events and posts (keep as requested)
-const relatedEvents = [
-  {
-    id: '2',
-    title: 'Tên sự kiện',
-    date: '20-11-2025',
-    image: '/avenger_endgame.jpg'
-  },
-  {
-    id: '3',
-    title: 'Tên sự kiện',
-    date: '28-11-2025',
-    image: '/spidermanAcross.jpg'
-  },
-  {
-    id: '4',
-    title: 'Tên sự kiện',
-    date: '28-11-2025',
-    image: '/johnWick4.png'
-  },
-  {
-    id: '5',
-    title: 'Tên sự kiện',
-    date: '28-11-2025',
-    image: '/avenger_endgame.jpg'
-  }
-]
-
-const eventPosts = [
-  {
-    id: '1',
-    author: 'Hồ ngọc đẹp',
-    time: '2 giờ trước',
-    content: 'Mỗi dàng của bài đăng',
-    image: '/johnWick4.png',
-    likes: 1234,
-    comments: 56
-  },
-  {
-    id: '2',
-    author: 'Năn quốc đáng',
-    time: '5 giờ trước',
-    content: 'Mỗi dàng của bài đăng',
-    image: '/spidermanAcross.jpg',
-    likes: 987,
-    comments: 43
-  }
-]
 
 const EventDetails: React.FC = () => {
   const eventParams = useParams()
   const eventCode = getIdFromNameId(eventParams.eventId as string)
   const navigate = useNavigate()
   // Use custom hooks for data fetching
-  const { event, tickets, isLoading } = useEventDetailsData(eventCode)
+  const { event, tickets, posts, relatedEvents, isLoading } = useEventDetailsData(eventCode)
 
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -201,6 +153,26 @@ const EventDetails: React.FC = () => {
     const endDate = new Date(end)
     const hours = Math.abs(endDate.getTime() - startDate.getTime()) / 36e5
     return hours.toFixed(0)
+  }
+
+  const formatPostTime = (dateString: string) => {
+    const postDate = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - postDate.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Vừa xong'
+    if (diffMins < 60) return `${diffMins} phút trước`
+    if (diffHours < 24) return `${diffHours} giờ trước`
+    if (diffDays < 7) return `${diffDays} ngày trước`
+
+    return postDate.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
   }
 
   // Get start and end dates - prioritize new time fields
@@ -693,33 +665,46 @@ const EventDetails: React.FC = () => {
             )}
 
             {/* Related Events */}
-            <div ref={relatedRef} className='animate-section'>
-              <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center'>
-                <div className='w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 mr-3 rounded-full' />
-                Sự kiện liên quan
-              </h2>
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                {relatedEvents.map((relatedEvent) => (
-                  <Card
-                    key={relatedEvent.id}
-                    className='related-card group cursor-pointer overflow-hidden bg-white border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2'
-                  >
-                    <div className='relative aspect-[3/4] overflow-hidden'>
-                      <img
-                        src={relatedEvent.image}
-                        alt={relatedEvent.title}
-                        className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
-                      />
-                      <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
-                    </div>
-                    <CardContent className='p-3'>
-                      <p className='font-semibold text-sm text-gray-900 truncate'>{relatedEvent.title}</p>
-                      <p className='text-xs text-gray-500'>{relatedEvent.date}</p>
-                    </CardContent>
-                  </Card>
-                ))}
+            {relatedEvents.length > 0 && (
+              <div ref={relatedRef} className='animate-section'>
+                <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center'>
+                  <div className='w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 mr-3 rounded-full' />
+                  Sự kiện liên quan
+                </h2>
+                <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                  {relatedEvents.map((relatedEvent) => (
+                    <Card
+                      key={relatedEvent.eventCode}
+                      onClick={() =>
+                        navigate(
+                          `${path.user.event.root}/${generateNameId({
+                            id: relatedEvent.eventCode,
+                            name: relatedEvent.eventName,
+                            id_2: relatedEvent.organization.name
+                          })}`
+                        )
+                      }
+                      className='related-card group cursor-pointer overflow-hidden bg-white border-cyan-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2'
+                    >
+                      <div className='relative aspect-[3/4] overflow-hidden'>
+                        <img
+                          src={relatedEvent.bannerUrl || relatedEvent.logoUrl || '/placeholder.jpg'}
+                          alt={relatedEvent.eventName}
+                          className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
+                        />
+                        <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                      </div>
+                      <CardContent className='p-3'>
+                        <p className='font-semibold text-sm text-gray-900 truncate'>{relatedEvent.eventName}</p>
+                        <p className='text-xs text-gray-500'>
+                          {relatedEvent.startTimeEventTime && formatDate(relatedEvent.startTimeEventTime)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Event Posts */}
             <div className='animate-section'>
@@ -727,41 +712,57 @@ const EventDetails: React.FC = () => {
                 <div className='w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 mr-3 rounded-full' />
                 Các bài đăng của sự kiện
               </h2>
-              <div className='space-y-6'>
-                {eventPosts.map((post) => (
+              <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
+                {(posts as any).map((post: top5latestRes) => (
                   <Card
-                    key={post.id}
-                    className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg hover:shadow-xl transition-shadow'
+                    key={post.postSocialMediaId}
+                    onClick={() =>
+                      navigate(
+                        `${path.user.event.social_media_detail_base}/${generateNameId({
+                          id: post.postSocialMediaId,
+                          name: post.title,
+                          id_2: post.authorName,
+                          templateNumber: post.templateNumber
+                        })}`
+                      )
+                    }
+                    className='group cursor-pointer overflow-hidden bg-white border-cyan-100 shadow-lg hover:shadow-2xl transition-shadow'
                   >
-                    <CardContent className='p-6'>
-                      <div className='flex items-center mb-4'>
-                        <Avatar className='w-12 h-12 border-2 border-cyan-200'>
-                          <AvatarImage src='/avatar2.jpg' />
-                          <AvatarFallback>{post.author[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className='ml-3'>
-                          <p className='font-semibold text-gray-900'>{post.author}</p>
-                          <p className='text-sm text-gray-500'>{post.time}</p>
-                        </div>
-                      </div>
-
-                      <p className='text-gray-700 mb-4'>{post.content}</p>
-
-                      {post.image && (
-                        <div className='relative aspect-video rounded-lg overflow-hidden mb-4'>
-                          <img src={post.image} alt='Post' className='w-full h-full object-cover' />
+                    <div className='relative aspect-[3/4] overflow-hidden bg-gray-200'>
+                      {post.bannerPostUrl ? (
+                        <>
+                          <img
+                            src={post.bannerPostUrl}
+                            alt={post.title}
+                            className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
+                          />
+                          <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent' />
+                        </>
+                      ) : (
+                        <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100'>
+                          <span className='text-gray-400 text-sm'>Không có ảnh</span>
                         </div>
                       )}
-
-                      <div className='flex items-center gap-6 pt-4 border-t border-gray-200'>
-                        <Button variant='ghost' size='sm' className='text-gray-600 hover:text-red-500'>
-                          <Heart className='w-4 h-4 mr-2' />
-                          {post.likes} Thích
-                        </Button>
-                        <Button variant='ghost' size='sm' className='text-gray-600 hover:text-blue-500'>
-                          <Share2 className='w-4 h-4 mr-2' />
-                          {post.comments} Bình luận
-                        </Button>
+                    </div>
+                    <CardContent className='p-3'>
+                      <div className='flex items-center gap-2 mb-2'>
+                        <Avatar className='w-8 h-8 border border-cyan-200'>
+                          <AvatarImage src={post.avatarAthorUrl || '/avatar_default.jpg'} />
+                          <AvatarFallback>{post.authorName?.[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className='flex-1 min-w-0'>
+                          <p className='text-xs font-semibold text-gray-900 truncate'>{post.authorName}</p>
+                          <p className='text-xs text-gray-500'>{formatPostTime(post.createAt)}</p>
+                        </div>
+                      </div>
+                      <p className='text-xs text-gray-600 line-clamp-2 mb-2'>{post.body}</p>
+                      <div className='flex items-center gap-2 text-xs'>
+                        <span className='text-gray-500 flex items-center gap-1'>
+                          <Heart className='w-3 h-3' /> {post.totalReactions}
+                        </span>
+                        <span className='text-gray-500 flex items-center gap-1'>
+                          <Share2 className='w-3 h-3' /> {post.totalComments}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
