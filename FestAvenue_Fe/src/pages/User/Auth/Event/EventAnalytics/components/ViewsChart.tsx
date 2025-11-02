@@ -1,5 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { ViewAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { ViewAnalysis } from '../../../../../../types/eventAnalytics.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 

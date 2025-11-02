@@ -1,5 +1,5 @@
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import type { ParticipantAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { ParticipantAnalysis } from '../../../../../../types/eventAnalytics.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 

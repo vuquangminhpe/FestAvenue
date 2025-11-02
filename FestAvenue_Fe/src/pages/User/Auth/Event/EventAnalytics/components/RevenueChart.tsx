@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { RevenueAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { RevenueAnalysis } from '../../../../../../types/eventAnalytics.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 

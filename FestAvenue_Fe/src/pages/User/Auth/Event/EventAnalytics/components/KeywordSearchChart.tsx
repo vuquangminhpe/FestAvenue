@@ -13,7 +13,7 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts'
-import type { KeywordSearchAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { KeywordSearchAnalysis } from '../../../../../../types/eventAnalytics.types'
 import { Search, TrendingUp, MousePointerClick } from 'lucide-react'
 
 interface KeywordSearchChartProps {

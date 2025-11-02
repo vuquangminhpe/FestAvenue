@@ -1,5 +1,14 @@
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import type { StaffPerformance } from '../../../../../types/eventAnalytics.types'
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Legend,
+  Tooltip
+} from 'recharts'
+import type { StaffPerformance } from '../../../../../../types/eventAnalytics.types'
 import { Trophy } from 'lucide-react'
 
 interface StaffPerformanceChartProps {

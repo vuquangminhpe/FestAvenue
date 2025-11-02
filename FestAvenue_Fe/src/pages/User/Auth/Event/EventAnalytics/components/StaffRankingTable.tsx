@@ -1,4 +1,4 @@
-import type { StaffRanking } from '../../../../../types/eventAnalytics.types'
+import type { StaffRanking } from '../../../../../../types/eventAnalytics.types'
 import { Trophy, TrendingUp, TrendingDown, Minus, Award } from 'lucide-react'
 
 interface StaffRankingTableProps {
@@ -82,7 +82,9 @@ export default function StaffRankingTable({ data }: StaffRankingTableProps) {
               <tr key={ranking.staff.staffId} className='border-b border-gray-100 hover:bg-gray-50 transition-colors'>
                 <td className='py-4 px-4'>
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRankColor(ranking.rank)}`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getRankColor(
+                      ranking.rank
+                    )}`}
                   >
                     {getRankIcon(ranking.rank) || ranking.rank}
                   </div>
@@ -114,8 +116,8 @@ export default function StaffRankingTable({ data }: StaffRankingTableProps) {
                       ranking.staff.lateTasks === 0
                         ? 'bg-green-100 text-green-800'
                         : ranking.staff.lateTasks <= 2
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-red-100 text-red-800'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {ranking.staff.lateTasks}
@@ -123,7 +125,9 @@ export default function StaffRankingTable({ data }: StaffRankingTableProps) {
                 </td>
                 <td className='py-4 px-4 text-center'>
                   <div className='flex flex-col items-center'>
-                    <span className='text-sm font-semibold text-gray-900'>{ranking.staff.completionRate.toFixed(1)}%</span>
+                    <span className='text-sm font-semibold text-gray-900'>
+                      {ranking.staff.completionRate.toFixed(1)}%
+                    </span>
                     <div className='w-16 h-1.5 bg-gray-200 rounded-full mt-1 overflow-hidden'>
                       <div
                         className='h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full'

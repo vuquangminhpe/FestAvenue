@@ -15,7 +15,7 @@ import {
   AlertCircle,
   Lock
 } from 'lucide-react'
-import { Button } from '../../../../components/ui/button'
+import { Button } from '../../../../../components/ui/button'
 import StatCard from './components/StatCard'
 import ParticipantsChart from './components/ParticipantsChart'
 import TicketSalesChart from './components/TicketSalesChart'
@@ -27,8 +27,8 @@ import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
 import StaffPerformanceChart from './components/StaffPerformanceChart'
 import TaskCompletionChart from './components/TaskCompletionChart'
 import StaffRankingTable from './components/StaffRankingTable'
-import { eventAnalyticsService } from '../../../../services/eventAnalytics.service'
-import type { EventAnalytics } from '../../../../types/eventAnalytics.types'
+import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
+import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'
 import { useCheckIsEventOwner } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 

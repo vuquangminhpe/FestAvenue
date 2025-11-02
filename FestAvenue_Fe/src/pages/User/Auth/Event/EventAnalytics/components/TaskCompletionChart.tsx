@@ -1,5 +1,5 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts'
-import type { TaskStatusAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { TaskStatusAnalysis } from '../../../../../../types/eventAnalytics.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { ListChecks } from 'lucide-react'

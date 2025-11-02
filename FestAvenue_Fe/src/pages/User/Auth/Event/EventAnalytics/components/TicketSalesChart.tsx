@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import type { TicketSalesAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { TicketSalesAnalysis } from '../../../../../../types/eventAnalytics.types'
 
 interface TicketSalesChartProps {
   data: TicketSalesAnalysis[]

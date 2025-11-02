@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { CheckInAnalysis } from '../../../../../types/eventAnalytics.types'
+import type { CheckInAnalysis } from '../../../../../../types/eventAnalytics.types'
 
 interface CheckInChartProps {
   data: CheckInAnalysis[]
