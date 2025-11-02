@@ -85,7 +85,7 @@ export default function Header() {
               {!isAuthenticated ? (
                 <>
                   <Link
-                    to='/events'
+                    to={path.events}
                     className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200'
                   >
                     Tìm sự kiện
@@ -119,6 +119,12 @@ export default function Header() {
                 </>
               ) : (
                 <>
+                  <Link
+                    to={path.events}
+                    className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200'
+                  >
+                    Tìm sự kiện
+                  </Link>
                   <Link
                     to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                     className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200'
@@ -242,7 +248,7 @@ export default function Header() {
               {!isAuthenticated ? (
                 <>
                   <Link
-                    to='/events'
+                    to={path.events}
                     className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -297,6 +303,13 @@ export default function Header() {
                     </div>
                   </div>
 
+                  <Link
+                    to={path.events}
+                    className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Tìm sự kiện
+                  </Link>
                   <Link
                     to={isAuthenticated ? path.user.event.create_event : path.auth.login}
                     className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'

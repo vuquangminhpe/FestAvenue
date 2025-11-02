@@ -10,6 +10,7 @@ import IMG_SIGNUP from '../public/Images/SignUp_Page.png'
 const MainLayout = lazy(() => import('./layouts/MainLayout'))
 const EventOwnerLayout = lazy(() => import('./layouts/EventOwnerLayout'))
 const Home = lazy(() => import('./pages/User/Public/Home'))
+const EventSearch = lazy(() => import('./pages/User/Public/EventSearch/EventSearch'))
 const MyLayout = lazy(() => import('./layouts/MyLayout'))
 const Login = lazy(() => import('./pages/User/Public/Login'))
 const NotAuthLayout = lazy(() => import('./layouts/Not_Auth_Layout'))
@@ -243,6 +244,16 @@ export default function useRouteElement() {
     {
       path: path.home,
       element: <Navigate to={path.asHome} />
+    },
+    {
+      path: path.events,
+      element: (
+        <SuspenseWrapper>
+          <MainLayout>
+            <EventSearch />
+          </MainLayout>
+        </SuspenseWrapper>
+      )
     },
     {
       path: path.auth.forgotPassword,

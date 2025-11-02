@@ -2,6 +2,7 @@ const path = {
   home: '/home',
   asHome: '/',
   notfound: '*',
+  events: '/events',
   termOfService: '/term-of-service',
   privacyPolicy: '/privacy-policy',
   staff: {
