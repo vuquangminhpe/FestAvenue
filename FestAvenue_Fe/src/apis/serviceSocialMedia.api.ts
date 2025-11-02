@@ -22,7 +22,7 @@ const serviceSocialMediaApis = {
     return data?.data
   },
   getTop5LatestPostByEventCode: async (eventCode: string) => {
-    const data = await http.get<APIResponse<top5latestRes>>(
+    const data = await http.get<APIResponse<top5latestRes[]>>(
       `/post-social-media/get-top5-latest-post-by-event-code?eventCode=${eventCode}`
     )
     return data?.data

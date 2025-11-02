@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
@@ -6,14 +7,22 @@ import CommentModal from './CommentModal'
 
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, MapPin, Calendar, ArrowRight } from 'lucide-react'
+import { generateNameId } from '@/utils/utils'
+import path from '@/constants/path'
+import { useTop5LatestPostByEventCode } from './hooks/useLandingTemplateQueries'
 
 gsap.registerPlugin(ScrollTrigger)
 
 export default function Template3(props: LandingTemplateProps) {
+  const { postId } = useParams()
+
+  const eventCode = postId?.split('eC')[1]
   const containerRef = useRef<HTMLDivElement>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const [selectedImage, setSelectedImage] = useState<SocialMediaImage | null>(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+
+  const { data: latestPosts = [] } = useTop5LatestPostByEventCode(eventCode)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -268,41 +277,55 @@ export default function Template3(props: LandingTemplateProps) {
         <div className='max-w-7xl mx-auto px-8'>
           {/* Related Events */}
           <div className='mb-16'>
-            <h2 className='text-5xl font-bold mb-12 text-center text-gray-900'>Khám Phá Thêm Sự Kiện</h2>
+            <h2 className='text-5xl font-bold mb-12 text-center text-gray-900'>Khám Phá Thêm Bài Đăng</h2>
             <div className='events-grid grid grid-cols-1 md:grid-cols-3 gap-8'>
-              {props.relatedEvents.map((event) => (
-                <a
-                  key={event.id}
-                  href={event.url}
-                  className='event-card group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300'
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <div className='relative overflow-hidden'>
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className='w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110'
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-t from-black/50 to-transparent' />
-                  </div>
-                  <div className='p-6'>
-                    <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors flex items-center gap-2'>
-                      {event.title}
-                      <ArrowRight className='w-5 h-5 group-hover:translate-x-2 transition-transform' />
-                    </h3>
-                    <div className='space-y-2 text-gray-600'>
-                      <p className='flex items-center gap-2'>
-                        <Calendar className='w-5 h-5' />
-                        {event.date}
-                      </p>
-                      <p className='flex items-center gap-2'>
-                        <MapPin className='w-5 h-5' />
-                        {event.location}
-                      </p>
+              {latestPosts.map((post) => {
+                const nameId = generateNameId({
+                  name: post.title,
+                  id: post.postSocialMediaId,
+                  id_2: post.authorName
+                })
+                return (
+                  <Link
+                    key={post.postSocialMediaId}
+                    to={`${path.user.event.social_media_detail_base}/${nameId}`}
+                    className='event-card group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300'
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    <div className='relative overflow-hidden'>
+                      <img
+                        src={post.bannerPostUrl}
+                        alt={post.title}
+                        className='w-full h-56 object-cover transition-transform duration-500 group-hover:scale-110'
+                      />
+                      <div className='absolute inset-0 bg-gradient-to-t from-black/50 to-transparent' />
                     </div>
-                  </div>
-                </a>
-              ))}
+                    <div className='p-6'>
+                      <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors flex items-center gap-2'>
+                        {post.title}
+                        <ArrowRight className='w-5 h-5 group-hover:translate-x-2 transition-transform' />
+                      </h3>
+                      <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{post.description}</p>
+                      <div className='space-y-2 text-gray-600'>
+                        <p className='flex items-center gap-2'>
+                          <Calendar className='w-5 h-5' />
+                          {new Date(post.publishDate).toLocaleDateString('vi-VN')}
+                        </p>
+                        <div className='flex items-center gap-4 text-sm'>
+                          <span className='flex items-center gap-1'>
+                            <Heart className='w-4 h-4' />
+                            {post.totalReactions}
+                          </span>
+                          <span className='flex items-center gap-1'>
+                            <MessageCircle className='w-4 h-4' />
+                            {post.totalComments}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
 

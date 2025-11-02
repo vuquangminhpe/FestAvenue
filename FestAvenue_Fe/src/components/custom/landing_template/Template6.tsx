@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
@@ -6,14 +7,22 @@ import CommentModal from './CommentModal'
 import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Share2, MapPin, Calendar, Sparkles } from 'lucide-react'
+import { generateNameId } from '@/utils/utils'
+import path from '@/constants/path'
+import { useTop5LatestPostByEventCode } from './hooks/useLandingTemplateQueries'
 
 gsap.registerPlugin(ScrollTrigger)
 
 export default function Template6(props: LandingTemplateProps) {
+  const { postId } = useParams()
+
+  const eventCode = postId?.split('eC')[1]
   const containerRef = useRef<HTMLDivElement>(null)
   const [hoveredImage, setHoveredImage] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<SocialMediaImage | null>(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+
+  const { data: latestPosts = [] } = useTop5LatestPostByEventCode(eventCode)
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -394,39 +403,53 @@ export default function Template6(props: LandingTemplateProps) {
         <div className='max-w-7xl mx-auto px-8'>
           {/* Related Events */}
           <div className='ripple-container mb-20'>
-            <h2 className='text-6xl font-bold mb-16 text-center text-gray-900'>Khám Phá Thêm</h2>
+            <h2 className='text-6xl font-bold mb-16 text-center text-gray-900'>Khám Phá Thêm Bài Đăng</h2>
             <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-              {props.relatedEvents.map((event) => (
-                <a
-                  key={event.id}
-                  href={event.url}
-                  className='ripple-card group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500'
-                >
-                  <div className='relative overflow-hidden h-64'>
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className='w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3'
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-t from-purple-900/80 to-transparent' />
-                  </div>
-                  <div className='p-8'>
-                    <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors'>
-                      {event.title}
-                    </h3>
-                    <div className='space-y-3 text-gray-600 text-lg'>
-                      <p className='flex items-center gap-3'>
-                        <Calendar className='w-5 h-5' />
-                        {event.date}
-                      </p>
-                      <p className='flex items-center gap-3'>
-                        <MapPin className='w-5 h-5' />
-                        {event.location}
-                      </p>
+              {latestPosts.map((post) => {
+                const nameId = generateNameId({
+                  name: post.title,
+                  id: post.postSocialMediaId,
+                  id_2: post.authorName
+                })
+                return (
+                  <Link
+                    key={post.postSocialMediaId}
+                    to={`${path.user.event.social_media_detail_base}/${nameId}`}
+                    className='ripple-card group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500'
+                  >
+                    <div className='relative overflow-hidden h-64'>
+                      <img
+                        src={post.bannerPostUrl}
+                        alt={post.title}
+                        className='w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:rotate-3'
+                      />
+                      <div className='absolute inset-0 bg-gradient-to-t from-purple-900/80 to-transparent' />
                     </div>
-                  </div>
-                </a>
-              ))}
+                    <div className='p-8'>
+                      <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors'>
+                        {post.title}
+                      </h3>
+                      <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{post.description}</p>
+                      <div className='space-y-3 text-gray-600 text-lg'>
+                        <p className='flex items-center gap-3'>
+                          <Calendar className='w-5 h-5' />
+                          {new Date(post.publishDate).toLocaleDateString('vi-VN')}
+                        </p>
+                        <div className='flex items-center gap-4 text-sm'>
+                          <span className='flex items-center gap-1'>
+                            <Heart className='w-4 h-4' />
+                            {post.totalReactions}
+                          </span>
+                          <span className='flex items-center gap-1'>
+                            <MessageCircle className='w-4 h-4' />
+                            {post.totalComments}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
 

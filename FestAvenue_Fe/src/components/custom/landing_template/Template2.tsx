@@ -1,20 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
 import CommentModal from './CommentModal'
 import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
-import { Heart, MessageCircle, Share2, MapPin, Calendar, ExternalLink } from 'lucide-react'
+import { Heart, MessageCircle, Share2, Calendar, ExternalLink } from 'lucide-react'
+import { generateNameId } from '@/utils/utils'
+import path from '@/constants/path'
+import { useTop5LatestPostByEventCode } from './hooks/useLandingTemplateQueries'
 
 gsap.registerPlugin(ScrollTrigger)
 
 export default function Template2(props: LandingTemplateProps) {
+  const { postId } = useParams()
+
+  const eventCode = postId?.split('eC')[1]
   const containerRef = useRef<HTMLDivElement>(null)
   const cursorRef = useRef<HTMLDivElement>(null)
   const [cursorText, setCursorText] = useState('View')
   const [selectedImage, setSelectedImage] = useState<SocialMediaImage | null>(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+
+  const { data: latestPosts = [] } = useTop5LatestPostByEventCode(eventCode)
 
   useEffect(() => {
     const cursor = cursorRef.current
@@ -211,33 +220,47 @@ export default function Template2(props: LandingTemplateProps) {
         <div className='max-w-7xl mx-auto px-8'>
           {/* Related Events */}
           <div className='mb-16'>
-            <h2 className='text-4xl font-bold mb-12'>Sự Kiện Khác</h2>
+            <h2 className='text-4xl font-bold mb-12'>Bài Đăng Khác</h2>
             <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-              {props.relatedEvents.map((event) => (
-                <a
-                  key={event.id}
-                  href={event.url}
-                  className='group block bg-gray-800 rounded-xl overflow-hidden hover:bg-gray-700 transition-colors duration-300'
-                >
-                  <img src={event.image} alt={event.title} className='w-full h-48 object-cover' />
-                  <div className='p-6'>
-                    <h3 className='text-xl font-semibold mb-3 flex items-center gap-2 group-hover:gap-4 transition-all'>
-                      {event.title}
-                      <ExternalLink className='w-5 h-5' />
-                    </h3>
-                    <div className='space-y-2 text-gray-400'>
-                      <p className='flex items-center gap-2'>
-                        <Calendar className='w-4 h-4' />
-                        {event.date}
-                      </p>
-                      <p className='flex items-center gap-2'>
-                        <MapPin className='w-4 h-4' />
-                        {event.location}
-                      </p>
+              {latestPosts.map((post) => {
+                const nameId = generateNameId({
+                  name: post.title,
+                  id: post.postSocialMediaId,
+                  id_2: post.authorName
+                })
+                return (
+                  <Link
+                    key={post.postSocialMediaId}
+                    to={`${path.user.event.social_media_detail_base}/${nameId}`}
+                    className='group block bg-gray-800 rounded-xl overflow-hidden hover:bg-gray-700 transition-colors duration-300'
+                  >
+                    <img src={post.bannerPostUrl} alt={post.title} className='w-full h-48 object-cover' />
+                    <div className='p-6'>
+                      <h3 className='text-xl font-semibold mb-3 flex items-center gap-2 group-hover:gap-4 transition-all'>
+                        {post.title}
+                        <ExternalLink className='w-5 h-5' />
+                      </h3>
+                      <p className='text-sm text-gray-400 mb-3 line-clamp-2'>{post.description}</p>
+                      <div className='space-y-2 text-gray-400'>
+                        <p className='flex items-center gap-2'>
+                          <Calendar className='w-4 h-4' />
+                          {new Date(post.publishDate).toLocaleDateString('vi-VN')}
+                        </p>
+                        <div className='flex items-center gap-4 text-sm'>
+                          <span className='flex items-center gap-1'>
+                            <Heart className='w-4 h-4' />
+                            {post.totalReactions}
+                          </span>
+                          <span className='flex items-center gap-1'>
+                            <MessageCircle className='w-4 h-4' />
+                            {post.totalComments}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </a>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           </div>
 

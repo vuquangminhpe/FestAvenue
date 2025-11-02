@@ -721,7 +721,7 @@ const EventDetails: React.FC = () => {
                         `${path.user.event.social_media_detail_base}/${generateNameId({
                           id: post.postSocialMediaId,
                           name: post.title,
-                          id_2: post.authorName,
+                          id_2: `eC${eventCode}eC`,
                           templateNumber: post.templateNumber
                         })}`
                       )

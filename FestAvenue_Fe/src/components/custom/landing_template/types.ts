@@ -49,6 +49,7 @@ export interface LandingTemplateProps {
   authorAvatar?: string
   eventDate?: string
   eventLocation?: string
+  eventCode?: string
 
   // Content sections
   content: string

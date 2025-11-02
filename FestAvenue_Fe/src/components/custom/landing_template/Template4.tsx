@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { LandingTemplateProps, SocialMediaImage } from './types'
@@ -6,16 +7,24 @@ import CommentModal from './CommentModal'
 import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
 import { Heart, MessageCircle, Share2, MapPin, Calendar, Sparkles, ArrowRight } from 'lucide-react'
+import { generateNameId } from '@/utils/utils'
+import path from '@/constants/path'
+import { useTop5LatestPostByEventCode } from './hooks/useLandingTemplateQueries'
 
 gsap.registerPlugin(ScrollTrigger)
 
 export default function Template4(props: LandingTemplateProps) {
+  const { postId } = useParams()
+
+  const eventCode = postId?.split('eC')[1]
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isAutoPlay, setIsAutoPlay] = useState(true)
   const [selectedImage, setSelectedImage] = useState<SocialMediaImage | null>(null)
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
+
+  const { data: latestPosts = [] } = useTop5LatestPostByEventCode(eventCode)
 
   useEffect(() => {
     // Particle animation on canvas
@@ -214,21 +223,13 @@ export default function Template4(props: LandingTemplateProps) {
   return (
     <div ref={containerRef} className='bg-white min-h-screen relative overflow-hidden'>
       {/* Animated Canvas Background */}
-      <canvas
-        ref={canvasRef}
-        className='fixed inset-0 pointer-events-none z-0'
-        style={{ opacity: 0.3 }}
-      />
+      <canvas ref={canvasRef} className='fixed inset-0 pointer-events-none z-0' style={{ opacity: 0.3 }} />
 
       {/* Hero Section */}
       <div className='relative min-h-screen flex items-center justify-center overflow-hidden'>
         {/* Background with blend mode */}
         <div className='absolute inset-0'>
-          <img
-            src={props.bannerUrl}
-            alt={props.title}
-            className='w-full h-full object-cover'
-          />
+          <img src={props.bannerUrl} alt={props.title} className='w-full h-full object-cover' />
           <div className='absolute inset-0 bg-gradient-to-br from-purple-900/70 via-pink-800/60 to-indigo-900/70 mix-blend-multiply' />
           <div className='absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent' />
         </div>
@@ -247,9 +248,7 @@ export default function Template4(props: LandingTemplateProps) {
             <span className='text-white font-semibold'>{props.authorName}</span>
           </div>
 
-          <h1 className='glow-text text-7xl md:text-9xl font-black text-white mb-8 leading-none'>
-            {props.title}
-          </h1>
+          <h1 className='glow-text text-7xl md:text-9xl font-black text-white mb-8 leading-none'>{props.title}</h1>
 
           {props.subtitle && (
             <p className='text-3xl md:text-5xl font-bold bg-gradient-to-r from-purple-200 via-pink-200 to-blue-200 bg-clip-text text-transparent mb-8'>
@@ -337,9 +336,7 @@ export default function Template4(props: LandingTemplateProps) {
                   />
                   <div className='absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-80'>
                     <div className='absolute bottom-0 left-0 right-0 p-8'>
-                      {image.caption && (
-                        <p className='text-white text-2xl font-bold mb-4'>{image.caption}</p>
-                      )}
+                      {image.caption && <p className='text-white text-2xl font-bold mb-4'>{image.caption}</p>}
                       <div className='flex items-center gap-8 text-white text-lg'>
                         <button
                           className='flex items-center gap-3 hover:scale-125 transition-transform'
@@ -429,72 +426,84 @@ export default function Template4(props: LandingTemplateProps) {
         <div className='max-w-7xl mx-auto px-8'>
           <div className='text-center mb-16'>
             <h2 className='text-6xl font-black mb-4 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent'>
-              Khám Phá Thêm Sự Kiện
+              Khám Phá Thêm Bài Đăng
             </h2>
             <p className='text-xl text-gray-600'>Khám phá những trải nghiệm tuyệt vời khác</p>
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-10'>
-            {props.relatedEvents.map((event) => (
-              <a
-                key={event.id}
-                href={event.url}
-                className='event-flip-card group block'
-                style={{ transformStyle: 'preserve-3d' }}
-              >
-                <div className='relative bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-4'>
-                  {/* Image with overlay */}
-                  <div className='relative h-72 overflow-hidden'>
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className='w-full h-full object-cover transition-transform duration-700 group-hover:scale-110'
-                    />
-                    <div className='absolute inset-0 bg-gradient-to-t from-purple-900/80 via-purple-900/40 to-transparent' />
+            {latestPosts.map((post) => {
+              const nameId = generateNameId({
+                name: post.title,
+                id: post.postSocialMediaId,
+                id_2: post.authorName
+              })
+              return (
+                <Link
+                  key={post.postSocialMediaId}
+                  to={`${path.user.event.social_media_detail_base}/${nameId}`}
+                  className='event-flip-card group block'
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div className='relative bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-4'>
+                    {/* Image with overlay */}
+                    <div className='relative h-72 overflow-hidden'>
+                      <img
+                        src={post.bannerPostUrl}
+                        alt={post.title}
+                        className='w-full h-full object-cover transition-transform duration-700 group-hover:scale-110'
+                      />
+                      <div className='absolute inset-0 bg-gradient-to-t from-purple-900/80 via-purple-900/40 to-transparent' />
 
-                    {/* Floating badge */}
-                    <div className='absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2'>
-                      <Sparkles className='w-4 h-4 text-purple-600' />
-                      <span className='text-sm font-semibold text-purple-600'>Nổi Bật</span>
+                      {/* Floating badge */}
+                      <div className='absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full flex items-center gap-2'>
+                        <Sparkles className='w-4 h-4 text-purple-600' />
+                        <span className='text-sm font-semibold text-purple-600'>Nổi Bật</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Content */}
-                  <div className='p-8'>
-                    <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors flex items-center gap-3'>
-                      {event.title}
-                      <ArrowRight className='w-6 h-6 transform group-hover:translate-x-2 transition-transform' />
-                    </h3>
+                    {/* Content */}
+                    <div className='p-8'>
+                      <h3 className='text-2xl font-bold mb-4 text-gray-900 group-hover:text-purple-600 transition-colors flex items-center gap-3'>
+                        {post.title}
+                        <ArrowRight className='w-6 h-6 transform group-hover:translate-x-2 transition-transform' />
+                      </h3>
+                      <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{post.description}</p>
 
-                    <div className='space-y-3'>
-                      <div className='flex items-center gap-3 text-gray-600'>
-                        <div className='w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center'>
-                          <Calendar className='w-6 h-6 text-purple-600' />
+                      <div className='space-y-3'>
+                        <div className='flex items-center gap-3 text-gray-600'>
+                          <div className='w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center'>
+                            <Calendar className='w-6 h-6 text-purple-600' />
+                          </div>
+                          <span className='text-lg'>{new Date(post.publishDate).toLocaleDateString('vi-VN')}</span>
                         </div>
-                        <span className='text-lg'>{event.date}</span>
-                      </div>
 
-                      <div className='flex items-center gap-3 text-gray-600'>
-                        <div className='w-12 h-12 rounded-full bg-pink-100 flex items-center justify-center'>
-                          <MapPin className='w-6 h-6 text-pink-600' />
+                        <div className='flex items-center gap-4 text-sm text-gray-600'>
+                          <span className='flex items-center gap-1'>
+                            <Heart className='w-4 h-4' />
+                            {post.totalReactions}
+                          </span>
+                          <span className='flex items-center gap-1'>
+                            <MessageCircle className='w-4 h-4' />
+                            {post.totalComments}
+                          </span>
                         </div>
-                        <span className='text-lg'>{event.location}</span>
+                      </div>
+
+                      {/* Hover CTA */}
+                      <div className='mt-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
+                        <div className='w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center rounded-full font-semibold'>
+                          Xem Bài Đăng
+                        </div>
                       </div>
                     </div>
 
-                    {/* Hover CTA */}
-                    <div className='mt-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                      <div className='w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center rounded-full font-semibold'>
-                        Xem Sự Kiện
-                      </div>
-                    </div>
+                    {/* Animated border */}
+                    <div className='absolute inset-0 rounded-3xl border-4 border-transparent group-hover:border-purple-400 transition-all duration-500 pointer-events-none' />
                   </div>
-
-                  {/* Animated border */}
-                  <div className='absolute inset-0 rounded-3xl border-4 border-transparent group-hover:border-purple-400 transition-all duration-500 pointer-events-none' />
-                </div>
-              </a>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -510,7 +519,10 @@ export default function Template4(props: LandingTemplateProps) {
         <div className='relative z-10 max-w-5xl mx-auto px-8'>
           <div className='text-center mb-16'>
             <h2 className='text-6xl font-black mb-4 text-gray-900'>
-              Giữ <span className='bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>Liên Lạc</span>
+              Giữ{' '}
+              <span className='bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'>
+                Liên Lạc
+              </span>
             </h2>
             <p className='text-xl text-gray-600'>Theo dõi chúng tôi trên mạng xã hội để cập nhật</p>
           </div>
@@ -530,9 +542,7 @@ export default function Template4(props: LandingTemplateProps) {
 
                   {/* Main button */}
                   <div className='relative w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 via-pink-600 to-blue-600 flex items-center justify-center shadow-xl group-hover:shadow-2xl transition-all duration-300 group-hover:scale-125 group-hover:rotate-12'>
-                    <span className='text-white text-3xl font-black uppercase'>
-                      {link.platform[0]}
-                    </span>
+                    <span className='text-white text-3xl font-black uppercase'>{link.platform[0]}</span>
                   </div>
 
                   {/* Platform name */}
