@@ -44,65 +44,90 @@ const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManag
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
 
-const Loader = () => (
-  <div
-    className='flex flex-col items-center justify-center h-screen overflow-hidden relative'
-    style={{
-      background: 'linear-gradient(135deg, #000000 0%, #0a0a2e 30%, #16213e 60%, #0f0f23 100%)'
-    }}
-  >
-    {/* Space Background - Stars */}
-    <div className='absolute inset-0 overflow-hidden'>
-      {Array.from({ length: 150 }).map((_, i) => (
-        <div
-          key={`star-${i}`}
-          className='absolute bg-white'
-          style={{
-            width: Math.random() * 2 + 0.5 + 'px',
-            height: Math.random() * 2 + 0.5 + 'px',
-            left: Math.random() * 100 + '%',
-            top: Math.random() * 100 + '%',
-            opacity: Math.random() * 0.8 + 0.2,
-            animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite`,
-            animationDelay: Math.random() * 3 + 's',
-            borderRadius: '50%',
-            boxShadow: `0 0 ${Math.random() * 4 + 2}px rgba(255, 255, 255, 0.8)`
-          }}
-        />
-      ))}
-    </div>
+const Loader = () => {
+  // Pre-generate random values for stars to avoid re-calculation on each render
+  const stars = Array.from({ length: 150 }, () => ({
+    size: Math.random() * 2 + 0.5,
+    left: Math.random() * 100,
+    top: Math.random() * 100,
+    opacity: Math.random() * 0.8 + 0.2,
+    duration: Math.random() * 3 + 2,
+    delay: Math.random() * 3,
+    glow: Math.random() * 4 + 2
+  }))
 
-    {/* Dimensional Cracks */}
-    <div className='absolute inset-0 overflow-hidden' style={{ opacity: 0.6 }}>
-      {Array.from({ length: 12 }).map((_, i) => {
-        const angle = (i * 360) / 12
-        return (
+  const shards = Array.from({ length: 30 }, (_, i) => ({
+    angle: (i * 360) / 30,
+    distance: 150 + Math.random() * 100,
+    delay: i * 0.05
+  }))
+
+  const particles = Array.from({ length: 60 }, () => ({
+    size: Math.random() * 4 + 2,
+    color: Math.random() > 0.5 ? '255, 0, 255' : '0, 255, 255',
+    angle: Math.random() * 360,
+    distance: Math.random() * 300,
+    duration: 2 + Math.random() * 2,
+    delay: Math.random() * 2
+  }))
+
+  return (
+    <div
+      className='flex flex-col items-center justify-center h-screen overflow-hidden relative'
+      style={{
+        background: 'linear-gradient(135deg, #000000 0%, #0a0a2e 30%, #16213e 60%, #0f0f23 100%)'
+      }}
+    >
+      {/* Space Background - Stars */}
+      <div className='absolute inset-0 overflow-hidden'>
+        {stars.map((star, i) => (
           <div
-            key={`crack-${i}`}
-            className='absolute'
+            key={`star-${i}`}
+            className='absolute bg-white'
             style={{
-              left: '50%',
-              top: '50%',
-              width: '600px',
-              height: '2px',
-              background: `linear-gradient(90deg, transparent 0%, rgba(138, 43, 226, 0.8) 30%, rgba(75, 0, 130, 0.9) 50%, rgba(138, 43, 226, 0.8) 70%, transparent 100%)`,
-              transformOrigin: '0% 50%',
-              transform: `rotate(${angle}deg)`,
-              boxShadow: '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(75, 0, 130, 0.4)',
-              animation: `crackPulse ${3 + Math.random() * 2}s ease-in-out infinite`,
-              animationDelay: `${i * 0.15}s`
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              left: `${star.left}%`,
+              top: `${star.top}%`,
+              opacity: star.opacity,
+              animation: `twinkle ${star.duration}s ease-in-out infinite`,
+              animationDelay: `${star.delay}s`,
+              borderRadius: '50%',
+              boxShadow: `0 0 ${star.glow}px rgba(255, 255, 255, 0.8)`
             }}
           />
-        )
-      })}
-    </div>
+        ))}
+      </div>
 
-    {/* Energy Shards Exploding */}
-    <div className='absolute inset-0 overflow-hidden'>
-      {Array.from({ length: 30 }).map((_, i) => {
-        const angle = (i * 360) / 30
-        const distance = 150 + Math.random() * 100
-        return (
+      {/* Dimensional Cracks */}
+      <div className='absolute inset-0 overflow-hidden' style={{ opacity: 0.6 }}>
+        {Array.from({ length: 12 }).map((_, i) => {
+          const angle = (i * 360) / 12
+          const duration = 3 + (i % 3)
+          return (
+            <div
+              key={`crack-${i}`}
+              className='absolute'
+              style={{
+                left: '50%',
+                top: '50%',
+                width: '600px',
+                height: '2px',
+                background: `linear-gradient(90deg, transparent 0%, rgba(138, 43, 226, 0.8) 30%, rgba(75, 0, 130, 0.9) 50%, rgba(138, 43, 226, 0.8) 70%, transparent 100%)`,
+                transformOrigin: '0% 50%',
+                transform: `rotate(${angle}deg)`,
+                boxShadow: '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(75, 0, 130, 0.4)',
+                animation: `crackPulse ${duration}s ease-in-out infinite`,
+                animationDelay: `${i * 0.15}s`
+              }}
+            />
+          )
+        })}
+      </div>
+
+      {/* Energy Shards Exploding */}
+      <div className='absolute inset-0 overflow-hidden'>
+        {shards.map((shard, i) => (
           <div
             key={`shard-${i}`}
             className='absolute'
@@ -114,16 +139,15 @@ const Loader = () => (
               background: `linear-gradient(90deg, rgba(255, 0, 255, 0.9), rgba(138, 43, 226, 0.6), rgba(0, 255, 255, 0.4))`,
               clipPath: 'polygon(0% 50%, 100% 0%, 100% 100%)',
               transformOrigin: '0% 50%',
-              transform: `rotate(${angle}deg) translateX(${distance}px)`,
-              boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)',
+              transform: `rotate(${shard.angle}deg)`,
+              ['--distance' as any]: `${shard.distance}px`,
               animation: `shardExplode 3s ease-out infinite`,
-              animationDelay: `${i * 0.05}s`,
-              opacity: 0
+              animationDelay: `${shard.delay}s`,
+              boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)'
             }}
           />
-        )
-      })}
-    </div>
+        ))}
+      </div>
 
     {/* Wormhole/Portal Center */}
     <div
@@ -178,28 +202,28 @@ const Loader = () => (
       />
     </div>
 
-    {/* Energy Particles */}
-    <div className='absolute inset-0 overflow-hidden'>
-      {Array.from({ length: 60 }).map((_, i) => (
-        <div
-          key={`particle-${i}`}
-          className='absolute'
-          style={{
-            width: Math.random() * 4 + 2 + 'px',
-            height: Math.random() * 4 + 2 + 'px',
-            left: '50%',
-            top: '50%',
-            background: `radial-gradient(circle, rgba(${Math.random() > 0.5 ? '255, 0, 255' : '0, 255, 255'}, 0.9) 0%, transparent 70%)`,
-            borderRadius: '50%',
-            animation: `particleExplode ${2 + Math.random() * 2}s ease-out infinite`,
-            animationDelay: `${Math.random() * 2}s`,
-            transform: `translate(-50%, -50%) rotate(${Math.random() * 360}deg) translateX(${Math.random() * 300}px)`,
-            opacity: 0,
-            boxShadow: `0 0 10px rgba(138, 43, 226, 0.8)`
-          }}
-        />
-      ))}
-    </div>
+      {/* Energy Particles */}
+      <div className='absolute inset-0 overflow-hidden'>
+        {particles.map((particle, i) => (
+          <div
+            key={`particle-${i}`}
+            className='absolute'
+            style={{
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              left: '50%',
+              top: '50%',
+              background: `radial-gradient(circle, rgba(${particle.color}, 0.9) 0%, transparent 70%)`,
+              borderRadius: '50%',
+              transform: `translate(-50%, -50%) rotate(${particle.angle}deg)`,
+              ['--particle-distance' as any]: `${particle.distance}px`,
+              animation: `particleExplode ${particle.duration}s ease-out infinite`,
+              animationDelay: `${particle.delay}s`,
+              boxShadow: `0 0 10px rgba(138, 43, 226, 0.8)`
+            }}
+          />
+        ))}
+      </div>
 
     {/* Main Content */}
     <div className='relative z-20 flex flex-col items-center justify-center'>
@@ -338,31 +362,32 @@ const Loader = () => (
       @keyframes crackPulse {
         0%, 100% {
           opacity: 0.3;
-          transform: rotate(var(--angle)) scaleX(0.8);
+          filter: brightness(0.8);
         }
         50% {
           opacity: 1;
-          transform: rotate(var(--angle)) scaleX(1.2);
+          filter: brightness(1.5);
         }
       }
 
       @keyframes shardExplode {
         0% {
           opacity: 0;
-          transform: rotate(var(--angle)) translateX(0) scale(0);
+          transform: translateX(0) scale(0);
         }
         30% {
           opacity: 1;
+          transform: translateX(calc(var(--distance) * 0.7)) scale(1);
         }
         100% {
           opacity: 0;
-          transform: rotate(var(--angle)) translateX(var(--distance)) scale(1);
+          transform: translateX(var(--distance)) scale(0.8);
         }
       }
 
       @keyframes ringRotate {
-        from { transform: scale(var(--scale)) rotate(0deg); }
-        to { transform: scale(var(--scale)) rotate(360deg); }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
       }
 
       @keyframes vortexSpin {
@@ -382,14 +407,18 @@ const Loader = () => (
       @keyframes particleExplode {
         0% {
           opacity: 0;
-          transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0);
+          transform: translateX(0) scale(0);
+          filter: brightness(0.5);
         }
         20% {
           opacity: 1;
+          transform: translateX(calc(var(--particle-distance) * 0.5)) scale(1);
+          filter: brightness(1.5);
         }
         100% {
           opacity: 0;
-          transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--px)) scale(1.5);
+          transform: translateX(var(--particle-distance)) scale(1.5);
+          filter: brightness(0.5);
         }
       }
 
@@ -492,8 +521,9 @@ const Loader = () => (
         }
       }
     `}</style>
-  </div>
-)
+    </div>
+  )
+}
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
