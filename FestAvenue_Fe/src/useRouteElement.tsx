@@ -46,127 +46,283 @@ const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/T
 
 const Loader = () => (
   <div
-    className='flex flex-col items-center justify-center h-screen overflow-hidden'
+    className='flex flex-col items-center justify-center h-screen overflow-hidden relative'
     style={{
-      background: 'linear-gradient(135deg, #0a1628 0%, #1a2847 50%, #0d2a4d 100%)'
+      background: 'linear-gradient(135deg, #000000 0%, #0a0a2e 30%, #16213e 60%, #0f0f23 100%)'
     }}
   >
-    {/* Particle Background Effect */}
+    {/* Space Background - Stars */}
     <div className='absolute inset-0 overflow-hidden'>
-      {Array.from({ length: 80 }).map((_, i) => (
+      {Array.from({ length: 150 }).map((_, i) => (
         <div
-          key={i}
-          className='absolute bg-cyan-400'
+          key={`star-${i}`}
+          className='absolute bg-white'
           style={{
-            width: Math.random() * 3 + 1 + 'px',
-            height: Math.random() * 3 + 1 + 'px',
+            width: Math.random() * 2 + 0.5 + 'px',
+            height: Math.random() * 2 + 0.5 + 'px',
             left: Math.random() * 100 + '%',
             top: Math.random() * 100 + '%',
-            opacity: Math.random() * 0.6 + 0.2,
-            animation: `floatParticle ${Math.random() * 4 + 3}s ease-in-out infinite`,
-            animationDelay: Math.random() * 2 + 's',
+            opacity: Math.random() * 0.8 + 0.2,
+            animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out infinite`,
+            animationDelay: Math.random() * 3 + 's',
             borderRadius: '50%',
-            boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(34, 211, 238, 0.6)`
+            boxShadow: `0 0 ${Math.random() * 4 + 2}px rgba(255, 255, 255, 0.8)`
           }}
         />
       ))}
     </div>
 
-    {/* Radial Glow */}
+    {/* Dimensional Cracks */}
+    <div className='absolute inset-0 overflow-hidden' style={{ opacity: 0.6 }}>
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 360) / 12
+        return (
+          <div
+            key={`crack-${i}`}
+            className='absolute'
+            style={{
+              left: '50%',
+              top: '50%',
+              width: '600px',
+              height: '2px',
+              background: `linear-gradient(90deg, transparent 0%, rgba(138, 43, 226, 0.8) 30%, rgba(75, 0, 130, 0.9) 50%, rgba(138, 43, 226, 0.8) 70%, transparent 100%)`,
+              transformOrigin: '0% 50%',
+              transform: `rotate(${angle}deg)`,
+              boxShadow: '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(75, 0, 130, 0.4)',
+              animation: `crackPulse ${3 + Math.random() * 2}s ease-in-out infinite`,
+              animationDelay: `${i * 0.15}s`
+            }}
+          />
+        )
+      })}
+    </div>
+
+    {/* Energy Shards Exploding */}
+    <div className='absolute inset-0 overflow-hidden'>
+      {Array.from({ length: 30 }).map((_, i) => {
+        const angle = (i * 360) / 30
+        const distance = 150 + Math.random() * 100
+        return (
+          <div
+            key={`shard-${i}`}
+            className='absolute'
+            style={{
+              left: '50%',
+              top: '50%',
+              width: '40px',
+              height: '8px',
+              background: `linear-gradient(90deg, rgba(255, 0, 255, 0.9), rgba(138, 43, 226, 0.6), rgba(0, 255, 255, 0.4))`,
+              clipPath: 'polygon(0% 50%, 100% 0%, 100% 100%)',
+              transformOrigin: '0% 50%',
+              transform: `rotate(${angle}deg) translateX(${distance}px)`,
+              boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)',
+              animation: `shardExplode 3s ease-out infinite`,
+              animationDelay: `${i * 0.05}s`,
+              opacity: 0
+            }}
+          />
+        )
+      })}
+    </div>
+
+    {/* Wormhole/Portal Center */}
     <div
       className='absolute'
       style={{
-        width: '400px',
-        height: '400px',
-        background: 'radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
-        filter: 'blur(60px)',
-        animation: 'pulseGlow 3s ease-in-out infinite'
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '300px',
+        height: '300px'
       }}
-    />
+    >
+      {/* Multiple Rotating Rings */}
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={`ring-${i}`}
+          className='absolute inset-0'
+          style={{
+            border: `${2 - i * 0.3}px solid`,
+            borderColor: `rgba(${138 + i * 20}, ${43 + i * 40}, ${226 - i * 30}, ${0.6 - i * 0.1})`,
+            borderRadius: '50%',
+            transform: `scale(${1 - i * 0.15}) rotate(${i * 15}deg)`,
+            animation: `ringRotate ${4 + i}s linear infinite ${i % 2 === 0 ? 'normal' : 'reverse'}`,
+            boxShadow: `0 0 ${30 - i * 5}px rgba(138, 43, 226, ${0.6 - i * 0.1}), inset 0 0 ${20 - i * 3}px rgba(138, 43, 226, ${0.4 - i * 0.05})`
+          }}
+        />
+      ))}
 
-    {/* Main Content Container */}
-    <div className='relative z-10 flex flex-col items-center justify-center'>
-      {/* Geometric Logo - Diamond Shape */}
+      {/* Central Vortex */}
       <div
-        className='mb-8 relative'
+        className='absolute'
         style={{
-          width: '80px',
-          height: '80px',
-          animation: 'rotateLogo 8s linear infinite'
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '120px',
+          height: '120px',
+          background: 'radial-gradient(circle, rgba(138, 43, 226, 0.9) 0%, rgba(75, 0, 130, 0.6) 40%, rgba(0, 0, 0, 0.9) 100%)',
+          borderRadius: '50%',
+          animation: 'vortexSpin 2s linear infinite',
+          boxShadow: '0 0 60px rgba(138, 43, 226, 0.8), 0 0 120px rgba(75, 0, 130, 0.6), inset 0 0 40px rgba(138, 43, 226, 0.5)'
+        }}
+      />
+
+      {/* Glitch Effect Layers */}
+      <div
+        className='absolute inset-0'
+        style={{
+          background: 'radial-gradient(circle, transparent 60%, rgba(255, 0, 255, 0.1) 80%, transparent 100%)',
+          animation: 'glitchEffect 0.3s steps(2, end) infinite'
+        }}
+      />
+    </div>
+
+    {/* Energy Particles */}
+    <div className='absolute inset-0 overflow-hidden'>
+      {Array.from({ length: 60 }).map((_, i) => (
+        <div
+          key={`particle-${i}`}
+          className='absolute'
+          style={{
+            width: Math.random() * 4 + 2 + 'px',
+            height: Math.random() * 4 + 2 + 'px',
+            left: '50%',
+            top: '50%',
+            background: `radial-gradient(circle, rgba(${Math.random() > 0.5 ? '255, 0, 255' : '0, 255, 255'}, 0.9) 0%, transparent 70%)`,
+            borderRadius: '50%',
+            animation: `particleExplode ${2 + Math.random() * 2}s ease-out infinite`,
+            animationDelay: `${Math.random() * 2}s`,
+            transform: `translate(-50%, -50%) rotate(${Math.random() * 360}deg) translateX(${Math.random() * 300}px)`,
+            opacity: 0,
+            boxShadow: `0 0 10px rgba(138, 43, 226, 0.8)`
+          }}
+        />
+      ))}
+    </div>
+
+    {/* Main Content */}
+    <div className='relative z-20 flex flex-col items-center justify-center'>
+      {/* Fractal Logo */}
+      <div
+        className='mb-12 relative'
+        style={{
+          width: '100px',
+          height: '100px',
+          animation: 'logoFloat 3s ease-in-out infinite'
         }}
       >
-        {/* Outer Diamond */}
+        {/* Outer Fracture Frame */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: '-10px',
+            background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(255, 0, 255, 0.3), rgba(0, 255, 255, 0.2))',
+            clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+            animation: 'fractureRotate 8s linear infinite',
+            boxShadow: '0 0 40px rgba(138, 43, 226, 0.6)'
+          }}
+        />
+
+        {/* Main Octagon */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
-            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-            boxShadow: '0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.3)',
-            animation: 'diamondGlow 2s ease-in-out infinite'
+            background: 'linear-gradient(135deg, #8a2be2 0%, #4b0082 50%, #9400d3 100%)',
+            clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+            boxShadow: '0 0 30px rgba(138, 43, 226, 0.8), inset 0 0 20px rgba(138, 43, 226, 0.4)',
+            animation: 'shardGlow 2s ease-in-out infinite'
           }}
         />
 
-        {/* Inner Diamond */}
+        {/* Inner Star */}
         <div
           style={{
             position: 'absolute',
-            inset: '15px',
-            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
-            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-            boxShadow: 'inset 0 0 15px rgba(34, 211, 238, 0.4)'
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '50px',
+            height: '50px',
+            background: 'linear-gradient(45deg, #ff00ff, #00ffff)',
+            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+            animation: 'starPulse 1.5s ease-in-out infinite',
+            boxShadow: '0 0 20px rgba(255, 0, 255, 0.8)'
           }}
         />
       </div>
 
-      {/* Loading Text */}
-      <div
-        style={{
-          fontSize: '28px',
-          fontWeight: '300',
-          color: '#22d3ee',
-          letterSpacing: '4px',
-          textTransform: 'uppercase',
-          marginTop: '40px',
-          animation: 'textGlow 2s ease-in-out infinite',
-          textShadow: '0 0 20px rgba(34, 211, 238, 0.5)'
-        }}
-      >
-        Fest Avenue
+      {/* Loading Text with Glitch */}
+      <div className='relative'>
+        <div
+          style={{
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#fff',
+            letterSpacing: '6px',
+            textTransform: 'uppercase',
+            textShadow: '0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4)',
+            animation: 'textGlitch 3s ease-in-out infinite'
+          }}
+        >
+          Fest Avenue
+        </div>
+
+        {/* Glitch Layers */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            fontSize: '32px',
+            fontWeight: '700',
+            color: '#ff00ff',
+            letterSpacing: '6px',
+            textTransform: 'uppercase',
+            opacity: 0.7,
+            animation: 'glitchLayer1 0.3s steps(2, end) infinite',
+            clipPath: 'inset(0 0 0 0)'
+          }}
+        >
+          Fest Avenue
+        </div>
       </div>
 
       {/* Subtitle */}
       <div
         style={{
-          fontSize: '12px',
-          color: 'rgba(34, 211, 238, 0.6)',
-          letterSpacing: '2px',
-          marginTop: '12px',
-          animation: 'fadeInOut 3s ease-in-out infinite'
+          fontSize: '14px',
+          color: 'rgba(138, 43, 226, 0.9)',
+          letterSpacing: '3px',
+          marginTop: '20px',
+          textTransform: 'uppercase',
+          animation: 'subtitlePulse 2s ease-in-out infinite',
+          textShadow: '0 0 10px rgba(138, 43, 226, 0.6)'
         }}
       >
-        Đang tải...
+        Đang vỡ không gian...
       </div>
 
-      {/* Progress Bar */}
+      {/* Energy Progress */}
       <div
         style={{
-          width: '120px',
-          height: '2px',
+          width: '200px',
+          height: '3px',
           marginTop: '30px',
-          background: 'rgba(34, 211, 238, 0.1)',
-          borderRadius: '1px',
+          background: 'rgba(138, 43, 226, 0.2)',
+          borderRadius: '2px',
           overflow: 'hidden',
-          position: 'relative'
+          position: 'relative',
+          boxShadow: '0 0 10px rgba(138, 43, 226, 0.3)'
         }}
       >
         <div
           style={{
             height: '100%',
-            background: 'linear-gradient(90deg, transparent, #22d3ee, transparent)',
-            animation: 'progressLoad 2s ease-in-out infinite',
-            boxShadow: '0 0 10px rgba(34, 211, 238, 0.6)'
+            background: 'linear-gradient(90deg, transparent, #8a2be2, #ff00ff, #00ffff, transparent)',
+            animation: 'energyFlow 2s ease-in-out infinite',
+            boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)'
           }}
         />
       </div>
@@ -174,81 +330,168 @@ const Loader = () => (
 
     {/* Animations */}
     <style>{`
-        @keyframes rotateLogo {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
-        }
+      @keyframes twinkle {
+        0%, 100% { opacity: 0.2; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.5); }
+      }
 
-        @keyframes diamondGlow {
-          0%, 100% {
-            filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.5)) drop-shadow(0 0 40px rgba(34, 211, 238, 0.2));
-          }
-          50% {
-            filter: drop-shadow(0 0 30px rgba(34, 211, 238, 0.8)) drop-shadow(0 0 60px rgba(34, 211, 238, 0.4));
-          }
+      @keyframes crackPulse {
+        0%, 100% {
+          opacity: 0.3;
+          transform: rotate(var(--angle)) scaleX(0.8);
         }
+        50% {
+          opacity: 1;
+          transform: rotate(var(--angle)) scaleX(1.2);
+        }
+      }
 
-        @keyframes textGlow {
-          0%, 100% {
-            opacity: 0.7;
-            textShadow: 0 0 15px rgba(34, 211, 238, 0.3);
-          }
-          50% {
-            opacity: 1;
-            textShadow: 0 0 30px rgba(34, 211, 238, 0.7);
-          }
+      @keyframes shardExplode {
+        0% {
+          opacity: 0;
+          transform: rotate(var(--angle)) translateX(0) scale(0);
         }
+        30% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: rotate(var(--angle)) translateX(var(--distance)) scale(1);
+        }
+      }
 
-        @keyframes fadeInOut {
-          0%, 100% {
-            opacity: 0.5;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
+      @keyframes ringRotate {
+        from { transform: scale(var(--scale)) rotate(0deg); }
+        to { transform: scale(var(--scale)) rotate(360deg); }
+      }
 
-        @keyframes progressLoad {
-          0% {
-            transform: translateX(-100%);
-          }
-          50% {
-            transform: translateX(100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
+      @keyframes vortexSpin {
+        from { transform: translate(-50%, -50%) rotate(0deg); }
+        to { transform: translate(-50%, -50%) rotate(360deg); }
+      }
 
-        @keyframes floatParticle {
-          0% {
-            transform: translateY(0px) translateX(0px);
-            opacity: 0.2;
-          }
-          50% {
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateY(-50px) translateX(20px);
-            opacity: 0.2;
-          }
-        }
+      @keyframes glitchEffect {
+        0% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+        100% { transform: translate(0); }
+      }
 
-        @keyframes pulseGlow {
-          0%, 100% {
-            transform: scale(1);
-            opacity: 0.1;
-          }
-          50% {
-            transform: scale(1.2);
-            opacity: 0.15;
-          }
+      @keyframes particleExplode {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(0);
         }
-      `}</style>
+        20% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) rotate(var(--angle)) translateX(var(--px)) scale(1.5);
+        }
+      }
+
+      @keyframes logoFloat {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      @keyframes fractureRotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes shardGlow {
+        0%, 100% {
+          filter: brightness(1) drop-shadow(0 0 20px rgba(138, 43, 226, 0.6));
+        }
+        50% {
+          filter: brightness(1.3) drop-shadow(0 0 40px rgba(138, 43, 226, 0.9));
+        }
+      }
+
+      @keyframes starPulse {
+        0%, 100% {
+          transform: translate(-50%, -50%) scale(1) rotate(0deg);
+          opacity: 0.8;
+        }
+        50% {
+          transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
+          opacity: 1;
+        }
+      }
+
+      @keyframes textGlitch {
+        0%, 90%, 100% {
+          transform: translate(0);
+        }
+        92% {
+          transform: translate(-3px, 2px);
+        }
+        94% {
+          transform: translate(3px, -2px);
+        }
+        96% {
+          transform: translate(-2px, -1px);
+        }
+      }
+
+      @keyframes glitchLayer1 {
+        0% {
+          transform: translate(0);
+          clip-path: inset(40% 0 60% 0);
+        }
+        20% {
+          transform: translate(-3px, 3px);
+          clip-path: inset(50% 0 30% 0);
+        }
+        40% {
+          transform: translate(3px, -2px);
+          clip-path: inset(20% 0 70% 0);
+        }
+        60% {
+          transform: translate(-2px, -3px);
+          clip-path: inset(60% 0 10% 0);
+        }
+        80% {
+          transform: translate(2px, 2px);
+          clip-path: inset(30% 0 40% 0);
+        }
+        100% {
+          transform: translate(0);
+          clip-path: inset(40% 0 60% 0);
+        }
+      }
+
+      @keyframes subtitlePulse {
+        0%, 100% {
+          opacity: 0.6;
+          letter-spacing: 3px;
+        }
+        50% {
+          opacity: 1;
+          letter-spacing: 4px;
+        }
+      }
+
+      @keyframes energyFlow {
+        0% {
+          transform: translateX(-100%);
+        }
+        50% {
+          transform: translateX(100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
+      }
+    `}</style>
   </div>
 )
 
