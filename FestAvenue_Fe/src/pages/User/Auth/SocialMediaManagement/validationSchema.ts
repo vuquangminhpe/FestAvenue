@@ -150,40 +150,12 @@ export const templateEditorSchema = z
     description: meaningfulTextValidator(20, 2000, 'Mô tả', 5),
 
     // Media
-    bannerUrl: z
-      .string()
-      .min(1, 'URL Banner là bắt buộc')
-      .refine(
-        (url) => {
-          try {
-            const parsed = new URL(url)
-            return ['http:', 'https:'].includes(parsed.protocol)
-          } catch {
-            return false
-          }
-        },
-        { message: 'URL Banner phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
-      ),
+    bannerUrl: z.string().min(1, 'Banner là bắt buộc'),
 
     // Author Info
     authorName: meaningfulTextValidator(3, 100, 'Tên tác giả', 1),
 
-    authorAvatar: z
-      .string()
-      .refine(
-        (url) => {
-          if (!url || url.length === 0) return true
-          try {
-            const parsed = new URL(url)
-            return ['http:', 'https:'].includes(parsed.protocol)
-          } catch {
-            return false
-          }
-        },
-        { message: 'Avatar tác giả phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
-      )
-      .optional()
-      .or(z.literal('')),
+    authorAvatar: z.string().optional().or(z.literal('')),
 
     // Event Details
     eventDate: z
@@ -218,20 +190,10 @@ export const templateEditorSchema = z
     content: meaningfulTextValidator(30, 10000, 'Nội dung', 10),
 
     // Collections
-    images: z.array(socialMediaImageSchema).min(1, 'Cần có ít nhất 1 hình ảnh').max(20, 'Tối đa 20 hình ảnh'),
+    images: z.array(socialMediaImageSchema).min(1, 'Cần có ít nhất 1 hình ảnh').max(10, 'Tối đa 10 hình ảnh'),
 
-    socialLinks: z.array(socialLinkSchema).max(10, 'Tối đa 10 liên kết mạng xã hội')
+    socialLinks: z.array(socialLinkSchema).max(5, 'Tối đa 5 liên kết mạng xã hội')
   })
-  .refine(
-    (data) => {
-      // Ensure all images have valid URLs
-      return data.images.every((img) => img.url && img.url.trim().length > 0)
-    },
-    {
-      message: 'Tất cả hình ảnh phải có URL hợp lệ',
-      path: ['images']
-    }
-  )
   .refine(
     (data) => {
       // Check for duplicate social platforms

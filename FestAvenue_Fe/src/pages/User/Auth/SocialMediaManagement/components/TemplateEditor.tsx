@@ -73,19 +73,6 @@ export default function TemplateEditor({
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
-  const [bannerSource, setBannerSource] = useState<'url' | 'upload'>(
-    templateData.bannerUrl?.startsWith('data:') || templateData.bannerUrl?.startsWith('http') ? 'url' : 'upload'
-  )
-  const [avatarSource, setAvatarSource] = useState<'url' | 'upload'>(
-    templateData.authorAvatar?.startsWith('data:') || templateData.authorAvatar?.startsWith('http') ? 'url' : 'upload'
-  )
-  const [imageSources, setImageSources] = useState<Record<string, 'url' | 'upload'>>(() => {
-    const initial: Record<string, 'url' | 'upload'> = {}
-    templateData.images.forEach((image) => {
-      initial[image.id] = image.url.startsWith('data:') || image.url.startsWith('http') ? 'url' : 'upload'
-    })
-    return initial
-  })
 
   const TemplateComponent = templateComponents[templateType]
 
@@ -116,6 +103,7 @@ export default function TemplateEditor({
     control: form.control,
     name: 'images'
   })
+  console.log(imageFields)
 
   const {
     fields: socialLinkFields,
@@ -167,15 +155,35 @@ export default function TemplateEditor({
       return
     }
 
+    // Create preview immediately using FileReader
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const previewUrl = reader.result as string
+      // Set preview URL to form immediately for instant display
+      onSuccess(previewUrl)
+    }
+    reader.readAsDataURL(file)
+
+    // Upload to server in background
     try {
       const url = await uploadFileToServer(file, uploadKey)
+      // Replace preview with actual server URL
       onSuccess(url)
     } catch (error) {
       console.error('Failed to upload image:', error)
+      // Clear on error
+      onSuccess('')
     }
   }
 
   const handleSave = async (data: TemplateEditorFormData) => {
+    // Check if any files are still uploading
+    const isUploading = Object.values(uploadingFiles).some((uploading) => uploading)
+    if (isUploading) {
+      toast.error('Vui lòng đợi tất cả ảnh tải lên hoàn tất')
+      return
+    }
+
     // Validate before saving
     const isValid = await form.trigger()
     if (!isValid) {
@@ -250,7 +258,6 @@ export default function TemplateEditor({
       comments: []
     }
     appendImage(newImage)
-    setImageSources((prev) => ({ ...prev, [newImage.id]: 'url' }))
   }
 
   const addSocialLink = () => {
@@ -392,58 +399,61 @@ export default function TemplateEditor({
                 <CardContent className='space-y-4'>
                   <div className='space-y-2'>
                     <Label htmlFor='bannerUrl'>
-                      URL Banner <span className='text-red-500'>*</span>
+                      Banner <span className='text-red-500'>*</span>
                     </Label>
-                    <Tabs
-                      value={bannerSource}
-                      onValueChange={(value) => {
-                        const nextValue = value as 'url' | 'upload'
-                        setBannerSource(nextValue)
-                        if (nextValue === 'url' && form.getValues('bannerUrl').startsWith('data:')) {
-                          form.setValue('bannerUrl', '', { shouldValidate: true })
-                        }
-                      }}
-                      className='space-y-3'
-                    >
-                      <TabsList className='grid grid-cols-2 w-full'>
-                        <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                        <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value='url' className='m-0 space-y-2'>
-                        <Input
-                          {...form.register('bannerUrl')}
-                          placeholder='https://example.com/banner.jpg'
-                          className={form.formState.errors.bannerUrl ? 'border-red-500' : ''}
-                        />
-                        {form.formState.errors.bannerUrl && (
-                          <p className='text-sm text-red-500'>{form.formState.errors.bannerUrl.message}</p>
-                        )}
-                      </TabsContent>
-                      <TabsContent value='upload' className='m-0 space-y-2'>
-                        <Input
-                          type='file'
-                          accept='image/*'
-                          disabled={uploadingFiles['banner']}
-                          onChange={(event) =>
-                            void handleImageUpload(
-                              event,
-                              (url) => {
-                                setBannerSource('upload')
-                                form.setValue('bannerUrl', url, { shouldValidate: true })
-                              },
-                              'banner'
-                            )
-                          }
-                        />
+                    {formValues.bannerUrl && (
+                      <div className='relative rounded-lg overflow-hidden border-2 border-gray-200'>
+                        <img src={formValues.bannerUrl} alt='Banner preview' className='w-full h-48 object-cover' />
                         {uploadingFiles['banner'] && (
-                          <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                            <Loader2 className='w-4 h-4 animate-spin' />
-                            <span>Đang tải ảnh lên...</span>
+                          <div className='absolute inset-0 bg-black/50 flex items-center justify-center'>
+                            <div className='flex flex-col items-center gap-2 text-white'>
+                              <Loader2 className='w-8 h-8 animate-spin' />
+                              <span className='text-sm font-medium'>Đang tải lên server...</span>
+                            </div>
                           </div>
                         )}
-                        <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                      </TabsContent>
-                    </Tabs>
+                      </div>
+                    )}
+                    <div>
+                      <Input
+                        type='file'
+                        accept='image/*'
+                        disabled={uploadingFiles['banner']}
+                        onChange={(event) =>
+                          void handleImageUpload(
+                            event,
+                            (url) => {
+                              form.setValue('bannerUrl', url, { shouldValidate: true })
+                            },
+                            'banner'
+                          )
+                        }
+                        className='hidden'
+                        id='banner-upload'
+                      />
+                      <Button
+                        type='button'
+                        variant='outline'
+                        disabled={uploadingFiles['banner']}
+                        onClick={() => document.getElementById('banner-upload')?.click()}
+                        className='w-full'
+                      >
+                        {uploadingFiles['banner'] ? (
+                          <>
+                            <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                            Đang tải lên server...
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className='w-4 h-4 mr-2' />
+                            {formValues.bannerUrl ? 'Thay đổi ảnh Banner' : 'Chọn ảnh Banner'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {form.formState.errors.bannerUrl && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.bannerUrl.message}</p>
+                    )}
                   </div>
 
                   <div className='space-y-2'>
@@ -506,53 +516,63 @@ export default function TemplateEditor({
                   </div>
 
                   <div className='space-y-2'>
-                    <Label htmlFor='authorAvatar'>URL Avatar</Label>
-                    <Tabs
-                      value={avatarSource}
-                      onValueChange={(value) => {
-                        const nextValue = value as 'url' | 'upload'
-                        setAvatarSource(nextValue)
-                        if (nextValue === 'url' && (form.getValues('authorAvatar') || '').startsWith('data:')) {
-                          form.setValue('authorAvatar', '', { shouldValidate: true })
+                    <Label htmlFor='authorAvatar'>Avatar</Label>
+                    {formValues.authorAvatar && (
+                      <div className='flex justify-center'>
+                        <div className='relative'>
+                          <img
+                            src={formValues.authorAvatar}
+                            alt='Avatar preview'
+                            className='w-24 h-24 rounded-full object-cover border-2 border-gray-200'
+                          />
+                          {uploadingFiles['avatar'] && (
+                            <div className='absolute inset-0 bg-black/50 rounded-full flex items-center justify-center'>
+                              <Loader2 className='w-8 h-8 animate-spin text-white' />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div>
+                      <Input
+                        type='file'
+                        accept='image/*'
+                        disabled={uploadingFiles['avatar']}
+                        onChange={(event) =>
+                          void handleImageUpload(
+                            event,
+                            (url) => {
+                              form.setValue('authorAvatar', url, { shouldValidate: true })
+                            },
+                            'avatar'
+                          )
                         }
-                      }}
-                      className='space-y-3'
-                    >
-                      <TabsList className='grid grid-cols-2 w-full'>
-                        <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                        <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value='url' className='m-0 space-y-2'>
-                        <Input {...form.register('authorAvatar')} placeholder='https://example.com/avatar.jpg' />
-                        {form.formState.errors.authorAvatar && (
-                          <p className='text-sm text-red-500'>{form.formState.errors.authorAvatar.message}</p>
+                        className='hidden'
+                        id='avatar-upload'
+                      />
+                      <Button
+                        type='button'
+                        variant='outline'
+                        disabled={uploadingFiles['avatar']}
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                        className='w-full'
+                      >
+                        {uploadingFiles['avatar'] ? (
+                          <>
+                            <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                            Đang tải lên server...
+                          </>
+                        ) : (
+                          <>
+                            <ImageIcon className='w-4 h-4 mr-2' />
+                            {formValues.authorAvatar ? 'Thay đổi Avatar' : 'Chọn Avatar'}
+                          </>
                         )}
-                      </TabsContent>
-                      <TabsContent value='upload' className='m-0 space-y-2'>
-                        <Input
-                          type='file'
-                          accept='image/*'
-                          disabled={uploadingFiles['avatar']}
-                          onChange={(event) =>
-                            void handleImageUpload(
-                              event,
-                              (url) => {
-                                setAvatarSource('upload')
-                                form.setValue('authorAvatar', url, { shouldValidate: true })
-                              },
-                              'avatar'
-                            )
-                          }
-                        />
-                        {uploadingFiles['avatar'] && (
-                          <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                            <Loader2 className='w-4 h-4 animate-spin' />
-                            <span>Đang tải ảnh lên...</span>
-                          </div>
-                        )}
-                        <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                      </TabsContent>
-                    </Tabs>
+                      </Button>
+                    </div>
+                    {form.formState.errors.authorAvatar && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.authorAvatar.message}</p>
+                    )}
                   </div>
 
                   {/* <div className='space-y-2'>
@@ -605,13 +625,13 @@ export default function TemplateEditor({
                     <div>
                       <CardTitle>Thư viện hình ảnh</CardTitle>
                       <CardDescription>
-                        Quản lý hình ảnh hiển thị trong template (Tối thiểu 1, tối đa 20 ảnh)
+                        Quản lý hình ảnh hiển thị trong template (Tối thiểu 1, tối đa 5 ảnh)
                       </CardDescription>
                     </div>
                     <Button
                       type='button'
                       onClick={addImage}
-                      disabled={imageFields.length >= 20}
+                      disabled={imageFields.length >= 5}
                       className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
                     >
                       <Plus className='w-4 h-4' />
@@ -627,58 +647,53 @@ export default function TemplateEditor({
                     </Alert>
                   )}
 
-                  {imageFields.map((field, index) => (
-                    <Card key={field.id} className='border-2'>
-                      <CardHeader>
-                        <div className='flex items-center justify-between'>
-                          <div className='flex items-center gap-2'>
-                            <ImageIcon className='w-5 h-5 text-cyan-500' />
-                            <CardTitle className='text-base'>Hình ảnh {index + 1}</CardTitle>
+                  {imageFields.map((field, index) => {
+                    // Get current form values for reactive updates
+                    const currentImageUrl = formValues.images[index]?.url || ''
+                    const currentImageCaption = formValues.images[index]?.caption || ''
+
+                    return (
+                      <Card key={field.id} className='border-2'>
+                        <CardHeader>
+                          <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-2'>
+                              <ImageIcon className='w-5 h-5 text-cyan-500' />
+                              <CardTitle className='text-base'>Hình ảnh {index + 1}</CardTitle>
+                            </div>
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='sm'
+                              onClick={() => removeImage(index)}
+                              className='text-red-500 hover:text-red-600 hover:bg-red-50'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                            </Button>
                           </div>
-                          <Button
-                            type='button'
-                            variant='ghost'
-                            size='sm'
-                            onClick={() => removeImage(index)}
-                            className='text-red-500 hover:text-red-600 hover:bg-red-50'
-                          >
-                            <Trash2 className='w-4 h-4' />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className='space-y-4'>
-                        <div className='space-y-2'>
-                          <Label>
-                            URL hình ảnh <span className='text-red-500'>*</span>
-                          </Label>
-                          <Tabs
-                            value={imageSources[field.id] ?? 'url'}
-                            onValueChange={(value) => {
-                              const nextValue = value as 'url' | 'upload'
-                              setImageSources((prev) => ({ ...prev, [field.id]: nextValue }))
-                              if (nextValue === 'url' && field.url.startsWith('data:')) {
-                                form.setValue(`images.${index}.url`, '', { shouldValidate: true })
-                              }
-                            }}
-                            className='space-y-3'
-                          >
-                            <TabsList className='grid grid-cols-2 w-full'>
-                              <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                              <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value='url' className='m-0 space-y-2'>
-                              <Input
-                                {...form.register(`images.${index}.url`)}
-                                placeholder='https://example.com/image.jpg'
-                                className={form.formState.errors.images?.[index]?.url ? 'border-red-500' : ''}
-                              />
-                              {form.formState.errors.images?.[index]?.url && (
-                                <p className='text-sm text-red-500'>
-                                  {form.formState.errors.images[index]?.url?.message}
-                                </p>
-                              )}
-                            </TabsContent>
-                            <TabsContent value='upload' className='m-0 space-y-2'>
+                        </CardHeader>
+                        <CardContent className='space-y-4'>
+                          <div className='space-y-2'>
+                            <Label>
+                              Hình ảnh <span className='text-red-500'>*</span>
+                            </Label>
+                            {currentImageUrl && (
+                              <div className='relative rounded-lg overflow-hidden border-2 border-gray-200'>
+                                <img
+                                  src={currentImageUrl}
+                                  alt={currentImageCaption || `Image ${index + 1}`}
+                                  className='w-full h-48 object-cover'
+                                />
+                                {uploadingFiles[`image-${field.id}`] && (
+                                  <div className='absolute inset-0 bg-black/50 flex items-center justify-center'>
+                                    <div className='flex flex-col items-center gap-2 text-white'>
+                                      <Loader2 className='w-8 h-8 animate-spin' />
+                                      <span className='text-sm font-medium'>Đang tải lên server...</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            <div>
                               <Input
                                 type='file'
                                 accept='image/*'
@@ -687,46 +702,54 @@ export default function TemplateEditor({
                                   void handleImageUpload(
                                     event,
                                     (url) => {
-                                      setImageSources((prev) => ({ ...prev, [field.id]: 'upload' }))
                                       form.setValue(`images.${index}.url`, url, { shouldValidate: true })
                                     },
                                     `image-${field.id}`
                                   )
                                 }
+                                className='hidden'
+                                id={`image-upload-${field.id}`}
                               />
-                              {uploadingFiles[`image-${field.id}`] && (
-                                <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                                  <Loader2 className='w-4 h-4 animate-spin' />
-                                  <span>Đang tải ảnh lên...</span>
-                                </div>
-                              )}
-                              <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                            </TabsContent>
-                          </Tabs>
-                        </div>
-
-                        <div className='space-y-2'>
-                          <Label>Mô tả</Label>
-                          <Input {...form.register(`images.${index}.caption`)} placeholder='Mô tả hình ảnh' />
-                          {form.formState.errors.images?.[index]?.caption && (
-                            <p className='text-sm text-red-500'>
-                              {form.formState.errors.images[index]?.caption?.message}
-                            </p>
-                          )}
-                        </div>
-
-                        {field.url && (
-                          <div className='mt-4'>
-                            <img
-                              src={field.url}
-                              alt={field.caption || `Image ${index + 1}`}
-                              className='w-full h-48 object-cover rounded-lg'
-                            />
+                              <Button
+                                type='button'
+                                variant='outline'
+                                disabled={uploadingFiles[`image-${field.id}`]}
+                                onClick={() => document.getElementById(`image-upload-${field.id}`)?.click()}
+                                className='w-full'
+                              >
+                                {uploadingFiles[`image-${field.id}`] ? (
+                                  <>
+                                    <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                    Đang tải lên server...
+                                  </>
+                                ) : (
+                                  <>
+                                    <ImageIcon className='w-4 h-4 mr-2' />
+                                    {field.url ? 'Thay đổi hình ảnh' : 'Chọn hình ảnh'}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                            {form.formState.errors.images?.[index]?.url && (
+                              <p className='text-sm text-red-500'>
+                                {form.formState.errors.images[index]?.url?.message}
+                              </p>
+                            )}
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+
+                          <div className='space-y-2'>
+                            <Label>Mô tả</Label>
+                            <Input {...form.register(`images.${index}.caption`)} placeholder='Mô tả hình ảnh' />
+                            {form.formState.errors.images?.[index]?.caption && (
+                              <p className='text-sm text-red-500'>
+                                {form.formState.errors.images[index]?.caption?.message}
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
 
                   {imageFields.length === 0 && (
                     <div className='text-center py-12 text-gray-500'>
