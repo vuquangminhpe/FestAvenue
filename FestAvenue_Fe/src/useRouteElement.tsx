@@ -44,309 +44,129 @@ const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManag
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
 
-const Loader = () => {
-  // Pre-generate random values for stars to avoid re-calculation on each render
-  const stars = Array.from({ length: 150 }, () => ({
-    size: Math.random() * 2 + 0.5,
-    left: Math.random() * 100,
-    top: Math.random() * 100,
-    opacity: Math.random() * 0.8 + 0.2,
-    duration: Math.random() * 3 + 2,
-    delay: Math.random() * 3,
-    glow: Math.random() * 4 + 2
-  }))
-
-  const shards = Array.from({ length: 30 }, (_, i) => ({
-    angle: (i * 360) / 30,
-    distance: 150 + Math.random() * 100,
-    delay: i * 0.05
-  }))
-
-  const particles = Array.from({ length: 60 }, () => ({
-    size: Math.random() * 4 + 2,
-    color: Math.random() > 0.5 ? '255, 0, 255' : '0, 255, 255',
-    angle: Math.random() * 360,
-    distance: Math.random() * 300,
-    duration: 2 + Math.random() * 2,
-    delay: Math.random() * 2
-  }))
-
-  return (
-    <div
-      className='flex flex-col items-center justify-center h-screen overflow-hidden relative'
-      style={{
-        background: 'linear-gradient(135deg, #000000 0%, #0a0a2e 30%, #16213e 60%, #0f0f23 100%)'
-      }}
-    >
-      {/* Space Background - Stars */}
-      <div className='absolute inset-0 overflow-hidden'>
-        {stars.map((star, i) => (
-          <div
-            key={`star-${i}`}
-            className='absolute bg-white'
-            style={{
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              left: `${star.left}%`,
-              top: `${star.top}%`,
-              opacity: star.opacity,
-              animation: `twinkle ${star.duration}s ease-in-out infinite`,
-              animationDelay: `${star.delay}s`,
-              borderRadius: '50%',
-              boxShadow: `0 0 ${star.glow}px rgba(255, 255, 255, 0.8)`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Dimensional Cracks */}
-      <div className='absolute inset-0 overflow-hidden' style={{ opacity: 0.6 }}>
-        {Array.from({ length: 12 }).map((_, i) => {
-          const angle = (i * 360) / 12
-          const duration = 3 + (i % 3)
-          return (
-            <div
-              key={`crack-${i}`}
-              className='absolute'
-              style={{
-                left: '50%',
-                top: '50%',
-                width: '600px',
-                height: '2px',
-                background: `linear-gradient(90deg, transparent 0%, rgba(138, 43, 226, 0.8) 30%, rgba(75, 0, 130, 0.9) 50%, rgba(138, 43, 226, 0.8) 70%, transparent 100%)`,
-                transformOrigin: '0% 50%',
-                transform: `rotate(${angle}deg)`,
-                boxShadow: '0 0 20px rgba(138, 43, 226, 0.6), 0 0 40px rgba(75, 0, 130, 0.4)',
-                animation: `crackPulse ${duration}s ease-in-out infinite`,
-                animationDelay: `${i * 0.15}s`
-              }}
-            />
-          )
-        })}
-      </div>
-
-      {/* Energy Shards Exploding */}
-      <div className='absolute inset-0 overflow-hidden'>
-        {shards.map((shard, i) => (
-          <div
-            key={`shard-${i}`}
-            className='absolute'
-            style={{
-              left: '50%',
-              top: '50%',
-              width: '40px',
-              height: '8px',
-              background: `linear-gradient(90deg, rgba(255, 0, 255, 0.9), rgba(138, 43, 226, 0.6), rgba(0, 255, 255, 0.4))`,
-              clipPath: 'polygon(0% 50%, 100% 0%, 100% 100%)',
-              transformOrigin: '0% 50%',
-              transform: `rotate(${shard.angle}deg)`,
-              ['--distance' as any]: `${shard.distance}px`,
-              animation: `shardExplode 3s ease-out infinite`,
-              animationDelay: `${shard.delay}s`,
-              boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)'
-            }}
-          />
-        ))}
-      </div>
-
-    {/* Wormhole/Portal Center */}
-    <div
-      className='absolute'
-      style={{
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: '300px',
-        height: '300px'
-      }}
-    >
-      {/* Multiple Rotating Rings */}
-      {Array.from({ length: 5 }).map((_, i) => (
+const Loader = () => (
+  <div
+    className='flex flex-col items-center justify-center h-screen overflow-hidden'
+    style={{
+      background: 'linear-gradient(135deg, #0a1628 0%, #1a2847 50%, #0d2a4d 100%)'
+    }}
+  >
+    {/* Particle Background Effect */}
+    <div className='absolute inset-0 overflow-hidden'>
+      {Array.from({ length: 80 }).map((_, i) => (
         <div
-          key={`ring-${i}`}
-          className='absolute inset-0'
+          key={i}
+          className='absolute bg-cyan-400'
           style={{
-            border: `${2 - i * 0.3}px solid`,
-            borderColor: `rgba(${138 + i * 20}, ${43 + i * 40}, ${226 - i * 30}, ${0.6 - i * 0.1})`,
+            width: Math.random() * 3 + 1 + 'px',
+            height: Math.random() * 3 + 1 + 'px',
+            left: Math.random() * 100 + '%',
+            top: Math.random() * 100 + '%',
+            opacity: Math.random() * 0.6 + 0.2,
+            animation: `floatParticle ${Math.random() * 4 + 3}s ease-in-out infinite`,
+            animationDelay: Math.random() * 2 + 's',
             borderRadius: '50%',
-            transform: `scale(${1 - i * 0.15}) rotate(${i * 15}deg)`,
-            animation: `ringRotate ${4 + i}s linear infinite ${i % 2 === 0 ? 'normal' : 'reverse'}`,
-            boxShadow: `0 0 ${30 - i * 5}px rgba(138, 43, 226, ${0.6 - i * 0.1}), inset 0 0 ${20 - i * 3}px rgba(138, 43, 226, ${0.4 - i * 0.05})`
+            boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(34, 211, 238, 0.6)`
           }}
         />
       ))}
-
-      {/* Central Vortex */}
-      <div
-        className='absolute'
-        style={{
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '120px',
-          height: '120px',
-          background: 'radial-gradient(circle, rgba(138, 43, 226, 0.9) 0%, rgba(75, 0, 130, 0.6) 40%, rgba(0, 0, 0, 0.9) 100%)',
-          borderRadius: '50%',
-          animation: 'vortexSpin 2s linear infinite',
-          boxShadow: '0 0 60px rgba(138, 43, 226, 0.8), 0 0 120px rgba(75, 0, 130, 0.6), inset 0 0 40px rgba(138, 43, 226, 0.5)'
-        }}
-      />
-
-      {/* Glitch Effect Layers */}
-      <div
-        className='absolute inset-0'
-        style={{
-          background: 'radial-gradient(circle, transparent 60%, rgba(255, 0, 255, 0.1) 80%, transparent 100%)',
-          animation: 'glitchEffect 0.3s steps(2, end) infinite'
-        }}
-      />
     </div>
 
-      {/* Energy Particles */}
-      <div className='absolute inset-0 overflow-hidden'>
-        {particles.map((particle, i) => (
-          <div
-            key={`particle-${i}`}
-            className='absolute'
-            style={{
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              left: '50%',
-              top: '50%',
-              background: `radial-gradient(circle, rgba(${particle.color}, 0.9) 0%, transparent 70%)`,
-              borderRadius: '50%',
-              transform: `translate(-50%, -50%) rotate(${particle.angle}deg)`,
-              ['--particle-distance' as any]: `${particle.distance}px`,
-              animation: `particleExplode ${particle.duration}s ease-out infinite`,
-              animationDelay: `${particle.delay}s`,
-              boxShadow: `0 0 10px rgba(138, 43, 226, 0.8)`
-            }}
-          />
-        ))}
-      </div>
+    {/* Radial Glow */}
+    <div
+      className='absolute'
+      style={{
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        animation: 'pulseGlow 3s ease-in-out infinite'
+      }}
+    />
 
-    {/* Main Content */}
-    <div className='relative z-20 flex flex-col items-center justify-center'>
-      {/* Fractal Logo */}
+    {/* Main Content Container */}
+    <div className='relative z-10 flex flex-col items-center justify-center'>
+      {/* Geometric Logo - Diamond Shape */}
       <div
-        className='mb-12 relative'
+        className='mb-8 relative'
         style={{
-          width: '100px',
-          height: '100px',
-          animation: 'logoFloat 3s ease-in-out infinite'
+          width: '80px',
+          height: '80px',
+          animation: 'rotateLogo 8s linear infinite'
         }}
       >
-        {/* Outer Fracture Frame */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: '-10px',
-            background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(255, 0, 255, 0.3), rgba(0, 255, 255, 0.2))',
-            clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-            animation: 'fractureRotate 8s linear infinite',
-            boxShadow: '0 0 40px rgba(138, 43, 226, 0.6)'
-          }}
-        />
-
-        {/* Main Octagon */}
+        {/* Outer Diamond */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(135deg, #8a2be2 0%, #4b0082 50%, #9400d3 100%)',
-            clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-            boxShadow: '0 0 30px rgba(138, 43, 226, 0.8), inset 0 0 20px rgba(138, 43, 226, 0.4)',
-            animation: 'shardGlow 2s ease-in-out infinite'
+            background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+            boxShadow: '0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.3)',
+            animation: 'diamondGlow 2s ease-in-out infinite'
           }}
         />
 
-        {/* Inner Star */}
+        {/* Inner Diamond */}
         <div
           style={{
             position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '50px',
-            height: '50px',
-            background: 'linear-gradient(45deg, #ff00ff, #00ffff)',
-            clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
-            animation: 'starPulse 1.5s ease-in-out infinite',
-            boxShadow: '0 0 20px rgba(255, 0, 255, 0.8)'
+            inset: '15px',
+            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+            boxShadow: 'inset 0 0 15px rgba(34, 211, 238, 0.4)'
           }}
         />
       </div>
 
-      {/* Loading Text with Glitch */}
-      <div className='relative'>
-        <div
-          style={{
-            fontSize: '32px',
-            fontWeight: '700',
-            color: '#fff',
-            letterSpacing: '6px',
-            textTransform: 'uppercase',
-            textShadow: '0 0 20px rgba(138, 43, 226, 0.8), 0 0 40px rgba(138, 43, 226, 0.4)',
-            animation: 'textGlitch 3s ease-in-out infinite'
-          }}
-        >
-          Fest Avenue
-        </div>
-
-        {/* Glitch Layers */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            fontSize: '32px',
-            fontWeight: '700',
-            color: '#ff00ff',
-            letterSpacing: '6px',
-            textTransform: 'uppercase',
-            opacity: 0.7,
-            animation: 'glitchLayer1 0.3s steps(2, end) infinite',
-            clipPath: 'inset(0 0 0 0)'
-          }}
-        >
-          Fest Avenue
-        </div>
+      {/* Loading Text */}
+      <div
+        style={{
+          fontSize: '28px',
+          fontWeight: '300',
+          color: '#22d3ee',
+          letterSpacing: '4px',
+          textTransform: 'uppercase',
+          marginTop: '40px',
+          animation: 'textGlow 2s ease-in-out infinite',
+          textShadow: '0 0 20px rgba(34, 211, 238, 0.5)'
+        }}
+      >
+        Fest Avenue
       </div>
 
       {/* Subtitle */}
       <div
         style={{
-          fontSize: '14px',
-          color: 'rgba(138, 43, 226, 0.9)',
-          letterSpacing: '3px',
-          marginTop: '20px',
-          textTransform: 'uppercase',
-          animation: 'subtitlePulse 2s ease-in-out infinite',
-          textShadow: '0 0 10px rgba(138, 43, 226, 0.6)'
+          fontSize: '12px',
+          color: 'rgba(34, 211, 238, 0.6)',
+          letterSpacing: '2px',
+          marginTop: '12px',
+          animation: 'fadeInOut 3s ease-in-out infinite'
         }}
       >
-        Đang vỡ không gian...
+        Đang tải...
       </div>
 
-      {/* Energy Progress */}
+      {/* Progress Bar */}
       <div
         style={{
-          width: '200px',
-          height: '3px',
+          width: '120px',
+          height: '2px',
           marginTop: '30px',
-          background: 'rgba(138, 43, 226, 0.2)',
-          borderRadius: '2px',
+          background: 'rgba(34, 211, 238, 0.1)',
+          borderRadius: '1px',
           overflow: 'hidden',
-          position: 'relative',
-          boxShadow: '0 0 10px rgba(138, 43, 226, 0.3)'
+          position: 'relative'
         }}
       >
         <div
           style={{
             height: '100%',
-            background: 'linear-gradient(90deg, transparent, #8a2be2, #ff00ff, #00ffff, transparent)',
-            animation: 'energyFlow 2s ease-in-out infinite',
-            boxShadow: '0 0 15px rgba(138, 43, 226, 0.8)'
+            background: 'linear-gradient(90deg, transparent, #22d3ee, transparent)',
+            animation: 'progressLoad 2s ease-in-out infinite',
+            boxShadow: '0 0 10px rgba(34, 211, 238, 0.6)'
           }}
         />
       </div>
@@ -354,176 +174,83 @@ const Loader = () => {
 
     {/* Animations */}
     <style>{`
-      @keyframes twinkle {
-        0%, 100% { opacity: 0.2; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.5); }
-      }
+        @keyframes rotateLogo {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
 
-      @keyframes crackPulse {
-        0%, 100% {
-          opacity: 0.3;
-          filter: brightness(0.8);
+        @keyframes diamondGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.5)) drop-shadow(0 0 40px rgba(34, 211, 238, 0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 30px rgba(34, 211, 238, 0.8)) drop-shadow(0 0 60px rgba(34, 211, 238, 0.4));
+          }
         }
-        50% {
-          opacity: 1;
-          filter: brightness(1.5);
-        }
-      }
 
-      @keyframes shardExplode {
-        0% {
-          opacity: 0;
-          transform: translateX(0) scale(0);
+        @keyframes textGlow {
+          0%, 100% {
+            opacity: 0.7;
+            textShadow: 0 0 15px rgba(34, 211, 238, 0.3);
+          }
+          50% {
+            opacity: 1;
+            textShadow: 0 0 30px rgba(34, 211, 238, 0.7);
+          }
         }
-        30% {
-          opacity: 1;
-          transform: translateX(calc(var(--distance) * 0.7)) scale(1);
-        }
-        100% {
-          opacity: 0;
-          transform: translateX(var(--distance)) scale(0.8);
-        }
-      }
 
-      @keyframes ringRotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
+        @keyframes fadeInOut {
+          0%, 100% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
 
-      @keyframes vortexSpin {
-        from { transform: translate(-50%, -50%) rotate(0deg); }
-        to { transform: translate(-50%, -50%) rotate(360deg); }
-      }
+        @keyframes progressLoad {
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
 
-      @keyframes glitchEffect {
-        0% { transform: translate(0); }
-        20% { transform: translate(-2px, 2px); }
-        40% { transform: translate(-2px, -2px); }
-        60% { transform: translate(2px, 2px); }
-        80% { transform: translate(2px, -2px); }
-        100% { transform: translate(0); }
-      }
+        @keyframes floatParticle {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0.2;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-50px) translateX(20px);
+            opacity: 0.2;
+          }
+        }
 
-      @keyframes particleExplode {
-        0% {
-          opacity: 0;
-          transform: translateX(0) scale(0);
-          filter: brightness(0.5);
+        @keyframes pulseGlow {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.1;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.15;
+          }
         }
-        20% {
-          opacity: 1;
-          transform: translateX(calc(var(--particle-distance) * 0.5)) scale(1);
-          filter: brightness(1.5);
-        }
-        100% {
-          opacity: 0;
-          transform: translateX(var(--particle-distance)) scale(1.5);
-          filter: brightness(0.5);
-        }
-      }
-
-      @keyframes logoFloat {
-        0%, 100% {
-          transform: translateY(0px);
-        }
-        50% {
-          transform: translateY(-20px);
-        }
-      }
-
-      @keyframes fractureRotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-      }
-
-      @keyframes shardGlow {
-        0%, 100% {
-          filter: brightness(1) drop-shadow(0 0 20px rgba(138, 43, 226, 0.6));
-        }
-        50% {
-          filter: brightness(1.3) drop-shadow(0 0 40px rgba(138, 43, 226, 0.9));
-        }
-      }
-
-      @keyframes starPulse {
-        0%, 100% {
-          transform: translate(-50%, -50%) scale(1) rotate(0deg);
-          opacity: 0.8;
-        }
-        50% {
-          transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
-          opacity: 1;
-        }
-      }
-
-      @keyframes textGlitch {
-        0%, 90%, 100% {
-          transform: translate(0);
-        }
-        92% {
-          transform: translate(-3px, 2px);
-        }
-        94% {
-          transform: translate(3px, -2px);
-        }
-        96% {
-          transform: translate(-2px, -1px);
-        }
-      }
-
-      @keyframes glitchLayer1 {
-        0% {
-          transform: translate(0);
-          clip-path: inset(40% 0 60% 0);
-        }
-        20% {
-          transform: translate(-3px, 3px);
-          clip-path: inset(50% 0 30% 0);
-        }
-        40% {
-          transform: translate(3px, -2px);
-          clip-path: inset(20% 0 70% 0);
-        }
-        60% {
-          transform: translate(-2px, -3px);
-          clip-path: inset(60% 0 10% 0);
-        }
-        80% {
-          transform: translate(2px, 2px);
-          clip-path: inset(30% 0 40% 0);
-        }
-        100% {
-          transform: translate(0);
-          clip-path: inset(40% 0 60% 0);
-        }
-      }
-
-      @keyframes subtitlePulse {
-        0%, 100% {
-          opacity: 0.6;
-          letter-spacing: 3px;
-        }
-        50% {
-          opacity: 1;
-          letter-spacing: 4px;
-        }
-      }
-
-      @keyframes energyFlow {
-        0% {
-          transform: translateX(-100%);
-        }
-        50% {
-          transform: translateX(100%);
-        }
-        100% {
-          transform: translateX(100%);
-        }
-      }
-    `}</style>
-    </div>
-  )
-}
+      `}</style>
+  </div>
+)
 
 function ProtectedRoute() {
   const isLogin = useUsersStore((state) => state.isAuth)
