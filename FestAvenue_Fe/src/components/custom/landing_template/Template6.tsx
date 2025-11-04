@@ -276,8 +276,12 @@ export default function Template6(props: LandingTemplateProps) {
                     <button
                       className='flex items-center gap-3'
                       onClick={() => {
-                        setSelectedImage(props.images[0])
-                        setIsCommentModalOpen(true)
+                        if (props.onImageClick) {
+                          props.onImageClick(props.images[0].id, props.images[0].url, props.images[0].caption)
+                        } else {
+                          setSelectedImage(props.images[0])
+                          setIsCommentModalOpen(true)
+                        }
                       }}
                     >
                       <MessageCircle className='w-7 h-7' />
@@ -312,8 +316,12 @@ export default function Template6(props: LandingTemplateProps) {
                     <button
                       className='flex items-center gap-2'
                       onClick={() => {
-                        setSelectedImage(props.images[1])
-                        setIsCommentModalOpen(true)
+                        if (props.onImageClick) {
+                          props.onImageClick(props.images[1].id, props.images[1].url, props.images[1].caption)
+                        } else {
+                          setSelectedImage(props.images[1])
+                          setIsCommentModalOpen(true)
+                        }
                       }}
                     >
                       <MessageCircle className='w-5 h-5' />
@@ -347,8 +355,12 @@ export default function Template6(props: LandingTemplateProps) {
                     <button
                       className='flex items-center gap-2'
                       onClick={() => {
-                        setSelectedImage(props.images[2])
-                        setIsCommentModalOpen(true)
+                        if (props.onImageClick) {
+                          props.onImageClick(props.images[2].id, props.images[2].url, props.images[2].caption)
+                        } else {
+                          setSelectedImage(props.images[2])
+                          setIsCommentModalOpen(true)
+                        }
                       }}
                     >
                       <MessageCircle className='w-5 h-5' />
@@ -383,8 +395,12 @@ export default function Template6(props: LandingTemplateProps) {
                     <button
                       className='flex items-center gap-2'
                       onClick={() => {
-                        setSelectedImage(image)
-                        setIsCommentModalOpen(true)
+                        if (props.onImageClick) {
+                          props.onImageClick(image.id, image.url, image.caption)
+                        } else {
+                          setSelectedImage(image)
+                          setIsCommentModalOpen(true)
+                        }
                       }}
                     >
                       <MessageCircle className='w-5 h-5' />
