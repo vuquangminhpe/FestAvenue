@@ -46,124 +46,209 @@ const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/T
 
 const Loader = () => (
   <div
-    className='flex flex-col items-center justify-center h-screen'
+    className='flex flex-col items-center justify-center h-screen overflow-hidden'
     style={{
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 8s ease infinite',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+      background: 'linear-gradient(135deg, #0a1628 0%, #1a2847 50%, #0d2a4d 100%)'
     }}
   >
+    {/* Particle Background Effect */}
+    <div className='absolute inset-0 overflow-hidden'>
+      {Array.from({ length: 80 }).map((_, i) => (
+        <div
+          key={i}
+          className='absolute bg-cyan-400'
+          style={{
+            width: Math.random() * 3 + 1 + 'px',
+            height: Math.random() * 3 + 1 + 'px',
+            left: Math.random() * 100 + '%',
+            top: Math.random() * 100 + '%',
+            opacity: Math.random() * 0.6 + 0.2,
+            animation: `floatParticle ${Math.random() * 4 + 3}s ease-in-out infinite`,
+            animationDelay: Math.random() * 2 + 's',
+            borderRadius: '50%',
+            boxShadow: `0 0 ${Math.random() * 10 + 5}px rgba(34, 211, 238, 0.6)`
+          }}
+        />
+      ))}
+    </div>
+
+    {/* Radial Glow */}
     <div
-      className='w-20 h-20 mb-8'
+      className='absolute'
       style={{
-        background:
-          'linear-gradient(45deg, #ff6b6b 0%, #4ecdc4 12.5%, #45b7d1 25%, #96ceb4 37.5%, #ffecd2 50%, #fcb69f 62.5%, #ff8a80 75%, #ff80ab 87.5%, #ea80fc 100%)',
-        backgroundSize: '300% 300%',
-        filter: 'blur(0.8px)',
-        boxShadow:
-          '0 0 20px rgba(255, 107, 107, 0.4), 0 0 40px rgba(69, 183, 209, 0.3), 0 0 60px rgba(78, 205, 196, 0.2)',
-        animation: 'morphShape 6s ease-in-out infinite, colorFlow 8s ease-in-out infinite'
+        width: '400px',
+        height: '400px',
+        background: 'radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 70%)',
+        borderRadius: '50%',
+        filter: 'blur(60px)',
+        animation: 'pulseGlow 3s ease-in-out infinite'
       }}
     />
-    <div
-      style={{
-        color: 'white',
-        fontSize: '24px',
-        fontWeight: '300',
-        letterSpacing: '3px',
-        opacity: '0.9',
-        animation: 'textPulse 3s ease-in-out infinite'
-      }}
-    >
-      FEST AVENUE
+
+    {/* Main Content Container */}
+    <div className='relative z-10 flex flex-col items-center justify-center'>
+      {/* Geometric Logo - Diamond Shape */}
+      <div
+        className='mb-8 relative'
+        style={{
+          width: '80px',
+          height: '80px',
+          animation: 'rotateLogo 8s linear infinite'
+        }}
+      >
+        {/* Outer Diamond */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)',
+            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+            boxShadow: '0 0 30px rgba(34, 211, 238, 0.5), 0 0 60px rgba(34, 211, 238, 0.3)',
+            animation: 'diamondGlow 2s ease-in-out infinite'
+          }}
+        />
+
+        {/* Inner Diamond */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: '15px',
+            background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+            clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+            boxShadow: 'inset 0 0 15px rgba(34, 211, 238, 0.4)'
+          }}
+        />
+      </div>
+
+      {/* Loading Text */}
+      <div
+        style={{
+          fontSize: '28px',
+          fontWeight: '300',
+          color: '#22d3ee',
+          letterSpacing: '4px',
+          textTransform: 'uppercase',
+          marginTop: '40px',
+          animation: 'textGlow 2s ease-in-out infinite',
+          textShadow: '0 0 20px rgba(34, 211, 238, 0.5)'
+        }}
+      >
+        Fest Avenue
+      </div>
+
+      {/* Subtitle */}
+      <div
+        style={{
+          fontSize: '12px',
+          color: 'rgba(34, 211, 238, 0.6)',
+          letterSpacing: '2px',
+          marginTop: '12px',
+          animation: 'fadeInOut 3s ease-in-out infinite'
+        }}
+      >
+        Đang tải...
+      </div>
+
+      {/* Progress Bar */}
+      <div
+        style={{
+          width: '120px',
+          height: '2px',
+          marginTop: '30px',
+          background: 'rgba(34, 211, 238, 0.1)',
+          borderRadius: '1px',
+          overflow: 'hidden',
+          position: 'relative'
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            background: 'linear-gradient(90deg, transparent, #22d3ee, transparent)',
+            animation: 'progressLoad 2s ease-in-out infinite',
+            boxShadow: '0 0 10px rgba(34, 211, 238, 0.6)'
+          }}
+        />
+      </div>
     </div>
+
+    {/* Animations */}
     <style>{`
-      @keyframes gradientShift {
-        0% {
-          background-position: 0% 50%;
+        @keyframes rotateLogo {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
-        50% {
-          background-position: 100% 50%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
 
-      @keyframes textPulse {
-        0%,
-        100% {
-          opacity: 0.7;
+        @keyframes diamondGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 20px rgba(34, 211, 238, 0.5)) drop-shadow(0 0 40px rgba(34, 211, 238, 0.2));
+          }
+          50% {
+            filter: drop-shadow(0 0 30px rgba(34, 211, 238, 0.8)) drop-shadow(0 0 60px rgba(34, 211, 238, 0.4));
+          }
         }
-        50% {
-          opacity: 1;
-        }
-      }
 
-      @keyframes morphShape {
-        0% {
-          border-radius: 50%;
-          transform: rotate(0deg) scale(1);
+        @keyframes textGlow {
+          0%, 100% {
+            opacity: 0.7;
+            textShadow: 0 0 15px rgba(34, 211, 238, 0.3);
+          }
+          50% {
+            opacity: 1;
+            textShadow: 0 0 30px rgba(34, 211, 238, 0.7);
+          }
         }
-        12.5% {
-          border-radius: 25% 75% 75% 25%;
-          transform: rotate(45deg) scale(1.1);
-        }
-        25% {
-          border-radius: 75% 25% 25% 75%;
-          transform: rotate(90deg) scale(0.9);
-        }
-        37.5% {
-          border-radius: 50% 25% 75% 50%;
-          transform: rotate(135deg) scale(1.2);
-        }
-        50% {
-          border-radius: 25% 50% 50% 75%;
-          transform: rotate(180deg) scale(1);
-        }
-        62.5% {
-          border-radius: 75% 50% 25% 50%;
-          transform: rotate(225deg) scale(0.8);
-        }
-        75% {
-          border-radius: 50% 75% 25% 50%;
-          transform: rotate(270deg) scale(1.1);
-        }
-        87.5% {
-          border-radius: 25% 75% 50% 25%;
-          transform: rotate(315deg) scale(0.95);
-        }
-        100% {
-          border-radius: 50%;
-          transform: rotate(360deg) scale(1);
-        }
-      }
 
-      @keyframes colorFlow {
-        0% {
-          background-position: 0% 50%;
+        @keyframes fadeInOut {
+          0%, 100% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 1;
+          }
         }
-        16.67% {
-          background-position: 33% 25%;
+
+        @keyframes progressLoad {
+          0% {
+            transform: translateX(-100%);
+          }
+          50% {
+            transform: translateX(100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
         }
-        33.33% {
-          background-position: 66% 75%;
+
+        @keyframes floatParticle {
+          0% {
+            transform: translateY(0px) translateX(0px);
+            opacity: 0.2;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateY(-50px) translateX(20px);
+            opacity: 0.2;
+          }
         }
-        50% {
-          background-position: 100% 50%;
+
+        @keyframes pulseGlow {
+          0%, 100% {
+            transform: scale(1);
+            opacity: 0.1;
+          }
+          50% {
+            transform: scale(1.2);
+            opacity: 0.15;
+          }
         }
-        66.67% {
-          background-position: 75% 25%;
-        }
-        83.33% {
-          background-position: 25% 75%;
-        }
-        100% {
-          background-position: 0% 50%;
-        }
-      }
-    `}</style>
+      `}</style>
   </div>
 )
 
