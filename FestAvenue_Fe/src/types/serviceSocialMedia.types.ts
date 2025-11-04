@@ -154,3 +154,26 @@ export interface resListPostSocialMediaResult {
   totalComments: number
   templateNumber: number
 }
+export interface getReactionAndCommentInPostSocialMediaDetails {
+  postSocialMediaId: string
+  imageInPostId: string
+  pagination: {
+    pageIndex: number
+    isPaging: true
+    pageSize: number
+  }
+}
+export interface resReactionAndCommentInPostSocialMediaDetails {
+  reactions: Reaction[]
+  totalReactions: number
+  pagingComments: result[]
+  pagination: Pagination
+}
+interface result {
+  commentId: string
+  userId: string
+  fullName: string
+  avatar: string
+  commentText: string
+  commentedAt: string
+}

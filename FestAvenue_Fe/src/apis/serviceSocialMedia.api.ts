@@ -8,7 +8,9 @@ import type {
   bodyDeleteCommentInPost,
   bodyUpdateCommentInImagePost,
   bodyListPostSocialMedia,
-  resListPostSocialMedia
+  resListPostSocialMedia,
+  getReactionAndCommentInPostSocialMediaDetails,
+  resReactionAndCommentInPostSocialMediaDetails
 } from '@/types/serviceSocialMedia.types'
 import http from '@/utils/http'
 
@@ -72,6 +74,15 @@ const serviceSocialMediaApis = {
   getPostSocialMediaWithPagingAndFilter: async (body: bodyListPostSocialMedia) => {
     const data = await http.post<APIResponse<resListPostSocialMedia>>(
       '/post-social-media/get-post-social-media-with-paging-and-filter',
+      body
+    )
+    return data?.data
+  },
+  getCommentAndReactionInPostSocialMediaDetailsWithPaging: async (
+    body: getReactionAndCommentInPostSocialMediaDetails
+  ) => {
+    const data = await http.post<APIResponse<resReactionAndCommentInPostSocialMediaDetails>>(
+      '/post-social-media/get-reaction-and-comment-in-post-social-media-detail-with-paging',
       body
     )
     return data?.data

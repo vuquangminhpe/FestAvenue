@@ -32,8 +32,6 @@ export function DateTimePicker({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value)
   const [hours, setHours] = useState(value ? value.getHours().toString().padStart(2, '0') : '08')
   const [minutes, setMinutes] = useState(value ? value.getMinutes().toString().padStart(2, '0') : '00')
-  const [hoursInput, setHoursInput] = useState(hours)
-  const [minutesInput, setMinutesInput] = useState(minutes)
 
   const variantConfig = {
     start: {
@@ -73,8 +71,6 @@ export function DateTimePicker({
       const m = value.getMinutes().toString().padStart(2, '0')
       setHours(h)
       setMinutes(m)
-      setHoursInput(h)
-      setMinutesInput(m)
     }
   }, [value])
 
@@ -91,8 +87,6 @@ export function DateTimePicker({
   const handleTimeChange = (newHours: string, newMinutes: string) => {
     setHours(newHours)
     setMinutes(newMinutes)
-    setHoursInput(newHours)
-    setMinutesInput(newMinutes)
 
     if (selectedDate) {
       const newDate = new Date(selectedDate)
@@ -101,40 +95,17 @@ export function DateTimePicker({
     }
   }
 
-  const handleHoursInputChange = (value: string) => {
-    // Allow empty or numeric input
-    if (value === '' || /^\d{0,2}$/.test(value)) {
-      setHoursInput(value)
-    }
-  }
-
-  const handleMinutesInputChange = (value: string) => {
-    // Allow empty or numeric input
-    if (value === '' || /^\d{0,2}$/.test(value)) {
-      setMinutesInput(value)
-    }
-  }
-
-  const handleHoursBlur = () => {
-    const val = parseInt(hoursInput) || 0
-    const validHours = Math.max(0, Math.min(23, val)).toString().padStart(2, '0')
-    handleTimeChange(validHours, minutes)
-  }
-
-  const handleMinutesBlur = () => {
-    const val = parseInt(minutesInput) || 0
-    const validMinutes = Math.max(0, Math.min(59, val)).toString().padStart(2, '0')
-    handleTimeChange(hours, validMinutes)
-  }
-
   const handleClear = () => {
     setSelectedDate(undefined)
     setHours('08')
     setMinutes('00')
-    setHoursInput('08')
-    setMinutesInput('00')
     onChange?.(undefined)
   }
+
+  // Generate hours array (0-23)
+  const hoursArray = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'))
+  // Generate minutes array (0-59)
+  const minutesArray = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))
 
   const displayValue = selectedDate ? `${format(selectedDate, 'dd/MM/yyyy', { locale: vi })} ${hours}:${minutes}` : ''
 
@@ -204,33 +175,58 @@ export function DateTimePicker({
         />
 
         {/* Time Picker */}
-        <div className='p-2 border-t bg-gradient-to-br from-gray-50 to-slate-50'>
+        <div className='p-4 border-t bg-gradient-to-br from-gray-50 to-slate-50'>
           <div className='flex items-center gap-3 justify-center'>
             {/* Hours */}
-            <div className='flex gap-1 items-center '>
-              <label className='text-xs text-gray-500 mb-1 block'>Giờ</label>
-              <Input
-                type='text'
-                inputMode='numeric'
-                value={hoursInput}
-                onChange={(e) => handleHoursInputChange(e.target.value)}
-                onBlur={handleHoursBlur}
-                placeholder='00'
-                className='text-center font-bold text-lg h-8 p-0 w-12'
-              />
+            <div className='flex flex-col gap-1'>
+              <label className='text-xs text-gray-600 font-medium text-center'>Giờ</label>
+              <select
+                value={hours}
+                onChange={(e) => handleTimeChange(e.target.value, minutes)}
+                className='px-3 py-2 text-center font-bold text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white hover:border-cyan-400 transition-colors cursor-pointer'
+                style={{
+                  // Custom scrollbar for dropdown
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#06b6d4 #f3f4f6'
+                }}
+              >
+                {hoursArray.map((hour) => (
+                  <option
+                    key={hour}
+                    value={hour}
+                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold'
+                  >
+                    {hour}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            <span className='text-2xl font-bold text-gray-400 mt-5'>:</span>
+
             {/* Minutes */}
-            <div className='flex gap-1 items-center'>
-              <label className='text-xs text-gray-500 mb-1 block'>Phút</label>
-              <Input
-                type='text'
-                inputMode='numeric'
-                value={minutesInput}
-                onChange={(e) => handleMinutesInputChange(e.target.value)}
-                onBlur={handleMinutesBlur}
-                placeholder='00'
-                className='text-center font-bold text-lg h-8 p-0 w-12'
-              />
+            <div className='flex flex-col gap-1'>
+              <label className='text-xs text-gray-600 font-medium text-center'>Phút</label>
+              <select
+                value={minutes}
+                onChange={(e) => handleTimeChange(hours, e.target.value)}
+                className='px-3 py-2 text-center font-bold text-lg border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white hover:border-cyan-400 transition-colors cursor-pointer'
+                style={{
+                  // Custom scrollbar for dropdown
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#06b6d4 #f3f4f6'
+                }}
+              >
+                {minutesArray.map((minute) => (
+                  <option
+                    key={minute}
+                    value={minute}
+                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold'
+                  >
+                    {minute}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
