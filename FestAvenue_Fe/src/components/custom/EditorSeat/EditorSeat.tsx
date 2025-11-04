@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import {
   Download,
   Edit,
@@ -54,10 +55,11 @@ import PointEditorPanel from './components/PointEditorPanel'
 interface AdvancedSeatMapDesignerProps {
   eventId: string
   eventCode: string
+  ticketPackageId?: string
 }
 
 // Main Component
-export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDesignerProps) {
+export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: AdvancedSeatMapDesignerProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const seat3DRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -1578,84 +1580,86 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                       <Edit className='w-4 h-4' />
                       Công Cụ Chỉnh Sửa
                     </h3>
-                    <div className='grid grid-cols-2 gap-2'>
-                      <Button
-                        onClick={() => setEditTool('select')}
-                        variant={editTool === 'select' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'select' ? 'bg-purple-600' : ''}
-                      >
-                        <MousePointer className='w-3 h-3 mr-1' />
-                        Chọn
-                      </Button>
-                      <Button
-                        onClick={() => setEditTool('move')}
-                        variant={editTool === 'move' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'move' ? 'bg-blue-600' : ''}
-                      >
-                        <Move className='w-3 h-3 mr-1' />
-                        Di Chuyển
-                      </Button>
-                      <Button
-                        onClick={() => setEditTool('draw')}
-                        variant={editTool === 'draw' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'draw' ? 'bg-green-600' : ''}
-                      >
-                        <PenTool className='w-3 h-3 mr-1' />
-                        Vẽ
-                      </Button>
-                      <Button
-                        onClick={() => setEditTool('shape')}
-                        variant={editTool === 'shape' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'shape' ? 'bg-orange-600' : ''}
-                      >
-                        <Hexagon className='w-3 h-3 mr-1' />
-                        Hình Dạng
-                      </Button>
-                      <Button
-                        onClick={() => setEditTool('label')}
-                        variant={editTool === 'label' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'label' ? 'bg-red-600' : ''}
-                      >
-                        <Edit className='w-3 h-3 mr-1' />
-                        Nhãn
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setEditTool('split')
-                          if (!selectedSection) {
-                            alert('Vui lòng chọn một khu vực trước để chia')
-                          }
-                        }}
-                        variant={editTool === 'split' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'split' ? 'bg-yellow-600' : ''}
-                        disabled={!selectedSection}
-                      >
-                        <Scissors className='w-3 h-3 mr-1' />
-                        Chia Cắt
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (selectedSection) {
-                            startEditingPoints(selectedSection)
-                          } else {
-                            alert('Vui lòng chọn một khu vực trước để sửa điểm')
-                          }
-                        }}
-                        variant={editTool === 'edit-points' ? 'default' : 'outline'}
-                        size='sm'
-                        className={editTool === 'edit-points' ? 'bg-teal-600' : ''}
-                        disabled={!selectedSection}
-                      >
-                        <GitBranch className='w-3 h-3 mr-1' />
-                        Sửa Điểm
-                      </Button>
-                    </div>
+                    <PermissionGuard requires={ticketPackageId}>
+                      <div className='grid grid-cols-2 gap-2'>
+                        <Button
+                          onClick={() => setEditTool('select')}
+                          variant={editTool === 'select' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'select' ? 'bg-purple-600' : ''}
+                        >
+                          <MousePointer className='w-3 h-3 mr-1' />
+                          Chọn
+                        </Button>
+                        <Button
+                          onClick={() => setEditTool('move')}
+                          variant={editTool === 'move' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'move' ? 'bg-blue-600' : ''}
+                        >
+                          <Move className='w-3 h-3 mr-1' />
+                          Di Chuyển
+                        </Button>
+                        <Button
+                          onClick={() => setEditTool('draw')}
+                          variant={editTool === 'draw' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'draw' ? 'bg-green-600' : ''}
+                        >
+                          <PenTool className='w-3 h-3 mr-1' />
+                          Vẽ
+                        </Button>
+                        <Button
+                          onClick={() => setEditTool('shape')}
+                          variant={editTool === 'shape' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'shape' ? 'bg-orange-600' : ''}
+                        >
+                          <Hexagon className='w-3 h-3 mr-1' />
+                          Hình Dạng
+                        </Button>
+                        <Button
+                          onClick={() => setEditTool('label')}
+                          variant={editTool === 'label' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'label' ? 'bg-red-600' : ''}
+                        >
+                          <Edit className='w-3 h-3 mr-1' />
+                          Nhãn
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setEditTool('split')
+                            if (!selectedSection) {
+                              alert('Vui lòng chọn một khu vực trước để chia')
+                            }
+                          }}
+                          variant={editTool === 'split' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'split' ? 'bg-yellow-600' : ''}
+                          disabled={!selectedSection}
+                        >
+                          <Scissors className='w-3 h-3 mr-1' />
+                          Chia Cắt
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (selectedSection) {
+                              startEditingPoints(selectedSection)
+                            } else {
+                              alert('Vui lòng chọn một khu vực trước để sửa điểm')
+                            }
+                          }}
+                          variant={editTool === 'edit-points' ? 'default' : 'outline'}
+                          size='sm'
+                          className={editTool === 'edit-points' ? 'bg-teal-600' : ''}
+                          disabled={!selectedSection}
+                        >
+                          <GitBranch className='w-3 h-3 mr-1' />
+                          Sửa Điểm
+                        </Button>
+                      </div>
+                    </PermissionGuard>
                   </div>
 
                   {editTool === 'split' && selectedSection && (
@@ -2158,25 +2162,48 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
             <div className='absolute top-4 right-4 z-50 flex flex-col gap-2 animate-in slide-in-from-right duration-500'>
               {/* Primary Actions */}
               <div className='flex flex-col gap-2 bg-slate-900/95 backdrop-blur-xl p-3 rounded-xl border border-purple-500/30 shadow-2xl'>
-                {/* Save Button */}
-                <Button
-                  onClick={handleSaveSeatingChart}
-                  disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
-                  className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
-                  size='sm'
-                >
-                  {isCreating || isUpdating ? (
-                    <>
-                      <Loader2 className='w-4 h-4 mr-1 animate-spin' />
-                      {hasExistingStructure ? 'Đang cập nhật...' : 'Đang lưu...'}
-                    </>
-                  ) : (
-                    <>
-                      <Save className='w-4 h-4 mr-1' />
-                      {hasExistingStructure ? 'Cập nhật sơ đồ' : 'Lưu sơ đồ'}
-                    </>
+                <PermissionGuard requires={ticketPackageId}>
+                  {/* Save Button */}
+                  <Button
+                    onClick={handleSaveSeatingChart}
+                    disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
+                    className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+                    size='sm'
+                  >
+                    {isCreating || isUpdating ? (
+                      <>
+                        <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                        {hasExistingStructure ? 'Đang cập nhật...' : 'Đang lưu...'}
+                      </>
+                    ) : (
+                      <>
+                        <Save className='w-4 h-4 mr-1' />
+                        {hasExistingStructure ? 'Cập nhật sơ đồ' : 'Lưu sơ đồ'}
+                      </>
+                    )}
+                  </Button>
+
+                  {hasExistingStructure && (
+                    <Button
+                      onClick={handleDeleteSeatMap}
+                      disabled={isDeletingByEventCode}
+                      className='bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg hover:shadow-red-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+                      size='sm'
+                    >
+                      {isDeletingByEventCode ? (
+                        <>
+                          <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                          Đang xóa...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className='w-4 h-4 mr-1' />
+                          Xóa sơ đồ ghế
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </PermissionGuard>
 
                 {/* Export Button */}
                 <Button
@@ -2188,27 +2215,6 @@ export default function AdvancedSeatMapDesigner({ eventCode }: AdvancedSeatMapDe
                   <Download className='w-4 h-4 mr-1' />
                   Xuất JSON
                 </Button>
-
-                {hasExistingStructure && (
-                  <Button
-                    onClick={handleDeleteSeatMap}
-                    disabled={isDeletingByEventCode}
-                    className='bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg hover:shadow-red-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
-                    size='sm'
-                  >
-                    {isDeletingByEventCode ? (
-                      <>
-                        <Loader2 className='w-4 h-4 mr-1 animate-spin' />
-                        Đang xóa...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className='w-4 h-4 mr-1' />
-                        Xóa sơ đồ ghế
-                      </>
-                    )}
-                  </Button>
-                )}
 
                 {/* Capacity Display */}
                 {!isLoadingEvent && capacity > 0 && (

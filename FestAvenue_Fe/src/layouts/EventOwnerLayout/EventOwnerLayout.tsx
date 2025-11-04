@@ -46,9 +46,9 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
   const eventCode = getIdFromNameId(nameId)
 
   // Fetch event packages và check owner status
-  const { data: eventPackagesData, isLoading: isLoadingPackages } = useEventPackages(eventCode)
+  const { isLoading: isLoadingPackages } = useEventPackages(eventCode)
   const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
-  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+  const { isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
   const isEventOwner: boolean =
     ownerCheckData &&
@@ -57,11 +57,8 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
     typeof ownerCheckData.data === 'boolean'
       ? ownerCheckData.data
       : false
-  const packageDetail = eventPackagesData?.data
-  const servicePackages = packageDetail?.servicePackages || []
-  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
-  // Build navigation items dựa trên permissions
+  // Build navigation items - Hiển thị tất cả services cho mọi người
   const navigation = useMemo(() => {
     // Helper function to append nameId to href
     const appendNameId = (href: string) => {
@@ -70,34 +67,18 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
 
     const navItems: Array<{ name: string; href: string }> = []
 
-    // Nếu là event owner, hiển thị tất cả routes có trong SERVICE_PACKAGE_ROUTE_MAP
-    if (isEventOwner) {
-      Object.keys(SERVICE_PACKAGE_ROUTE_MAP).forEach((packageName) => {
-        const route = SERVICE_PACKAGE_ROUTE_MAP[packageName]
-        navItems.push({
-          name: route.displayName,
-          href: appendNameId(route.href)
-        })
+    // Hiển thị tất cả routes có trong SERVICE_PACKAGE_ROUTE_MAP cho mọi user
+    // Logic phân quyền action sẽ được xử lý trong từng page
+    Object.keys(SERVICE_PACKAGE_ROUTE_MAP).forEach((packageName) => {
+      const route = SERVICE_PACKAGE_ROUTE_MAP[packageName]
+      navItems.push({
+        name: route.displayName,
+        href: appendNameId(route.href)
       })
-      return navItems
-    }
-
-    // Nếu không phải owner, chỉ hiển thị services mà user có permission
-    servicePackages.forEach((pkg) => {
-      // Check if user has permission for this service package
-      if (userServicePackageIds.includes(pkg.id)) {
-        const route = SERVICE_PACKAGE_ROUTE_MAP[pkg.name]
-        if (route) {
-          navItems.push({
-            name: route.displayName,
-            href: appendNameId(route.href)
-          })
-        }
-      }
     })
 
     return navItems
-  }, [isEventOwner, userServicePackageIds, servicePackages, nameId])
+  }, [nameId])
 
   // Loading state
   if (isLoadingPackages || isCheckingOwner || isLoadingPermissions) {

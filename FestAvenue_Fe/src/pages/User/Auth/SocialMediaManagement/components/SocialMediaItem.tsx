@@ -2,6 +2,7 @@ import { Eye, Edit, Trash2, Heart, MessageCircle, Calendar } from 'lucide-react'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import type { resListPostSocialMediaResult } from '@/types/serviceSocialMedia.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -11,10 +12,16 @@ interface SocialMediaItemProps {
   onView: (postId: string) => void
   onEdit: (postId: string) => void
   onDelete: (postId: string) => void
-  canEdit?: boolean
+  socialMediaPackageId: string
 }
 
-export default function SocialMediaItem({ post, onView, onEdit, onDelete, canEdit = true }: SocialMediaItemProps) {
+export default function SocialMediaItem({
+  post,
+  onView,
+  onEdit,
+  onDelete,
+  socialMediaPackageId
+}: SocialMediaItemProps) {
   return (
     <Card className='overflow-hidden hover:shadow-lg transition-all duration-300 group'>
       {/* Banner Image */}
@@ -89,32 +96,25 @@ export default function SocialMediaItem({ post, onView, onEdit, onDelete, canEdi
       </CardContent>
 
       <CardFooter className='bg-gray-50 flex justify-between items-center gap-2 pt-3'>
-        {canEdit ? (
-          <>
-            <Button size='sm' variant='outline' onClick={() => onView(post.postSocialMediaId)} className='flex-1'>
-              <Eye className='w-4 h-4 mr-1' />
-              Xem
-            </Button>
-            <Button
-              size='sm'
-              variant='default'
-              onClick={() => onEdit(post.postSocialMediaId)}
-              className='flex-1 bg-blue-500 hover:bg-blue-600'
-            >
-              <Edit className='w-4 h-4 mr-1' />
-              Sửa
-            </Button>
-            <Button size='sm' variant='destructive' onClick={() => onDelete(post.postSocialMediaId)} className='flex-1'>
-              <Trash2 className='w-4 h-4 mr-1' />
-              Xóa
-            </Button>
-          </>
-        ) : (
-          <Button size='sm' variant='default' onClick={() => onView(post.postSocialMediaId)} className='w-full'>
-            <Eye className='w-4 h-4 mr-1' />
-            Xem chi tiết
+        <Button size='sm' variant='outline' onClick={() => onView(post.postSocialMediaId)} className='flex-1'>
+          <Eye className='w-4 h-4 mr-1' />
+          Xem
+        </Button>
+        <PermissionGuard requires={socialMediaPackageId}>
+          <Button
+            size='sm'
+            variant='default'
+            onClick={() => onEdit(post.postSocialMediaId)}
+            className='flex-1 bg-blue-500 hover:bg-blue-600'
+          >
+            <Edit className='w-4 h-4 mr-1' />
+            Sửa
           </Button>
-        )}
+          <Button size='sm' variant='destructive' onClick={() => onDelete(post.postSocialMediaId)} className='flex-1'>
+            <Trash2 className='w-4 h-4 mr-1' />
+            Xóa
+          </Button>
+        </PermissionGuard>
       </CardFooter>
     </Card>
   )

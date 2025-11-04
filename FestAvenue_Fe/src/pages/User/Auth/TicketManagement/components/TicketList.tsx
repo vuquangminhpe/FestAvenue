@@ -1,15 +1,17 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import type { Ticket } from '../types'
 
 interface TicketListProps {
   tickets: Ticket[]
   onUpdate: (ticket: Ticket) => void
   onDelete: (ticketId: string) => void
+  ticketPackageId: string
 }
 
-export default function TicketList({ tickets, onUpdate, onDelete }: TicketListProps) {
+export default function TicketList({ tickets, onUpdate, onDelete, ticketPackageId }: TicketListProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
   }
@@ -107,22 +109,24 @@ export default function TicketList({ tickets, onUpdate, onDelete }: TicketListPr
               </TableCell>
               <TableCell>
                 <div className='flex flex-col gap-2'>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => onUpdate(ticket)}
-                    className='w-full hover:bg-cyan-50 hover:text-cyan-600 hover:border-cyan-300 transition-colors'
-                  >
-                    Cập nhật vé
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => onDelete(ticket.id)}
-                    className='w-full hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors'
-                  >
-                    Xóa vé
-                  </Button>
+                  <PermissionGuard requires={ticketPackageId}>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      onClick={() => onUpdate(ticket)}
+                      className='w-full hover:bg-cyan-50 hover:text-cyan-600 hover:border-cyan-300 transition-colors'
+                    >
+                      Cập nhật vé
+                    </Button>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      onClick={() => onDelete(ticket.id)}
+                      className='w-full hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors'
+                    >
+                      Xóa vé
+                    </Button>
+                  </PermissionGuard>
                 </div>
               </TableCell>
             </TableRow>

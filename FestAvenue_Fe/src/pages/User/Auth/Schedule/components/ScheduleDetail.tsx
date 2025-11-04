@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, Calendar, Clock, Edit, Trash2 } from 'lucide-react'
+import { X, Calendar, Clock, Edit, Trash2, AlertTriangle } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import type { Schedule } from '../../../../../types/schedule.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -20,6 +31,7 @@ interface ScheduleDetailProps {
   onDelete: () => void
   onRefresh: () => void
   onScheduleChange?: (index: number) => void
+  schedulePackageId: string
 }
 
 export default function ScheduleDetail({
@@ -32,9 +44,11 @@ export default function ScheduleDetail({
   onEdit,
   onDelete,
   onRefresh,
-  onScheduleChange
+  onScheduleChange,
+  schedulePackageId
 }: ScheduleDetailProps) {
   const [localSchedule, setLocalSchedule] = useState<Schedule>(schedule)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const hasMultipleSchedules = schedules && schedules.length > 1
 
@@ -57,8 +71,6 @@ export default function ScheduleDetail({
   }, [])
 
   const handleDelete = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa lịch trình này?')) return
-
     try {
       await deleteMutation.mutateAsync(schedule.id)
       onDelete()
@@ -67,6 +79,15 @@ export default function ScheduleDetail({
       console.error('Failed to delete schedule:', error)
       alert('Có lỗi xảy ra khi xóa lịch trình')
     }
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteDialog(false)
+    await handleDelete()
   }
 
   const handleToggleSubTask = async (subTaskId: string, currentStatus: boolean) => {
@@ -233,22 +254,53 @@ export default function ScheduleDetail({
 
           {/* Actions */}
           <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
-            <Button
-              variant='outline'
-              onClick={handleDelete}
-              disabled={deleteMutation.isPending}
-              className='text-red-600 hover:text-red-700 hover:bg-red-50'
-            >
-              <Trash2 className='w-4 h-4 mr-2' />
-              {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa'}
-            </Button>
-            <Button onClick={onEdit} style={{ backgroundColor: localSchedule.color }}>
-              <Edit className='w-4 h-4 mr-2' />
-              Chỉnh sửa
-            </Button>
+            <PermissionGuard requires={schedulePackageId}>
+              <Button
+                variant='outline'
+                onClick={handleDeleteClick}
+                disabled={deleteMutation.isPending}
+                className='text-red-600 hover:text-red-700 hover:bg-red-50'
+              >
+                <Trash2 className='w-4 h-4 mr-2' />
+                {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa'}
+              </Button>
+              <Button onClick={onEdit} style={{ backgroundColor: localSchedule.color }}>
+                <Edit className='w-4 h-4 mr-2' />
+                Chỉnh sửa
+              </Button>
+            </PermissionGuard>
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='flex items-center gap-2 text-red-600'>
+              <AlertTriangle className='w-5 h-5' />
+              Xác nhận xóa lịch trình
+            </AlertDialogTitle>
+            <AlertDialogDescription className='space-y-2'>
+              <p>Bạn có chắc chắn muốn xóa lịch trình này không?</p>
+              <div className='bg-gray-50 p-3 rounded-lg border border-gray-200'>
+                <p className='font-semibold text-gray-900'>{localSchedule.title}</p>
+                <p className='text-sm text-gray-600 mt-1'>
+                  {format(new Date(localSchedule.startDate), 'dd MMM yyyy HH:mm', { locale: vi })} -{' '}
+                  {format(new Date(localSchedule.endDate), 'dd MMM yyyy HH:mm', { locale: vi })}
+                </p>
+              </div>
+              <p className='text-red-600 font-medium'>⚠️ Hành động này không thể hoàn tác!</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className='bg-red-600 hover:bg-red-700 focus:ring-red-600'>
+              Xóa lịch trình
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

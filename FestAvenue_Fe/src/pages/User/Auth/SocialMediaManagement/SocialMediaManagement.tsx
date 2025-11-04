@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
-import { Loader2, Lock, Plus, List, FileText } from 'lucide-react'
+import { Loader2, Plus, List, FileText } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SocialMediaList, SocialMediaDetail, TemplateSelector, TemplateEditor } from './components'
 import { getIdFromNameId } from '@/utils/utils'
@@ -26,20 +26,17 @@ export default function SocialMediaManagement() {
   const userName = isProfile ? `${isProfile.firstName} ${isProfile.lastName}` : ''
   const userAvatar = isProfile?.avatar || ''
 
-  // Check permissions
-  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  // Check permissions - để lấy thông tin package ID cho permission guard
+  const { isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
   const { data: eventPackagesData } = useEventPackages(eventCode)
-  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+  const { isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
-  const isEventOwner = ownerCheckData?.data || false
   const servicePackages = eventPackagesData?.data?.servicePackages || []
-  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
   // Tìm service package ID cho Social Media
   const SOCIAL_MEDIA_PACKAGE_NAME = 'Quản lý social medias'
   const socialMediaPackage = servicePackages.find((pkg: any) => pkg.name === SOCIAL_MEDIA_PACKAGE_NAME)
-  const hasSocialMediaPermission =
-    isEventOwner || (socialMediaPackage && userServicePackageIds.includes(socialMediaPackage.id))
+  const socialMediaPackageId = socialMediaPackage?.id || ''
 
   // State management
   const [currentView, setCurrentView] = useState<ViewType>('list')
@@ -202,28 +199,6 @@ export default function SocialMediaManagement() {
     )
   }
 
-  // Permission denied
-  if (!hasSocialMediaPermission) {
-    return (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='max-w-md text-center'>
-          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
-            <Lock className='w-10 h-10 text-red-600' />
-          </div>
-          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
-          <p className='text-gray-600 mb-6'>
-            Bạn không có quyền quản lý social media cho sự kiện này. Vui lòng liên hệ chủ sự kiện để được cấp quyền.
-          </p>
-          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-            <p className='text-sm text-blue-800'>
-              <strong>Gợi ý:</strong> Chủ sự kiện có thể cấp quyền cho bạn thông qua trang Quản lý người dùng.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className='min-h-screen bg-gray-50 py-8 px-4'>
       <div className='max-w-7xl mx-auto'>
@@ -252,7 +227,13 @@ export default function SocialMediaManagement() {
 
           {/* List Tab */}
           <TabsContent value='list'>
-            <SocialMediaList eventCode={eventCode} onView={handleView} onEdit={handleEdit} onCreate={handleCreate} />
+            <SocialMediaList
+              eventCode={eventCode}
+              onView={handleView}
+              onEdit={handleEdit}
+              onCreate={handleCreate}
+              socialMediaPackageId={socialMediaPackageId}
+            />
           </TabsContent>
 
           {/* Create/Edit Tab */}

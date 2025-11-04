@@ -13,11 +13,18 @@ interface PermissionGuardProps {
   requiresEventOwner?: boolean
   /** Fallback content when no permission */
   fallback?: ReactNode
+  /**
+   * If true, will render children even without permission (for view-only mode)
+   * Use this to wrap action buttons - they will be hidden if user doesn't have permission
+   */
+  hideWithoutPermission?: boolean
 }
 
 /**
  * Component để bảo vệ UI dựa trên quyền
- * Chỉ render children nếu user có đủ quyền
+ *
+ * Mặc định: Chỉ render children nếu user có đủ quyền
+ * Với hideWithoutPermission=true: Dùng để ẩn action buttons, page vẫn accessible
  */
 export function PermissionGuard({
   children,
@@ -25,12 +32,13 @@ export function PermissionGuard({
   requiresAny,
   requiresAll,
   requiresEventOwner,
-  fallback = null
+  fallback = null,
+  hideWithoutPermission = false
 }: PermissionGuardProps) {
   const { hasPermission, hasAnyPermission, hasAllPermissions, isEventOwner, isLoading } = usePermissions()
 
   // Loading state - có thể customize
-  if (isLoading) {
+  if (isLoading && !hideWithoutPermission) {
     return <>{fallback}</>
   }
 

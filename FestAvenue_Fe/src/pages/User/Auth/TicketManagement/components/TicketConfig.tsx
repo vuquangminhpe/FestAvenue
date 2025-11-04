@@ -4,6 +4,7 @@ import { Search, Plus, Loader2 } from 'lucide-react'
 import gsap from 'gsap'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import TicketList from './TicketList'
 import FilterPanel from './FilterPanel'
 import AddTicketModal from './AddTicketModal'
@@ -14,7 +15,11 @@ import { useGetTickets, useDeleteTicket } from '../hooks/useTicketManagement'
 import { getIdFromNameId } from '@/utils/utils'
 import type { TicketSearchRequest } from '@/types/serviceTicketManagement.types'
 
-export default function TicketConfig() {
+interface TicketConfigProps {
+  ticketPackageId: string
+}
+
+export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventCode = getIdFromNameId(nameId)
@@ -143,13 +148,15 @@ export default function TicketConfig() {
             className='pl-10 border-gray-300 focus:border-cyan-400 focus:ring-cyan-400'
           />
         </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className='bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-6'
-        >
-          <Plus className='w-5 h-5 mr-2' />
-          Tạo mới vé
-        </Button>
+        <PermissionGuard requires={ticketPackageId}>
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className='bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-6'
+          >
+            <Plus className='w-5 h-5 mr-2' />
+            Tạo mới vé
+          </Button>
+        </PermissionGuard>
         <Button variant='outline' onClick={handleClearFilters} className='hover:bg-gray-50'>
           Lọc
         </Button>
@@ -169,7 +176,12 @@ export default function TicketConfig() {
 
       {/* Ticket List */}
       <div className='ticket-list'>
-        <TicketList tickets={tickets} onUpdate={handleUpdateClick} onDelete={handleDeleteTicket} />
+        <TicketList
+          tickets={tickets}
+          onUpdate={handleUpdateClick}
+          onDelete={handleDeleteTicket}
+          ticketPackageId={ticketPackageId}
+        />
       </div>
 
       {/* Pagination Placeholder */}

@@ -24,7 +24,7 @@ const EventDetails: React.FC = () => {
   const eventCode = getIdFromNameId(eventParams.eventId as string)
   const navigate = useNavigate()
   // Use custom hooks for data fetching
-  const { event, tickets, posts, relatedEvents, isLoading } = useEventDetailsData(eventCode)
+  const { event, posts, relatedEvents, isLoading } = useEventDetailsData(eventCode)
 
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -139,13 +139,6 @@ const EventDetails: React.FC = () => {
       minute: '2-digit',
       hour12: false
     })
-  }
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price)
   }
 
   const calculateDuration = (start: string, end: string) => {
@@ -682,7 +675,7 @@ const EventDetails: React.FC = () => {
                   Sự kiện liên quan
                 </h2>
                 <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                  {relatedEvents.map((relatedEvent) => (
+                  {relatedEvents.slice(0, 3).map((relatedEvent) => (
                     <Card
                       key={relatedEvent.eventCode}
                       onClick={() =>
@@ -811,50 +804,6 @@ const EventDetails: React.FC = () => {
                     </p>
                     <p>{event.location.address.country}</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Ticket Pricing */}
-            {tickets.length > 0 && (
-              <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg'>
-                <CardContent className='p-6'>
-                  <h3 className='text-xl font-bold text-gray-900 mb-4 flex items-center'>
-                    <Tag className='w-5 h-5 mr-2 text-cyan-600' />
-                    Bảng giá vé
-                  </h3>
-                  <div className='space-y-3'>
-                    {tickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className='group p-4 rounded-lg border-2 border-cyan-100 hover:border-cyan-300 transition-all bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 cursor-pointer'
-                      >
-                        <div className='flex justify-between items-start mb-2'>
-                          <div>
-                            <p className='font-bold text-gray-900'>{ticket.name}</p>
-                            <p className='text-xs text-gray-600'>{ticket.description}</p>
-                          </div>
-                          <p className='font-bold text-lg text-cyan-600'>{formatPrice(ticket.price)}</p>
-                        </div>
-                        <p className='text-xs text-gray-500'>Còn lại: {ticket.quantity} vé</p>
-                      </div>
-                    ))}
-                  </div>
-                  {ticketSaleStatus.isActive ? (
-                    <Button
-                      size='lg'
-                      className='w-full mt-6 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-xl transition-all'
-                    >
-                      Mua vé ngay
-                    </Button>
-                  ) : (
-                    <div className='mt-6'>
-                      <Button size='lg' disabled className='w-full bg-gray-300 text-gray-500 cursor-not-allowed'>
-                        Mua vé ngay
-                      </Button>
-                      <p className='text-sm text-red-600 text-center mt-2 font-medium'>{ticketSaleStatus.message}</p>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )}

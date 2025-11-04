@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
-import { Plus, CalendarDays, Lock, Loader2 } from 'lucide-react'
+import { Plus, CalendarDays, Loader2 } from 'lucide-react'
 import { Button } from '../../../../components/ui/button'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import type { Schedule, ScheduleFilter as ScheduleFilterType } from '../../../../types/schedule.types'
 import CalendarHeader from './components/CalendarHeader'
 import CalendarGrid from './components/CalendarGrid'
@@ -35,18 +36,16 @@ export default function ScheduleManagement() {
 
   const eventCode = getIdFromNameId(nameId)
 
-  // Check permissions
-  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
+  // Check permissions - để lấy packageId cho permission guard
+  const { isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
   const { data: eventPackagesData } = useEventPackages(eventCode)
-  const { data: permissionsData, isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
+  const { isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
 
-  const isEventOwner = ownerCheckData?.data || false
   const servicePackages = eventPackagesData?.data?.servicePackages || []
-  const userServicePackageIds = permissionsData?.data?.servicePackageIds || []
 
   // Tìm service package ID cho Schedule Management
   const schedulePackage = servicePackages.find((pkg: any) => pkg.name === SERVICE_PACKAGE_NAMES.SCHEDULE)
-  const hasSchedulePermission = isEventOwner || (schedulePackage && userServicePackageIds.includes(schedulePackage.id))
+  const schedulePackageId = schedulePackage?.id || ''
 
   // Filter state
   const [filter, setFilter] = useState<ScheduleFilterType>({
@@ -324,28 +323,6 @@ export default function ScheduleManagement() {
     )
   }
 
-  // Permission denied
-  if (!hasSchedulePermission) {
-    return (
-      <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center'>
-        <div className='max-w-md text-center'>
-          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
-            <Lock className='w-10 h-10 text-red-600' />
-          </div>
-          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
-          <p className='text-gray-600 mb-6'>
-            Bạn không có quyền quản lý lịch cho sự kiện này. Vui lòng liên hệ chủ sự kiện để được cấp quyền.
-          </p>
-          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-            <p className='text-sm text-blue-800'>
-              <strong>Gợi ý:</strong> Chủ sự kiện có thể cấp quyền cho bạn thông qua trang Quản người dùng.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6'>
       <div className='max-w-7xl mx-auto space-y-6'>
@@ -358,10 +335,12 @@ export default function ScheduleManagement() {
             </h1>
             <p className='text-gray-600 mt-1'>Theo dõi và quản lý các lịch trình của bạn</p>
           </div>
-          <Button onClick={handleCreateNew} size='lg' className='gap-2'>
-            <Plus className='w-5 h-5' />
-            Tạo lịch mới
-          </Button>
+          <PermissionGuard requires={schedulePackageId}>
+            <Button onClick={handleCreateNew} size='lg' className='gap-2'>
+              <Plus className='w-5 h-5' />
+              Tạo lịch trình mới
+            </Button>
+          </PermissionGuard>
         </div>
 
         {/* Filter Section */}
@@ -449,6 +428,7 @@ export default function ScheduleManagement() {
           eventCode={eventCode}
           schedule={editingSchedule}
           prefilledDateRange={prefilledDateRange}
+          schedulePackageId={schedulePackageId}
           onClose={() => {
             setShowForm(false)
             setEditingSchedule(null)
@@ -465,6 +445,7 @@ export default function ScheduleManagement() {
           schedules={selectedSchedules}
           currentIndex={currentScheduleIndex}
           selectedDate={selectedDate}
+          schedulePackageId={schedulePackageId}
           onClose={() => {
             setShowDetail(false)
             setDetailSchedule(null)

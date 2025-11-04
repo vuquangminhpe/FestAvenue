@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import SocialMediaItem from './SocialMediaItem'
 import { useSocialMediaList, useDeleteSocialMedia } from '../hooks/useSocialMediaQueries'
 import type { bodyListPostSocialMedia } from '@/types/serviceSocialMedia.types'
@@ -23,9 +24,16 @@ interface SocialMediaListProps {
   onView: (postId: string) => void
   onEdit: (postId: string) => void
   onCreate?: () => void
+  socialMediaPackageId: string
 }
 
-export default function SocialMediaList({ eventCode, onView, onEdit, onCreate }: SocialMediaListProps) {
+export default function SocialMediaList({
+  eventCode,
+  onView,
+  onEdit,
+  onCreate,
+  socialMediaPackageId
+}: SocialMediaListProps) {
   const [searchText, setSearchText] = useState('')
   const [pageIndex, setPageIndex] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -70,12 +78,14 @@ export default function SocialMediaList({ eventCode, onView, onEdit, onCreate }:
           <h2 className='text-2xl font-bold text-gray-900'>Danh sách bài viết</h2>
           <p className='text-sm text-gray-600 mt-1'>Quản lý các bài viết Social Media của sự kiện</p>
         </div>
-        {onCreate && (
-          <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
-            <Plus className='w-4 h-4 mr-2' />
-            Tạo bài viết mới
-          </Button>
-        )}
+        <PermissionGuard requires={socialMediaPackageId}>
+          {onCreate && (
+            <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
+              <Plus className='w-4 h-4 mr-2' />
+              Tạo bài viết mới
+            </Button>
+          )}
+        </PermissionGuard>
       </div>
 
       {/* Filters */}
@@ -125,13 +135,17 @@ export default function SocialMediaList({ eventCode, onView, onEdit, onCreate }:
               <Search className='w-10 h-10 text-cyan-500' />
             </div>
             <h3 className='text-xl font-semibold text-gray-900'>Chưa có bài viết nào</h3>
-            <p className='text-gray-600'>Bắt đầu tạo bài viết đầu tiên của bạn</p>
-            {onCreate && (
-              <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
-                <Plus className='w-4 h-4 mr-2' />
-                Tạo bài viết mới
-              </Button>
-            )}
+            <p className='text-gray-600'>
+              {socialMediaPackageId ? 'Bắt đầu tạo bài viết đầu tiên của bạn' : 'Danh sách bài viết trống'}
+            </p>
+            <PermissionGuard requires={socialMediaPackageId}>
+              {onCreate && (
+                <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
+                  <Plus className='w-4 h-4 mr-2' />
+                  Tạo bài viết mới
+                </Button>
+              )}
+            </PermissionGuard>
           </div>
         </Card>
       )}
@@ -147,6 +161,7 @@ export default function SocialMediaList({ eventCode, onView, onEdit, onCreate }:
                 onView={onView}
                 onEdit={onEdit}
                 onDelete={handleDelete}
+                socialMediaPackageId={socialMediaPackageId}
               />
             ))}
           </div>

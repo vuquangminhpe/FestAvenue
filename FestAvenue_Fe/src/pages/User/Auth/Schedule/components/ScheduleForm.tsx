@@ -27,6 +27,7 @@ interface ScheduleFormProps {
   prefilledDateRange?: { start: Date; end: Date } | null
   onClose: () => void
   onSuccess: () => void
+  schedulePackageId: string
 }
 
 export default function ScheduleForm({
@@ -35,7 +36,8 @@ export default function ScheduleForm({
   prefilledDateRange,
   onClose,
   onSuccess
-}: ScheduleFormProps) {
+}: // schedulePackageId is passed but not used here since form is only accessible when user has permission
+ScheduleFormProps) {
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
