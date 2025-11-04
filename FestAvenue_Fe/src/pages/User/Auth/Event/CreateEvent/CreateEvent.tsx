@@ -26,7 +26,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import path from '@/constants/path'
 
-import { eventSchema, type EventFormData } from './types'
+import { createEventSchema, updateEventSchema, type EventFormData } from './types'
 import { steps, getFieldsForStep, defaultFormValues } from './constants'
 import { useCreateEvent, useAIDetection } from './hooks'
 import {
@@ -53,8 +53,11 @@ function CreateEvent() {
   const isUpdateMode = !!nameId
   const eventId = nameId ? getIdFromNameId(nameId) : undefined
 
+  // Use different schema based on mode
+  const validationSchema = isUpdateMode ? updateEventSchema : createEventSchema
+
   const form = useForm<EventFormData, any, EventFormData>({
-    resolver: zodResolver(eventSchema) as any,
+    resolver: zodResolver(validationSchema) as any,
     defaultValues: defaultFormValues,
     mode: 'onChange'
   })

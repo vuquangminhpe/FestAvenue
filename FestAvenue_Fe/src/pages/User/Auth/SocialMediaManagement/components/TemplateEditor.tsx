@@ -1,11 +1,14 @@
 import { useState, type ChangeEvent } from 'react'
+import { useForm, useFieldArray } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { ArrowLeft, Save, Eye, Plus, Trash2, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react'
 import { Template1, Template2, Template3, Template4, Template5, Template6 } from '@/components/custom/landing_template'
 import type { LandingTemplateProps, SocialMediaImage, SocialLink } from '@/components/custom/landing_template'
 import type { TemplateType } from '../types'
@@ -14,6 +17,7 @@ import mediaApis from '@/apis/media.api'
 import type { BodySocialPost } from '@/types/serviceSocialMedia.types'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import { templateEditorSchema, type TemplateEditorFormData } from '../validationSchema'
 
 interface TemplateEditorProps {
   templateType: TemplateType
@@ -61,13 +65,11 @@ export default function TemplateEditor({
   templateData,
   eventCode,
   authorId,
-  authorName,
-  authorAvatar,
+
   postId,
   onSave,
   onBack
 }: TemplateEditorProps) {
-  const [editedData, setEditedData] = useState<LandingTemplateProps>(templateData)
   const [showPreview, setShowPreview] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({})
@@ -86,6 +88,43 @@ export default function TemplateEditor({
   })
 
   const TemplateComponent = templateComponents[templateType]
+
+  // Initialize form with validation
+  const form = useForm<TemplateEditorFormData>({
+    resolver: zodResolver(templateEditorSchema),
+    mode: 'onChange',
+    defaultValues: {
+      title: templateData.title || '',
+      subtitle: templateData.subtitle || '',
+      description: templateData.description || '',
+      bannerUrl: templateData.bannerUrl || '',
+      authorName: templateData.authorName || '',
+      authorAvatar: templateData.authorAvatar || '',
+      eventDate: templateData.eventDate || '',
+      eventLocation: templateData.eventLocation || '',
+      content: templateData.content || '',
+      images: templateData.images.length > 0 ? templateData.images : [],
+      socialLinks: templateData.socialLinks && templateData.socialLinks.length > 0 ? templateData.socialLinks : []
+    }
+  })
+
+  const {
+    fields: imageFields,
+    append: appendImage,
+    remove: removeImage
+  } = useFieldArray({
+    control: form.control,
+    name: 'images'
+  })
+
+  const {
+    fields: socialLinkFields,
+    append: appendSocialLink,
+    remove: removeSocialLink
+  } = useFieldArray({
+    control: form.control,
+    name: 'socialLinks'
+  })
 
   // Upload file to server and return URL
   const uploadFileToServer = async (file: File, uploadKey: string): Promise<string> => {
@@ -136,19 +175,26 @@ export default function TemplateEditor({
     }
   }
 
-  const handleSave = async () => {
+  const handleSave = async (data: TemplateEditorFormData) => {
+    // Validate before saving
+    const isValid = await form.trigger()
+    if (!isValid) {
+      toast.error('Vui lòng kiểm tra và điền đầy đủ thông tin hợp lệ')
+      return
+    }
+
     setIsSaving(true)
     try {
       // Convert template data to API format
       const apiBody: BodySocialPost = {
-        title: editedData.title,
+        title: data.title,
         templateNumber: templateTypeToNumber[templateType],
-        subtitle: editedData.subtitle || '',
-        description: editedData.description,
-        bannerUrl: editedData.bannerUrl,
+        subtitle: data.subtitle || '',
+        description: data.description,
+        bannerUrl: data.bannerUrl,
         statusPostSocialMedia: 1, // 1 = Published
-        body: editedData.content,
-        imageInPosts: editedData.images.map((img) => ({
+        body: data.content,
+        imageInPosts: data.images.map((img) => ({
           url: img.url,
           caption: img.caption || ''
         })),
@@ -156,11 +202,11 @@ export default function TemplateEditor({
         audioUrl: '',
         eventCode,
         authorId,
-        authorName,
-        authorAvatar,
+        authorName: data.authorName,
+        authorAvatar: data.authorAvatar || '',
         publishDate: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss"),
         expiryDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm:ss"), // 30 days from now
-        socialLinks: editedData.socialLinks.map((link) => ({
+        socialLinks: (data.socialLinks || []).map((link) => ({
           platform: socialPlatformToNumber[link.platform] || 1,
           url: link.url
         }))
@@ -194,10 +240,6 @@ export default function TemplateEditor({
     }
   }
 
-  const updateField = (field: keyof LandingTemplateProps, value: any) => {
-    setEditedData((prev) => ({ ...prev, [field]: value }))
-  }
-
   const addImage = () => {
     const newImage: SocialMediaImage = {
       id: Date.now().toString(),
@@ -207,30 +249,8 @@ export default function TemplateEditor({
       reactions: [],
       comments: []
     }
-    setEditedData((prev) => ({ ...prev, images: [...prev.images, newImage] }))
+    appendImage(newImage)
     setImageSources((prev) => ({ ...prev, [newImage.id]: 'url' }))
-  }
-
-  const updateImage = (index: number, field: keyof SocialMediaImage, value: any) => {
-    setEditedData((prev) => ({
-      ...prev,
-      images: prev.images.map((img, i) => (i === index ? { ...img, [field]: value } : img))
-    }))
-  }
-
-  const removeImage = (index: number) => {
-    setEditedData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
-    setImageSources((prev) => {
-      const next = { ...prev }
-      const imageId = editedData.images[index]?.id
-      if (imageId) {
-        delete next[imageId]
-      }
-      return next
-    })
   }
 
   const addSocialLink = () => {
@@ -238,22 +258,18 @@ export default function TemplateEditor({
       platform: 'facebook',
       url: ''
     }
-    setEditedData((prev) => ({ ...prev, socialLinks: [...prev.socialLinks, newLink] }))
+    appendSocialLink(newLink)
   }
 
-  const updateSocialLink = (index: number, field: keyof SocialLink, value: any) => {
-    setEditedData((prev) => ({
-      ...prev,
-      socialLinks: prev.socialLinks.map((link, i) => (i === index ? { ...link, [field]: value } : link))
-    }))
+  // Get current form values for preview
+  const formValues = form.watch()
+  const previewData: LandingTemplateProps = {
+    ...templateData,
+    ...formValues
   }
 
-  const removeSocialLink = (index: number) => {
-    setEditedData((prev) => ({
-      ...prev,
-      socialLinks: prev.socialLinks.filter((_, i) => i !== index)
-    }))
-  }
+  // Check if there are validation errors
+  const hasErrors = Object.keys(form.formState.errors).length > 0
 
   if (showPreview) {
     return (
@@ -266,8 +282,8 @@ export default function TemplateEditor({
                 Quay lại chỉnh sửa
               </Button>
               <Button
-                onClick={handleSave}
-                disabled={isSaving}
+                onClick={() => handleSave(formValues)}
+                disabled={isSaving || hasErrors}
                 className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
               >
                 {isSaving ? (
@@ -286,7 +302,7 @@ export default function TemplateEditor({
           </div>
         </div>
         <div className='mt-6'>
-          <TemplateComponent {...editedData} />
+          <TemplateComponent {...previewData} />
         </div>
       </div>
     )
@@ -306,7 +322,7 @@ export default function TemplateEditor({
               <div className='h-6 w-px bg-gray-300' />
               <div>
                 <h2 className='text-lg font-semibold text-gray-900'>Chỉnh sửa Template</h2>
-                <p className='text-sm text-gray-500'>Tùy chỉnh nội dung theo ý muốn</p>
+                <p className='text-sm text-gray-500'>Tùy chỉnh nội dung và kiểm tra tính hợp lệ</p>
               </div>
             </div>
 
@@ -316,8 +332,8 @@ export default function TemplateEditor({
                 Xem trước
               </Button>
               <Button
-                onClick={handleSave}
-                disabled={isSaving}
+                onClick={form.handleSubmit(handleSave)}
+                disabled={isSaving || hasErrors}
                 className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
               >
                 {isSaving ? (
@@ -337,407 +353,506 @@ export default function TemplateEditor({
         </div>
       </div>
 
+      {/* Validation Errors Alert */}
+      {hasErrors && (
+        <div className='max-w-7xl mx-auto px-4 pt-4'>
+          <Alert variant='destructive' className='border-red-200 bg-red-50'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertDescription>
+              <div className='font-medium mb-2'>Vui lòng kiểm tra các lỗi sau:</div>
+              <ul className='list-disc list-inside space-y-1 text-sm'>
+                {Object.entries(form.formState.errors).map(([field, error]) => (
+                  <li key={field}>
+                    <strong>{field}:</strong> {error.message as string}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* Editor Content */}
       <div className='max-w-7xl mx-auto px-4 py-8'>
-        <Tabs defaultValue='basic' className='w-full'>
-          <TabsList className='grid w-full grid-cols-3 max-w-2xl mx-auto mb-8'>
-            <TabsTrigger value='basic'>Thông tin cơ bản</TabsTrigger>
-            <TabsTrigger value='images'>Hình ảnh</TabsTrigger>
-            <TabsTrigger value='social'>Mạng xã hội</TabsTrigger>
-          </TabsList>
+        <form onSubmit={form.handleSubmit(handleSave)}>
+          <Tabs defaultValue='basic' className='w-full'>
+            <TabsList className='grid w-full grid-cols-3 max-w-2xl mx-auto mb-8'>
+              <TabsTrigger value='basic'>Thông tin cơ bản</TabsTrigger>
+              <TabsTrigger value='images'>Hình ảnh ({imageFields.length})</TabsTrigger>
+              <TabsTrigger value='social'>Mạng xã hội ({socialLinkFields.length})</TabsTrigger>
+            </TabsList>
 
-          {/* Basic Info Tab */}
-          <TabsContent value='basic' className='space-y-6'>
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin banner</CardTitle>
-                <CardDescription>Cập nhật thông tin hiển thị chính</CardDescription>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='bannerUrl'>URL Banner</Label>
-                  <Tabs
-                    value={bannerSource}
-                    onValueChange={(value) => {
-                      const nextValue = value as 'url' | 'upload'
-                      setBannerSource(nextValue)
-                      if (nextValue === 'url' && editedData.bannerUrl.startsWith('data:')) {
-                        updateField('bannerUrl', '')
-                      }
-                    }}
-                    className='space-y-3'
-                  >
-                    <TabsList className='grid grid-cols-2 w-full'>
-                      <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                      <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value='url' className='m-0 space-y-2'>
-                      <Input
-                        id='bannerUrl'
-                        value={editedData.bannerUrl}
-                        onChange={(e) => {
-                          setBannerSource('url')
-                          updateField('bannerUrl', e.target.value)
-                        }}
-                        placeholder='https://example.com/banner.jpg'
-                      />
-                    </TabsContent>
-                    <TabsContent value='upload' className='m-0 space-y-2'>
-                      <Input
-                        type='file'
-                        accept='image/*'
-                        disabled={uploadingFiles['banner']}
-                        onChange={(event) =>
-                          void handleImageUpload(
-                            event,
-                            (url) => {
-                              setBannerSource('upload')
-                              updateField('bannerUrl', url)
-                            },
-                            'banner'
-                          )
+            {/* Basic Info Tab */}
+            <TabsContent value='basic' className='space-y-6'>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Thông tin banner</CardTitle>
+                  <CardDescription>Cập nhật thông tin hiển thị chính</CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='bannerUrl'>
+                      URL Banner <span className='text-red-500'>*</span>
+                    </Label>
+                    <Tabs
+                      value={bannerSource}
+                      onValueChange={(value) => {
+                        const nextValue = value as 'url' | 'upload'
+                        setBannerSource(nextValue)
+                        if (nextValue === 'url' && form.getValues('bannerUrl').startsWith('data:')) {
+                          form.setValue('bannerUrl', '', { shouldValidate: true })
                         }
-                      />
-                      {uploadingFiles['banner'] && (
-                        <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                          <Loader2 className='w-4 h-4 animate-spin' />
-                          <span>Đang tải ảnh lên...</span>
-                        </div>
-                      )}
-                      <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='title'>Tiêu đề</Label>
-                  <Input
-                    id='title'
-                    value={editedData.title}
-                    onChange={(e) => updateField('title', e.target.value)}
-                    placeholder='Tên sự kiện'
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='subtitle'>Phụ đề</Label>
-                  <Input
-                    id='subtitle'
-                    value={editedData.subtitle || ''}
-                    onChange={(e) => updateField('subtitle', e.target.value)}
-                    placeholder='Mô tả ngắn'
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='description'>Mô tả</Label>
-                  <Textarea
-                    id='description'
-                    value={editedData.description}
-                    onChange={(e) => updateField('description', e.target.value)}
-                    placeholder='Mô tả chi tiết về sự kiện'
-                    rows={4}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Thông tin tác giả & sự kiện</CardTitle>
-                <CardDescription>Thông tin người tổ chức và chi tiết sự kiện</CardDescription>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='space-y-2'>
-                  <Label htmlFor='authorName'>Tên tác giả</Label>
-                  <Input
-                    id='authorName'
-                    value={editedData.authorName}
-                    onChange={(e) => updateField('authorName', e.target.value)}
-                    placeholder='Tên người tổ chức'
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='authorAvatar'>URL Avatar</Label>
-                  <Tabs
-                    value={avatarSource}
-                    onValueChange={(value) => {
-                      const nextValue = value as 'url' | 'upload'
-                      setAvatarSource(nextValue)
-                      if (nextValue === 'url' && editedData.authorAvatar?.startsWith('data:')) {
-                        updateField('authorAvatar', '')
-                      }
-                    }}
-                    className='space-y-3'
-                  >
-                    <TabsList className='grid grid-cols-2 w-full'>
-                      <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                      <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value='url' className='m-0 space-y-2'>
-                      <Input
-                        id='authorAvatar'
-                        value={editedData.authorAvatar || ''}
-                        onChange={(e) => {
-                          setAvatarSource('url')
-                          updateField('authorAvatar', e.target.value)
-                        }}
-                        placeholder='https://example.com/avatar.jpg'
-                      />
-                    </TabsContent>
-                    <TabsContent value='upload' className='m-0 space-y-2'>
-                      <Input
-                        type='file'
-                        accept='image/*'
-                        disabled={uploadingFiles['avatar']}
-                        onChange={(event) =>
-                          void handleImageUpload(
-                            event,
-                            (url) => {
-                              setAvatarSource('upload')
-                              updateField('authorAvatar', url)
-                            },
-                            'avatar'
-                          )
-                        }
-                      />
-                      {uploadingFiles['avatar'] && (
-                        <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                          <Loader2 className='w-4 h-4 animate-spin' />
-                          <span>Đang tải ảnh lên...</span>
-                        </div>
-                      )}
-                      <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='eventDate'>Ngày sự kiện</Label>
-                  <Input
-                    id='eventDate'
-                    value={editedData.eventDate || ''}
-                    onChange={(e) => updateField('eventDate', e.target.value)}
-                    placeholder='June 15-17, 2025'
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='eventLocation'>Địa điểm</Label>
-                  <Input
-                    id='eventLocation'
-                    value={editedData.eventLocation || ''}
-                    onChange={(e) => updateField('eventLocation', e.target.value)}
-                    placeholder='Central Park, New York'
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Nội dung</CardTitle>
-                <CardDescription>Nội dung chi tiết của bài viết</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={editedData.content}
-                  onChange={(e) => updateField('content', e.target.value)}
-                  placeholder='Nội dung chi tiết...'
-                  rows={8}
-                  className='resize-none'
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Images Tab */}
-          <TabsContent value='images' className='space-y-6'>
-            <Card>
-              <CardHeader>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <CardTitle>Thư viện hình ảnh</CardTitle>
-                    <CardDescription>Quản lý hình ảnh hiển thị trong template</CardDescription>
-                  </div>
-                  <Button onClick={addImage} className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'>
-                    <Plus className='w-4 h-4' />
-                    Thêm ảnh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className='space-y-6'>
-                {editedData.images.map((image, index) => (
-                  <Card key={image.id} className='border-2'>
-                    <CardHeader>
-                      <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                          <ImageIcon className='w-5 h-5 text-cyan-500' />
-                          <CardTitle className='text-base'>Hình ảnh {index + 1}</CardTitle>
-                        </div>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => removeImage(index)}
-                          className='text-red-500 hover:text-red-600 hover:bg-red-50'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className='space-y-4'>
-                      <div className='space-y-2'>
-                        <Label>URL hình ảnh</Label>
-                        <Tabs
-                          value={imageSources[image.id] ?? 'url'}
-                          onValueChange={(value) => {
-                            const nextValue = value as 'url' | 'upload'
-                            setImageSources((prev) => ({ ...prev, [image.id]: nextValue }))
-                            if (nextValue === 'url' && image.url.startsWith('data:')) {
-                              updateImage(index, 'url', '')
-                            }
-                          }}
-                          className='space-y-3'
-                        >
-                          <TabsList className='grid grid-cols-2 w-full'>
-                            <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
-                            <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
-                          </TabsList>
-                          <TabsContent value='url' className='m-0 space-y-2'>
-                            <Input
-                              value={image.url}
-                              onChange={(e) => {
-                                setImageSources((prev) => ({ ...prev, [image.id]: 'url' }))
-                                updateImage(index, 'url', e.target.value)
-                              }}
-                              placeholder='https://example.com/image.jpg'
-                            />
-                          </TabsContent>
-                          <TabsContent value='upload' className='m-0 space-y-2'>
-                            <Input
-                              type='file'
-                              accept='image/*'
-                              disabled={uploadingFiles[`image-${image.id}`]}
-                              onChange={(event) =>
-                                void handleImageUpload(
-                                  event,
-                                  (url) => {
-                                    setImageSources((prev) => ({ ...prev, [image.id]: 'upload' }))
-                                    updateImage(index, 'url', url)
-                                  },
-                                  `image-${image.id}`
-                                )
-                              }
-                            />
-                            {uploadingFiles[`image-${image.id}`] && (
-                              <div className='flex items-center gap-2 text-sm text-cyan-600'>
-                                <Loader2 className='w-4 h-4 animate-spin' />
-                                <span>Đang tải ảnh lên...</span>
-                              </div>
-                            )}
-                            <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
-                          </TabsContent>
-                        </Tabs>
-                      </div>
-                      <div className='space-y-2'>
-                        <Label>Mô tả</Label>
+                      }}
+                      className='space-y-3'
+                    >
+                      <TabsList className='grid grid-cols-2 w-full'>
+                        <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                        <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value='url' className='m-0 space-y-2'>
                         <Input
-                          value={image.caption || ''}
-                          onChange={(e) => updateImage(index, 'caption', e.target.value)}
-                          placeholder='Mô tả hình ảnh'
+                          {...form.register('bannerUrl')}
+                          placeholder='https://example.com/banner.jpg'
+                          className={form.formState.errors.bannerUrl ? 'border-red-500' : ''}
                         />
-                      </div>
-                      {image.url && (
-                        <div className='mt-4'>
-                          <img
-                            src={image.url}
-                            alt={image.caption || `Image ${index + 1}`}
-                            className='w-full h-48 object-cover rounded-lg'
-                          />
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-
-                {editedData.images.length === 0 && (
-                  <div className='text-center py-12 text-gray-500'>
-                    <ImageIcon className='w-12 h-12 mx-auto mb-4 opacity-50' />
-                    <p>Chưa có hình ảnh nào. Nhấn "Thêm ảnh" để bắt đầu.</p>
+                        {form.formState.errors.bannerUrl && (
+                          <p className='text-sm text-red-500'>{form.formState.errors.bannerUrl.message}</p>
+                        )}
+                      </TabsContent>
+                      <TabsContent value='upload' className='m-0 space-y-2'>
+                        <Input
+                          type='file'
+                          accept='image/*'
+                          disabled={uploadingFiles['banner']}
+                          onChange={(event) =>
+                            void handleImageUpload(
+                              event,
+                              (url) => {
+                                setBannerSource('upload')
+                                form.setValue('bannerUrl', url, { shouldValidate: true })
+                              },
+                              'banner'
+                            )
+                          }
+                        />
+                        {uploadingFiles['banner'] && (
+                          <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                            <Loader2 className='w-4 h-4 animate-spin' />
+                            <span>Đang tải ảnh lên...</span>
+                          </div>
+                        )}
+                        <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
+                      </TabsContent>
+                    </Tabs>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Social Links Tab */}
-          <TabsContent value='social' className='space-y-6'>
-            <Card>
-              <CardHeader>
-                <div className='flex items-center justify-between'>
-                  <div>
-                    <CardTitle>Liên kết mạng xã hội</CardTitle>
-                    <CardDescription>Thêm các tài khoản mạng xã hội</CardDescription>
+                  <div className='space-y-2'>
+                    <Label htmlFor='title'>
+                      Tiêu đề <span className='text-red-500'>*</span>
+                    </Label>
+                    <Input
+                      {...form.register('title')}
+                      placeholder='Tên sự kiện'
+                      className={form.formState.errors.title ? 'border-red-500' : ''}
+                    />
+                    {form.formState.errors.title && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.title.message}</p>
+                    )}
                   </div>
-                  <Button onClick={addSocialLink} className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'>
-                    <Plus className='w-4 h-4' />
-                    Thêm liên kết
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                {editedData.socialLinks.map((link, index) => (
-                  <Card key={index} className='border-2'>
-                    <CardContent className='pt-6'>
-                      <div className='flex items-end gap-4'>
-                        <div className='flex-1 space-y-2'>
-                          <Label>Nền tảng</Label>
-                          <select
-                            value={link.platform}
-                            onChange={(e) =>
-                              updateSocialLink(index, 'platform', e.target.value as SocialLink['platform'])
-                            }
-                            className='w-full h-10 px-3 rounded-md border border-gray-300 bg-white'
+
+                  <div className='space-y-2'>
+                    <Label htmlFor='subtitle'>Phụ đề</Label>
+                    <Input {...form.register('subtitle')} placeholder='Mô tả ngắn' />
+                    {form.formState.errors.subtitle && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.subtitle.message}</p>
+                    )}
+                  </div>
+
+                  <div className='space-y-2'>
+                    <Label htmlFor='description'>
+                      Mô tả <span className='text-red-500'>*</span>
+                    </Label>
+                    <Textarea
+                      {...form.register('description')}
+                      placeholder='Mô tả chi tiết về sự kiện'
+                      rows={4}
+                      className={form.formState.errors.description ? 'border-red-500' : ''}
+                    />
+                    {form.formState.errors.description && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.description.message}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Thông tin tác giả & sự kiện</CardTitle>
+                  <CardDescription>Thông tin người tổ chức và chi tiết sự kiện</CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='authorName'>
+                      Tên tác giả <span className='text-red-500'>*</span>
+                    </Label>
+                    <Input
+                      {...form.register('authorName')}
+                      placeholder='Tên người tổ chức'
+                      className={form.formState.errors.authorName ? 'border-red-500' : ''}
+                    />
+                    {form.formState.errors.authorName && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.authorName.message}</p>
+                    )}
+                  </div>
+
+                  <div className='space-y-2'>
+                    <Label htmlFor='authorAvatar'>URL Avatar</Label>
+                    <Tabs
+                      value={avatarSource}
+                      onValueChange={(value) => {
+                        const nextValue = value as 'url' | 'upload'
+                        setAvatarSource(nextValue)
+                        if (nextValue === 'url' && (form.getValues('authorAvatar') || '').startsWith('data:')) {
+                          form.setValue('authorAvatar', '', { shouldValidate: true })
+                        }
+                      }}
+                      className='space-y-3'
+                    >
+                      <TabsList className='grid grid-cols-2 w-full'>
+                        <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                        <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value='url' className='m-0 space-y-2'>
+                        <Input {...form.register('authorAvatar')} placeholder='https://example.com/avatar.jpg' />
+                        {form.formState.errors.authorAvatar && (
+                          <p className='text-sm text-red-500'>{form.formState.errors.authorAvatar.message}</p>
+                        )}
+                      </TabsContent>
+                      <TabsContent value='upload' className='m-0 space-y-2'>
+                        <Input
+                          type='file'
+                          accept='image/*'
+                          disabled={uploadingFiles['avatar']}
+                          onChange={(event) =>
+                            void handleImageUpload(
+                              event,
+                              (url) => {
+                                setAvatarSource('upload')
+                                form.setValue('authorAvatar', url, { shouldValidate: true })
+                              },
+                              'avatar'
+                            )
+                          }
+                        />
+                        {uploadingFiles['avatar'] && (
+                          <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                            <Loader2 className='w-4 h-4 animate-spin' />
+                            <span>Đang tải ảnh lên...</span>
+                          </div>
+                        )}
+                        <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+
+                  {/* <div className='space-y-2'>
+                    <Label htmlFor='eventDate'>Ngày sự kiện</Label>
+                    <Input {...form.register('eventDate')} placeholder='June 15-17, 2025' />
+                    {form.formState.errors.eventDate && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.eventDate.message}</p>
+                    )}
+                  </div>
+
+                  <div className='space-y-2'>
+                    <Label htmlFor='eventLocation'>Địa điểm</Label>
+                    <Input {...form.register('eventLocation')} placeholder='Central Park, New York' />
+                    {form.formState.errors.eventLocation && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.eventLocation.message}</p>
+                    )}
+                  </div> */}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nội dung</CardTitle>
+                  <CardDescription>Nội dung chi tiết của bài viết</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className='space-y-2'>
+                    <Label htmlFor='content'>
+                      Nội dung <span className='text-red-500'>*</span>
+                    </Label>
+                    <Textarea
+                      {...form.register('content')}
+                      placeholder='Nội dung chi tiết...'
+                      rows={8}
+                      className={`resize-none ${form.formState.errors.content ? 'border-red-500' : ''}`}
+                    />
+                    {form.formState.errors.content && (
+                      <p className='text-sm text-red-500'>{form.formState.errors.content.message}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Images Tab */}
+            <TabsContent value='images' className='space-y-6'>
+              <Card>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <CardTitle>Thư viện hình ảnh</CardTitle>
+                      <CardDescription>
+                        Quản lý hình ảnh hiển thị trong template (Tối thiểu 1, tối đa 20 ảnh)
+                      </CardDescription>
+                    </div>
+                    <Button
+                      type='button'
+                      onClick={addImage}
+                      disabled={imageFields.length >= 20}
+                      className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
+                    >
+                      <Plus className='w-4 h-4' />
+                      Thêm ảnh
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className='space-y-6'>
+                  {form.formState.errors.images && (
+                    <Alert variant='destructive'>
+                      <AlertCircle className='h-4 w-4' />
+                      <AlertDescription>{form.formState.errors.images.message}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {imageFields.map((field, index) => (
+                    <Card key={field.id} className='border-2'>
+                      <CardHeader>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-2'>
+                            <ImageIcon className='w-5 h-5 text-cyan-500' />
+                            <CardTitle className='text-base'>Hình ảnh {index + 1}</CardTitle>
+                          </div>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => removeImage(index)}
+                            className='text-red-500 hover:text-red-600 hover:bg-red-50'
                           >
-                            <option value='facebook'>Facebook</option>
-                            <option value='instagram'>Instagram</option>
-                            <option value='twitter'>Twitter</option>
-                            <option value='linkedin'>LinkedIn</option>
-                            <option value='tiktok'>TikTok</option>
-                            <option value='youtube'>YouTube</option>
-                          </select>
+                            <Trash2 className='w-4 h-4' />
+                          </Button>
                         </div>
-                        <div className='flex-[2] space-y-2'>
-                          <Label>URL</Label>
-                          <Input
-                            value={link.url}
-                            onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                            placeholder='https://facebook.com/yourpage'
-                          />
+                      </CardHeader>
+                      <CardContent className='space-y-4'>
+                        <div className='space-y-2'>
+                          <Label>
+                            URL hình ảnh <span className='text-red-500'>*</span>
+                          </Label>
+                          <Tabs
+                            value={imageSources[field.id] ?? 'url'}
+                            onValueChange={(value) => {
+                              const nextValue = value as 'url' | 'upload'
+                              setImageSources((prev) => ({ ...prev, [field.id]: nextValue }))
+                              if (nextValue === 'url' && field.url.startsWith('data:')) {
+                                form.setValue(`images.${index}.url`, '', { shouldValidate: true })
+                              }
+                            }}
+                            className='space-y-3'
+                          >
+                            <TabsList className='grid grid-cols-2 w-full'>
+                              <TabsTrigger value='url'>Sử dụng URL</TabsTrigger>
+                              <TabsTrigger value='upload'>Tải từ máy</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value='url' className='m-0 space-y-2'>
+                              <Input
+                                {...form.register(`images.${index}.url`)}
+                                placeholder='https://example.com/image.jpg'
+                                className={form.formState.errors.images?.[index]?.url ? 'border-red-500' : ''}
+                              />
+                              {form.formState.errors.images?.[index]?.url && (
+                                <p className='text-sm text-red-500'>
+                                  {form.formState.errors.images[index]?.url?.message}
+                                </p>
+                              )}
+                            </TabsContent>
+                            <TabsContent value='upload' className='m-0 space-y-2'>
+                              <Input
+                                type='file'
+                                accept='image/*'
+                                disabled={uploadingFiles[`image-${field.id}`]}
+                                onChange={(event) =>
+                                  void handleImageUpload(
+                                    event,
+                                    (url) => {
+                                      setImageSources((prev) => ({ ...prev, [field.id]: 'upload' }))
+                                      form.setValue(`images.${index}.url`, url, { shouldValidate: true })
+                                    },
+                                    `image-${field.id}`
+                                  )
+                                }
+                              />
+                              {uploadingFiles[`image-${field.id}`] && (
+                                <div className='flex items-center gap-2 text-sm text-cyan-600'>
+                                  <Loader2 className='w-4 h-4 animate-spin' />
+                                  <span>Đang tải ảnh lên...</span>
+                                </div>
+                              )}
+                              <p className='text-xs text-gray-500'>Ảnh sẽ được tải lên server và lưu URL.</p>
+                            </TabsContent>
+                          </Tabs>
                         </div>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => removeSocialLink(index)}
-                          className='text-red-500 hover:text-red-600 hover:bg-red-50'
-                        >
-                          <Trash2 className='w-4 h-4' />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+
+                        <div className='space-y-2'>
+                          <Label>Mô tả</Label>
+                          <Input {...form.register(`images.${index}.caption`)} placeholder='Mô tả hình ảnh' />
+                          {form.formState.errors.images?.[index]?.caption && (
+                            <p className='text-sm text-red-500'>
+                              {form.formState.errors.images[index]?.caption?.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {field.url && (
+                          <div className='mt-4'>
+                            <img
+                              src={field.url}
+                              alt={field.caption || `Image ${index + 1}`}
+                              className='w-full h-48 object-cover rounded-lg'
+                            />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {imageFields.length === 0 && (
+                    <div className='text-center py-12 text-gray-500'>
+                      <ImageIcon className='w-12 h-12 mx-auto mb-4 opacity-50' />
+                      <p>Chưa có hình ảnh nào. Nhấn "Thêm ảnh" để bắt đầu.</p>
+                      <p className='text-sm text-red-500 mt-2'>Yêu cầu: Cần có ít nhất 1 hình ảnh</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Social Links Tab */}
+            <TabsContent value='social' className='space-y-6'>
+              <Card>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <CardTitle>Liên kết mạng xã hội</CardTitle>
+                      <CardDescription>Thêm các tài khoản mạng xã hội (Tối đa 10 liên kết)</CardDescription>
+                    </div>
+                    <Button
+                      type='button'
+                      onClick={addSocialLink}
+                      disabled={socialLinkFields.length >= 10}
+                      className='gap-2 bg-gradient-to-r from-cyan-400 to-blue-400'
+                    >
+                      <Plus className='w-4 h-4' />
+                      Thêm liên kết
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                  {form.formState.errors.socialLinks && (
+                    <Alert variant='destructive'>
+                      <AlertCircle className='h-4 w-4' />
+                      <AlertDescription>{(form.formState.errors.socialLinks as any).message}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  {socialLinkFields.map((field, index) => (
+                    <Card key={field.id} className='border-2'>
+                      <CardContent className='pt-6'>
+                        <div className='flex items-end gap-4'>
+                          <div className='flex-1 space-y-2'>
+                            <Label>Nền tảng</Label>
+                            <select
+                              {...form.register(`socialLinks.${index}.platform`)}
+                              className='w-full h-10 px-3 rounded-md border border-gray-300 bg-white'
+                            >
+                              <option value='facebook'>Facebook</option>
+                              <option value='instagram'>Instagram</option>
+                              <option value='twitter'>Twitter</option>
+                              <option value='linkedin'>LinkedIn</option>
+                              <option value='tiktok'>TikTok</option>
+                              <option value='youtube'>YouTube</option>
+                            </select>
+                            {form.formState.errors.socialLinks?.[index]?.platform && (
+                              <p className='text-sm text-red-500'>
+                                {form.formState.errors.socialLinks[index]?.platform?.message}
+                              </p>
+                            )}
+                          </div>
+                          <div className='flex-[2] space-y-2'>
+                            <Label>
+                              URL <span className='text-red-500'>*</span>
+                            </Label>
+                            <Input
+                              {...form.register(`socialLinks.${index}.url`)}
+                              placeholder='https://facebook.com/yourpage'
+                              className={form.formState.errors.socialLinks?.[index]?.url ? 'border-red-500' : ''}
+                            />
+                            {form.formState.errors.socialLinks?.[index]?.url && (
+                              <p className='text-sm text-red-500'>
+                                {form.formState.errors.socialLinks[index]?.url?.message}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => removeSocialLink(index)}
+                            className='text-red-500 hover:text-red-600 hover:bg-red-50'
+                          >
+                            <Trash2 className='w-4 h-4' />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {socialLinkFields.length === 0 && (
+                    <div className='text-center py-12 text-gray-500'>
+                      <p>Chưa có liên kết mạng xã hội. Nhấn "Thêm liên kết" để bắt đầu.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </form>
       </div>
 
       {/* Fixed Bottom Save Button */}
       <div className='fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-lg z-40'>
         <div className='max-w-7xl mx-auto px-4 py-4'>
           <div className='flex items-center justify-between'>
-            <p className='text-sm text-gray-600'>Nhớ lưu thay đổi trước khi rời đi</p>
+            <div>
+              <p className='text-sm text-gray-600'>Nhớ lưu thay đổi trước khi rời đi</p>
+              {hasErrors && (
+                <p className='text-sm text-red-500 font-medium'>
+                  Có {Object.keys(form.formState.errors).length} lỗi cần sửa
+                </p>
+              )}
+            </div>
             <div className='flex items-center gap-3'>
-              <Button variant='outline' onClick={() => setShowPreview(true)}>
+              <Button type='button' variant='outline' onClick={() => setShowPreview(true)}>
                 Xem trước
               </Button>
-              <Button onClick={handleSave} disabled={isSaving} className='bg-gradient-to-r from-cyan-400 to-blue-400'>
+              <Button
+                type='button'
+                onClick={form.handleSubmit(handleSave)}
+                disabled={isSaving || hasErrors}
+                className='bg-gradient-to-r from-cyan-400 to-blue-400'
+              >
                 {isSaving ? (
                   <>
                     <Loader2 className='w-4 h-4 animate-spin mr-2' />

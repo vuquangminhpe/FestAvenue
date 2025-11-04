@@ -481,7 +481,11 @@ export default function SubTaskForm({
                   <div
                     key={index}
                     className={`border rounded-lg p-3 space-y-3 transition-all duration-200 hover:shadow-md ${
-                      subTask.isCompleted ? 'bg-green-50 border-green-200' : hasError ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'
+                      subTask.isCompleted
+                        ? 'bg-green-50 border-green-200'
+                        : hasError
+                        ? 'border-red-300 bg-red-50'
+                        : 'border-gray-200 bg-white'
                     }`}
                     style={{
                       animation: `slideInFromLeft 0.3s ease-out ${idx * 50}ms both`
@@ -508,8 +512,10 @@ export default function SubTaskForm({
                         <Input
                           value={subTask.title}
                           onChange={(e) => updateSubTask(index, 'title', e.target.value)}
-                          placeholder='Tiêu đề subtask (tùy chọn)'
-                          className={`h-9 transition-all duration-200 focus:ring-2 ${titleError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}`}
+                          placeholder='Tiêu đề subtask'
+                          className={`h-9 transition-all duration-200 focus:ring-2 ${
+                            titleError ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'
+                          }`}
                         />
 
                         {/* Description */}
@@ -581,7 +587,9 @@ export default function SubTaskForm({
                                 type='button'
                                 onClick={() => toggleTimeSlots(index)}
                                 className={`text-xs font-medium flex items-center gap-1 ${
-                                  timeSlotError ? 'text-red-600 hover:text-red-700' : 'text-blue-600 hover:text-blue-700'
+                                  timeSlotError
+                                    ? 'text-red-600 hover:text-red-700'
+                                    : 'text-blue-600 hover:text-blue-700'
                                 }`}
                               >
                                 <Clock className='w-3 h-3' />
@@ -609,11 +617,13 @@ export default function SubTaskForm({
                             </div>
 
                             {(timeSlotsExpanded || timeSlotError) && (
-                              <div className={`space-y-2 bg-gradient-to-br p-3 rounded-lg shadow-inner max-h-64 overflow-y-auto scrollbar-thin ${
-                                timeSlotError
-                                  ? 'from-red-50 via-pink-50 to-orange-50 border border-red-300'
-                                  : 'from-blue-50 via-indigo-50 to-purple-50 border border-blue-200'
-                              }`}>
+                              <div
+                                className={`space-y-2 bg-gradient-to-br p-3 rounded-lg shadow-inner max-h-64 overflow-y-auto scrollbar-thin ${
+                                  timeSlotError
+                                    ? 'from-red-50 via-pink-50 to-orange-50 border border-red-300'
+                                    : 'from-blue-50 via-indigo-50 to-purple-50 border border-blue-200'
+                                }`}
+                              >
                                 {subTask.dailyTimeSlots.map((slot, slotIdx) => (
                                   <div
                                     key={slot.date}

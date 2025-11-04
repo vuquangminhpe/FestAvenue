@@ -58,3 +58,21 @@ export interface TicketSearchRequest {
   maxPrice: number
   pagination: TicketPagination
 }
+export interface resGetSeatMapByEventCode {
+  eventCode: string
+  seatingChartStructure: string
+  ticketsForSeats: TicketsCharForSeatsType[]
+  id: string
+  createdAt: string
+  updatedAt: boolean
+}
+export interface TicketsCharForSeatsType {
+  ticketId: string
+  seatPrice: number
+  isPayment: boolean
+  seatIndex: string
+  email?: string
+  expirationTime?: string
+  isSeatLock: boolean
+  status: number
+}

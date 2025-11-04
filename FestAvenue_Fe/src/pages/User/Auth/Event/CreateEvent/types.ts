@@ -127,8 +127,8 @@ const longitudeValidator = z
 // MAIN EVENT SCHEMA WITH ADVANCED VALIDATION
 // ============================================
 
-export const eventSchema = z
-  .object({
+// Base event object schema (shared between create and update)
+const baseEventObjectSchema = z.object({
     // ========== Basic Information ==========
     name: eventNameValidator,
 
@@ -464,22 +464,155 @@ export const eventSchema = z
         fax: phoneValidator.optional().or(z.literal(''))
       })
     })
-  })
-  // ========== CROSS-FIELD VALIDATION FOR NEW TIME FIELDS ==========
+})
 
-  // 1. EventLifecycleTime validation
-  .refine(
-    (data) => {
-      const start = new Date(data.startEventLifecycleTime)
-      const end = new Date(data.endEventLifecycleTime)
-      return end >= start
-    },
-    {
-      message: 'Thời gian kết thúc vòng đời phải sau hoặc bằng thời gian bắt đầu',
-      path: ['endEventLifecycleTime']
-    }
-  )
-  .refine(
+// ============================================
+// SHARED VALIDATION REFINEMENTS HELPER
+// ============================================
+
+// Helper function to apply common refinements to a schema
+function applyCommonRefinements<T extends typeof baseEventObjectSchema>(schema: T) {
+  return schema
+    // 1. EventLifecycleTime validation - end must be after start
+    .refine(
+      (data) => {
+        const start = new Date(data.startEventLifecycleTime)
+        const end = new Date(data.endEventLifecycleTime)
+        return end >= start
+      },
+      {
+        message: 'Thời gian kết thúc vòng đời phải sau hoặc bằng thời gian bắt đầu',
+        path: ['endEventLifecycleTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const start = new Date(data.startEventLifecycleTime)
+        const end = new Date(data.endEventLifecycleTime)
+        const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+        return durationDays <= 365
+      },
+      {
+        message: 'Vòng đời sự kiện không thể kéo dài quá 365 ngày (1 năm)',
+        path: ['endEventLifecycleTime']
+      }
+    )
+
+    // 2. TicketSaleTime validation - must be within EventLifecycleTime
+    .refine(
+      (data) => {
+        const saleStart = new Date(data.startTicketSaleTime)
+        const saleEnd = new Date(data.endTicketSaleTime)
+        return saleEnd >= saleStart
+      },
+      {
+        message: 'Thời gian kết thúc bán vé phải sau hoặc bằng thời gian bắt đầu bán vé',
+        path: ['endTicketSaleTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const lifecycleStart = new Date(data.startEventLifecycleTime)
+        const saleStart = new Date(data.startTicketSaleTime)
+        return saleStart >= lifecycleStart
+      },
+      {
+        message: 'Thời gian bắt đầu bán vé phải nằm trong vòng đời sự kiện',
+        path: ['startTicketSaleTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const lifecycleEnd = new Date(data.endEventLifecycleTime)
+        const saleEnd = new Date(data.endTicketSaleTime)
+        return saleEnd <= lifecycleEnd
+      },
+      {
+        message: 'Thời gian kết thúc bán vé phải nằm trong vòng đời sự kiện',
+        path: ['endTicketSaleTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const saleStart = new Date(data.startTicketSaleTime)
+        const saleEnd = new Date(data.endTicketSaleTime)
+        const durationDays = (saleEnd.getTime() - saleStart.getTime()) / (1000 * 60 * 60 * 24)
+        return durationDays <= 180
+      },
+      {
+        message: 'Thời gian bán vé không thể kéo dài quá 180 ngày (6 tháng)',
+        path: ['endTicketSaleTime']
+      }
+    )
+
+    // 3. EventTime validation - must be after TicketSaleTime starts
+    .refine(
+      (data) => {
+        const eventStart = new Date(data.startTimeEventTime)
+        const eventEnd = new Date(data.endTimeEventTime)
+        return eventEnd >= eventStart
+      },
+      {
+        message: 'Thời gian kết thúc sự kiện phải sau hoặc bằng thời gian bắt đầu',
+        path: ['endTimeEventTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const saleStart = new Date(data.startTicketSaleTime)
+        const eventStart = new Date(data.startTimeEventTime)
+        return eventStart >= saleStart
+      },
+      {
+        message: 'Sự kiện phải diễn ra sau hoặc cùng lúc với thời điểm bắt đầu bán vé',
+        path: ['startTimeEventTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const lifecycleEnd = new Date(data.endEventLifecycleTime)
+        const eventEnd = new Date(data.endTimeEventTime)
+        return eventEnd <= lifecycleEnd
+      },
+      {
+        message: 'Thời gian kết thúc sự kiện phải nằm trong vòng đời sự kiện',
+        path: ['endTimeEventTime']
+      }
+    )
+    .refine(
+      (data) => {
+        const eventStart = new Date(data.startTimeEventTime)
+        const eventEnd = new Date(data.endTimeEventTime)
+        const durationDays = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60 * 24)
+        return durationDays <= 30
+      },
+      {
+        message: 'Sự kiện không thể kéo dài quá 30 ngày',
+        path: ['endTimeEventTime']
+      }
+    )
+
+    // 4. Location coordinates validation
+    .refine(
+      (data) => {
+        const { latitude, longitude } = data.location.coordinates
+        // Check if coordinates are in Vietnam (approximate bounds)
+        const isInVietnam = latitude >= 8.0 && latitude <= 24.0 && longitude >= 102.0 && longitude <= 110.0
+        return isInVietnam
+      },
+      {
+        message: 'Tọa độ phải nằm trong lãnh thổ Việt Nam',
+        path: ['location', 'coordinates']
+      }
+    )
+}
+
+// ============================================
+// CREATE EVENT SCHEMA - WITH PAST TIME CHECK
+// ============================================
+
+export const createEventSchema = applyCommonRefinements(
+  baseEventObjectSchema.refine(
     (data) => {
       const now = new Date()
       const start = new Date(data.startEventLifecycleTime)
@@ -490,123 +623,21 @@ export const eventSchema = z
       path: ['startEventLifecycleTime']
     }
   )
-  .refine(
-    (data) => {
-      const start = new Date(data.startEventLifecycleTime)
-      const end = new Date(data.endEventLifecycleTime)
-      const durationDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      return durationDays <= 365
-    },
-    {
-      message: 'Vòng đời sự kiện không thể kéo dài quá 365 ngày (1 năm)',
-      path: ['endEventLifecycleTime']
-    }
-  )
+)
 
-  // 2. TicketSaleTime validation - must be within EventLifecycleTime
-  .refine(
-    (data) => {
-      const saleStart = new Date(data.startTicketSaleTime)
-      const saleEnd = new Date(data.endTicketSaleTime)
-      return saleEnd >= saleStart
-    },
-    {
-      message: 'Thời gian kết thúc bán vé phải sau hoặc bằng thời gian bắt đầu bán vé',
-      path: ['endTicketSaleTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const lifecycleStart = new Date(data.startEventLifecycleTime)
-      const saleStart = new Date(data.startTicketSaleTime)
-      return saleStart >= lifecycleStart
-    },
-    {
-      message: 'Thời gian bắt đầu bán vé phải nằm trong vòng đời sự kiện',
-      path: ['startTicketSaleTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const lifecycleEnd = new Date(data.endEventLifecycleTime)
-      const saleEnd = new Date(data.endTicketSaleTime)
-      return saleEnd <= lifecycleEnd
-    },
-    {
-      message: 'Thời gian kết thúc bán vé phải nằm trong vòng đời sự kiện',
-      path: ['endTicketSaleTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const saleStart = new Date(data.startTicketSaleTime)
-      const saleEnd = new Date(data.endTicketSaleTime)
-      const durationDays = (saleEnd.getTime() - saleStart.getTime()) / (1000 * 60 * 60 * 24)
-      return durationDays <= 180
-    },
-    {
-      message: 'Thời gian bán vé không thể kéo dài quá 180 ngày (6 tháng)',
-      path: ['endTicketSaleTime']
-    }
-  )
+// ============================================
+// UPDATE EVENT SCHEMA - WITHOUT PAST TIME CHECK
+// ============================================
 
-  // 3. EventTime validation - must be after TicketSaleTime starts
-  .refine(
-    (data) => {
-      const eventStart = new Date(data.startTimeEventTime)
-      const eventEnd = new Date(data.endTimeEventTime)
-      return eventEnd >= eventStart
-    },
-    {
-      message: 'Thời gian kết thúc sự kiện phải sau hoặc bằng thời gian bắt đầu',
-      path: ['endTimeEventTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const saleStart = new Date(data.startTicketSaleTime)
-      const eventStart = new Date(data.startTimeEventTime)
-      return eventStart >= saleStart
-    },
-    {
-      message: 'Sự kiện phải diễn ra sau hoặc cùng lúc với thời điểm bắt đầu bán vé',
-      path: ['startTimeEventTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const lifecycleEnd = new Date(data.endEventLifecycleTime)
-      const eventEnd = new Date(data.endTimeEventTime)
-      return eventEnd <= lifecycleEnd
-    },
-    {
-      message: 'Thời gian kết thúc sự kiện phải nằm trong vòng đời sự kiện',
-      path: ['endTimeEventTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const eventStart = new Date(data.startTimeEventTime)
-      const eventEnd = new Date(data.endTimeEventTime)
-      const durationDays = (eventEnd.getTime() - eventStart.getTime()) / (1000 * 60 * 60 * 24)
-      return durationDays <= 30
-    },
-    {
-      message: 'Sự kiện không thể kéo dài quá 30 ngày',
-      path: ['endTimeEventTime']
-    }
-  )
-  .refine(
-    (data) => {
-      const { latitude, longitude } = data.location.coordinates
-      // Check if coordinates are in Vietnam (approximate bounds)
-      const isInVietnam = latitude >= 8.0 && latitude <= 24.0 && longitude >= 102.0 && longitude <= 110.0
-      return isInVietnam
-    },
-    {
-      message: 'Tọa độ phải nằm trong lãnh thổ Việt Nam',
-      path: ['location', 'coordinates']
-    }
-  )
+export const updateEventSchema = applyCommonRefinements(baseEventObjectSchema)
 
-export type EventFormData = z.infer<typeof eventSchema>
+// ============================================
+// TYPE EXPORTS
+// ============================================
+
+// For backwards compatibility, keep eventSchema as createEventSchema
+export const eventSchema = createEventSchema
+
+export type EventFormData = z.infer<typeof createEventSchema>
+export type CreateEventFormData = z.infer<typeof createEventSchema>
+export type UpdateEventFormData = z.infer<typeof updateEventSchema>

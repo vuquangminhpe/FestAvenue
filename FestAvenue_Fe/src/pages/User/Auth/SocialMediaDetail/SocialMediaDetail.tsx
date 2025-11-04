@@ -17,7 +17,7 @@ import {
   Template4,
   Template5,
   Template6,
-  type LandingTemplateProps,
+  type LandingTemplateProps
 } from '@/components/custom/landing_template'
 import type { SocialMediaImage } from '@/components/custom/landing_template/types'
 

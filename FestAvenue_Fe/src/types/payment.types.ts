@@ -62,3 +62,44 @@ export interface TransactionPackage {
   name: string
   totalPrice: number
 }
+export interface bodyCreatePaymentSeat {
+  eventCode: string
+  seatIndexes: string[]
+}
+export interface resCreatePaymentSeat {
+  code: string
+  paymentId: string
+  expirationTime: string
+  id: string
+  createdAt: string
+  updatedAt: boolean
+}
+
+// Socket event for ScanSeat
+export interface ScanSeatEvent {
+  eventCode: string
+  seatIndex: string
+  email: string
+}
+
+export interface ScanSeatResult {
+  StatusCode: number
+  Message: string
+}
+
+export interface SeatScannedBroadcast {
+  EventCode: string
+  SeatIndex: string
+  Email: string
+  Status: string
+}
+
+// Ticket for seat with lock info
+export interface TicketForSeat {
+  seatIndex: string
+  email?: string
+  expirationTime?: string
+  ticketId?: string
+  price?: number
+  isLocked: boolean
+}

@@ -1,8 +1,10 @@
 import type { APIResponse } from '@/types/API.types'
 import type {
   bodyCreateAndUpdatePackageEvent,
+  bodyCreatePaymentSeat,
   CreatePaymentRes,
   PaymentStatus,
+  resCreatePaymentSeat,
   TransactionItem
 } from '@/types/payment.types'
 
@@ -34,6 +36,11 @@ const paymentApis = {
   // Lấy thông tin chi tiết của 1 paymentID
   getPaymentByPaymentId: async (paymentId: string) => {
     const data = await http.get<APIResponse<TransactionItem>>(`/payment/get-payment-by-id?paymentId=${paymentId}`)
+    return data?.data
+  },
+  // tạo payment cho seat
+  createEventSeatPayment: async (body: bodyCreatePaymentSeat) => {
+    const data = await http.post<APIResponse<resCreatePaymentSeat>>('/payment/create-event-seat-payment', body)
     return data?.data
   }
 }

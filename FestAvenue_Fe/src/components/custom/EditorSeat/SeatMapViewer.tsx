@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { DollarSign, X, Eye } from 'lucide-react'
+import { DollarSign, Eye, EyeOff } from 'lucide-react'
 import type { Seat, SeatMapData, Section, Point } from '@/types/seat.types'
 
 class SeatInteractionManager {
@@ -180,6 +180,8 @@ interface SeatMapViewerProps {
   onTotalPriceChange?: (total: number) => void
   readonly?: boolean
   showControls?: boolean
+  ticketsForSeats?: any[]
+  userEmail?: string
 }
 
 export default function SeatMapViewer({
@@ -188,8 +190,17 @@ export default function SeatMapViewer({
   onSeatStatusChange,
   onTotalPriceChange,
   readonly = false,
-  showControls = true
+  showControls = true,
+  ticketsForSeats = [],
+  userEmail
 }: SeatMapViewerProps) {
+  // Debug props
+  console.log('SeatMapViewer received:', {
+    ticketsForSeatsCount: ticketsForSeats.length,
+    ticketsForSeats,
+    userEmail
+  })
+
   const deriveInitialSeatStatuses = useCallback(
     () => buildInitialSeatStatusMap(mapData, initialSeatStatuses),
     [mapData, initialSeatStatuses]
@@ -197,12 +208,11 @@ export default function SeatMapViewer({
   const [seatStatuses, setSeatStatuses] =
     useState<Map<string, 'available' | 'occupied' | 'locked'>>(deriveInitialSeatStatuses)
   const [totalPrice, setTotalPrice] = useState(0)
-  const [is3DView, setIs3DView] = useState(false)
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null)
+  const [showSectionNames, setShowSectionNames] = useState(true)
 
   const svgRef = useRef<SVGSVGElement>(null)
-  const seat3DRef = useRef<HTMLDivElement>(null)
   const seatManagerRef = useRef(new SeatInteractionManager())
+  const zoomBehaviorRef = useRef<any>(null)
 
   useEffect(() => {
     const mergedStatuses = deriveInitialSeatStatuses()
@@ -306,217 +316,160 @@ export default function SeatMapViewer({
     onTotalPriceChange?.(total)
   }, [seatStatuses, mapData, generateSeatsForSection, onTotalPriceChange])
 
+  // Get seat info from ticketsForSeats
+  const getSeatInfo = (seatId: string) => {
+    return ticketsForSeats.find((t) => t.seatIndex === seatId)
+  }
+
+  // Get countdown for a specific seat
+  const getSeatCountdown = (seatId: string): string | null => {
+    const seatInfo = getSeatInfo(seatId)
+    if (!seatInfo?.expirationTime || !seatInfo.isSeatLock) return null
+
+    const expTime = new Date(seatInfo.expirationTime).getTime()
+    const remaining = expTime - Date.now()
+
+    if (remaining <= 0) return null
+
+    const minutes = Math.floor(remaining / 60000)
+    const seconds = Math.floor((remaining % 60000) / 1000)
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  // Get seat color based on status and ownership
+  const getSeatColor = (seatId: string, status: string) => {
+    const seatInfo = getSeatInfo(seatId)
+
+    // Debug
+    if (seatInfo) {
+      console.log(`Seat ${seatId}:`, {
+        email: seatInfo.email,
+        userEmail,
+        isSeatLock: seatInfo.isSeatLock,
+        isPayment: seatInfo.isPayment,
+        match: seatInfo.email === userEmail
+      })
+    }
+
+    // Nếu đã payment và là của user → màu tím (ghế đã mua của bạn)
+    if (seatInfo?.isPayment && seatInfo?.email === userEmail) {
+      console.log(`${seatId} → PURPLE (you paid)`)
+      return '#a855f7' // purple-500
+    }
+
+    // Nếu đã payment và không phải user → màu xám (đã bán cho người khác)
+    if (seatInfo?.isPayment && seatInfo?.email && seatInfo?.email !== userEmail) {
+      console.log(`${seatId} → GRAY (other paid)`)
+      return '#9ca3af' // gray-400
+    }
+
+    // Nếu có email của user và đang lock (chưa payment) → màu xanh dương
+    if (seatInfo?.email === userEmail && seatInfo?.isSeatLock && !seatInfo?.isPayment) {
+      console.log(`${seatId} → BLUE (user locked)`)
+      return '#3b82f6' // blue-500
+    }
+
+    // Nếu có email khác và đang lock → màu đỏ
+    if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
+      console.log(`${seatId} → RED (other locked)`)
+      return '#ef4444' // red-500
+    }
+
+    // Default colors
+    if (status === 'locked') return '#6b7280' // gray-500
+    if (status === 'occupied') return '#ef4444' // red-500
+    return '#22c55e' // green-500
+  }
+
+  // Check if seat is clickable
+  const isSeatClickable = (seatId: string) => {
+    const seatInfo = getSeatInfo(seatId)
+
+    // Nếu đã payment → không click được
+    if (seatInfo?.isPayment) return false
+
+    // Nếu email khác đang lock → không click được
+    if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
+      return false
+    }
+
+    return true
+  }
+
   // Handle seat toggle
-  const handleQuickSeatToggle = (seatId: string, currentStatus: string) => {
+  const handleQuickSeatToggle = (seatId: string, currentStatus: string, seatPrice?: number) => {
+    if (!isSeatClickable(seatId)) return
+
     if (currentStatus === 'locked' || readonly) return
 
     const newStatus = currentStatus === 'occupied' ? 'available' : 'occupied'
     setSeatStatuses((prev) => new Map(prev).set(seatId, newStatus))
     seatManagerRef.current.setSeatStatus(seatId, newStatus)
     onSeatStatusChange?.(seatId, newStatus)
+
+    // Zoom vào ghế
+    zoomToSeat(seatId, seatPrice)
   }
 
-  // Open 3D view
-  const openCinema3DView = (section: Section) => {
-    setSelectedSection(section)
-    setIs3DView(true)
-    setTimeout(() => createCinema3DSeats(section), 100)
-  }
+  // Zoom to seat
+  const zoomToSeat = (seatId: string, seatPrice?: number) => {
+    if (!svgRef.current || !zoomBehaviorRef.current) return
 
-  // Create 3D seats
-  const createCinema3DSeats = (section: Section) => {
-    if (!seat3DRef.current || !window.gsap) return
+    const svg = d3.select(svgRef.current)
+    const seatGroup = svg.select(`.seat-${seatId}`)
 
-    const container = seat3DRef.current
-    container.innerHTML = ''
+    if (seatGroup.empty()) return
 
-    const cinemaWrapper = document.createElement('div')
-    cinemaWrapper.style.cssText = `
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      perspective: 1500px;
-    `
+    // Get seat position
+    const seatElement = seatGroup.node() as SVGGElement
+    const bbox = seatElement.getBBox()
 
-    const cinemaContainer = document.createElement('div')
-    cinemaContainer.style.cssText = `
-      transform-style: preserve-3d;
-      transform: rotateX(20deg);
-      padding: 50px;
-    `
+    // Calculate transform to center and zoom
+    const svgRect = svgRef.current.getBoundingClientRect()
+    const scale = 3
+    const x = svgRect.width / 2 - bbox.x * scale - (bbox.width * scale) / 2
+    const y = svgRect.height / 2 - bbox.y * scale - (bbox.height * scale) / 2
 
-    const screen = document.createElement('div')
-    screen.style.cssText = `
-      width: 600px;
-      height: 100px;
-      background: linear-gradient(90deg, #22d3ee 0%, #93c5fd 100%);
-      border-radius: 10px;
-      margin-bottom: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      box-shadow: 0 20px 60px rgba(34, 211, 238, 0.4);
-      pointer-events: none;
-      position: relative;
-      z-index: 1;
-    `
-    screen.textContent = (section.displayName || section.name).toUpperCase()
-    cinemaContainer.appendChild(screen)
+    // Apply zoom
+    svg
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(x, y).scale(scale))
 
-    const seatsContainer = document.createElement('div')
-    seatsContainer.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      align-items: center;
-      position: relative;
-      z-index: 10;
-    `
+    // Show price tooltip
+    if (seatPrice) {
+      const formattedPrice = new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND'
+      }).format(seatPrice)
 
-    for (let row = 0; row < section.rows; row++) {
-      const rowContainer = document.createElement('div')
-      rowContainer.style.cssText = `display: flex; gap: 10px; justify-content: center;`
+      // Create tooltip
+      const tooltip = svg.select('g').append('g').attr('class', 'price-tooltip')
 
-      for (let col = 0; col < section.seatsPerRow; col++) {
-        rowContainer.appendChild(create3DSeatElement(section, row, col))
-      }
+      tooltip
+        .append('rect')
+        .attr('x', bbox.x - 50)
+        .attr('y', bbox.y - 50)
+        .attr('width', 100)
+        .attr('height', 30)
+        .attr('fill', 'rgba(6, 182, 212, 0.95)')
+        .attr('rx', 5)
 
-      seatsContainer.appendChild(rowContainer)
+      tooltip
+        .append('text')
+        .attr('x', bbox.x)
+        .attr('y', bbox.y - 30)
+        .attr('text-anchor', 'middle')
+        .attr('fill', 'white')
+        .attr('font-size', '12px')
+        .attr('font-weight', 'bold')
+        .text(formattedPrice)
+
+      // Remove tooltip after 3 seconds
+      setTimeout(() => {
+        tooltip.transition().duration(500).style('opacity', 0).remove()
+      }, 3000)
     }
-
-    cinemaContainer.appendChild(seatsContainer)
-    cinemaWrapper.appendChild(cinemaContainer)
-    container.appendChild(cinemaWrapper)
-
-    const allSeats = container.querySelectorAll('.cinema-seat')
-    window.gsap.fromTo(
-      allSeats,
-      { opacity: 0, scale: 0, rotationY: -180 },
-      {
-        opacity: 1,
-        scale: 1,
-        rotationY: 0,
-        duration: 0.6,
-        stagger: 0.015,
-        ease: 'back.out(1.2)'
-      }
-    )
-  }
-
-  // Create 3D seat element
-  const create3DSeatElement = (section: Section, row: number, col: number): HTMLElement => {
-    const seatId = `${section.id}-R${row + 1}-S${col + 1}`
-    const status = seatStatuses.get(seatId) || 'available'
-    const isLocked = status === 'locked'
-    const isOccupied = status === 'occupied'
-
-    const seatWrapper = document.createElement('div')
-    seatWrapper.style.cssText = `
-      position: relative;
-      cursor: ${isLocked || readonly ? 'not-allowed' : 'pointer'};
-      z-index: 100;
-      pointer-events: auto;
-    `
-    seatWrapper.dataset.seatId = seatId
-    seatWrapper.dataset.row = String(row)
-    seatWrapper.dataset.col = String(col)
-
-    const seat = document.createElement('div')
-    seat.className = 'cinema-seat'
-    seat.style.cssText = `
-      width: 55px;
-      height: 65px;
-      background: ${
-        isLocked
-          ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)'
-          : isOccupied
-          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-          : 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-      };
-      border-radius: 10px 10px 20px 20px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: all 0.3s ease;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-      ${isLocked ? 'opacity: 0.6;' : ''}
-    `
-
-    // Seat back
-    const seatBack = document.createElement('div')
-    seatBack.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 25px;
-      background: inherit;
-      border-radius: 10px 10px 0 0;
-      border-bottom: 2px solid rgba(0,0,0,0.2);
-    `
-    seat.appendChild(seatBack)
-
-    // Seat number
-    const seatNumber = document.createElement('div')
-    seatNumber.style.cssText = `
-      position: absolute;
-      bottom: 5px;
-      left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    `
-    seatNumber.textContent = `${row + 1}-${col + 1}`
-    seat.appendChild(seatNumber)
-
-    // Lock icon
-    if (isLocked) {
-      const lockIcon = document.createElement('div')
-      lockIcon.style.cssText = `
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 18px;
-      `
-      lockIcon.textContent = '🔒'
-      seat.appendChild(lockIcon)
-    }
-
-    seatWrapper.appendChild(seat)
-
-    // Click handler
-    if (!isLocked && !readonly) {
-      seatWrapper.addEventListener('click', (e) => {
-        e.stopPropagation()
-        seatManagerRef.current.toggleSeat(seatWrapper, seatId, (id, newStatus) => {
-          setSeatStatuses((prev) => {
-            const newMap = new Map(prev)
-            newMap.set(id, newStatus)
-            return newMap
-          })
-          onSeatStatusChange?.(id, newStatus)
-        })
-      })
-    }
-
-    // Hover effects
-    if (!isLocked && !readonly) {
-      seatWrapper.addEventListener('mouseenter', () => {
-        window.gsap?.to(seat, { scale: 1.1, duration: 0.2 })
-      })
-      seatWrapper.addEventListener('mouseleave', () => {
-        window.gsap?.to(seat, { scale: 1, duration: 0.2 })
-      })
-    }
-
-    return seatWrapper
   }
 
   // Render map
@@ -537,6 +490,7 @@ export default function SeatMapViewer({
       })
 
     svg.call(zoom as any)
+    zoomBehaviorRef.current = zoom
 
     // Render stage
     if (mapData.stage) {
@@ -545,8 +499,8 @@ export default function SeatMapViewer({
         .attr('y', mapData.stage.y)
         .attr('width', mapData.stage.width)
         .attr('height', mapData.stage.height)
-        .attr('fill', '#fbbf24')
-        .attr('stroke', '#f59e0b')
+        .attr('fill', '#06b6d4')
+        .attr('stroke', '#0891b2')
         .attr('stroke-width', 2)
         .attr('rx', 5)
 
@@ -572,35 +526,32 @@ export default function SeatMapViewer({
           .x((d) => d.x)
           .y((d) => d.y)
 
-        const sectionElement = sectionGroup
+        sectionGroup
           .append('path')
           .datum([...section.points, section.points[0]])
           .attr('d', line)
-          .attr('fill', section.color || '#3b82f6')
+          .attr('fill', section.color || '#06b6d4')
           .attr('fill-opacity', 0.2)
-          .attr('stroke', section.color || '#3b82f6')
+          .attr('stroke', section.color || '#06b6d4')
           .attr('stroke-width', 2)
-          .style('cursor', readonly ? 'default' : 'pointer')
+          .style('cursor', 'default')
 
-        // Section label
-        const bounds = section.bounds || calculateBounds(section.points)
-        const centerX = (bounds.minX + bounds.maxX) / 2
-        const centerY = (bounds.minY + bounds.maxY) / 2
+        // Section label (toggle visibility)
+        if (showSectionNames) {
+          const bounds = section.bounds || calculateBounds(section.points)
+          const centerX = (bounds.minX + bounds.maxX) / 2
+          const centerY = (bounds.minY + bounds.maxY) / 2
 
-        sectionGroup
-          .append('text')
-          .attr('x', centerX)
-          .attr('y', centerY - 10)
-          .attr('text-anchor', 'middle')
-          .attr('fill', section.color || '#3b82f6')
-          .attr('font-size', '20px')
-          .attr('font-weight', 'bold')
-          .attr('pointer-events', 'none')
-          .text(section.displayName || section.name)
-
-        // Click section to open 3D view
-        if (!readonly) {
-          sectionElement.on('click', () => openCinema3DView(section))
+          sectionGroup
+            .append('text')
+            .attr('x', centerX)
+            .attr('y', centerY - 10)
+            .attr('text-anchor', 'middle')
+            .attr('fill', section.color || '#06b6d4')
+            .attr('font-size', '20px')
+            .attr('font-weight', 'bold')
+            .attr('pointer-events', 'none')
+            .text(section.displayName || section.name)
         }
       }
 
@@ -609,11 +560,14 @@ export default function SeatMapViewer({
 
       seats.forEach((seat) => {
         const status = seatStatuses.get(seat.id) || seat.status
+        const seatInfo = getSeatInfo(seat.id)
+        const isClickable = isSeatClickable(seat.id)
+        const seatColor = getSeatColor(seat.id, status)
 
         const hitboxGroup = sectionGroup
           .append('g')
           .attr('class', `seat-group seat-${seat.id}`)
-          .style('cursor', status === 'locked' || readonly ? 'not-allowed' : 'pointer')
+          .style('cursor', isClickable && !readonly ? 'pointer' : 'not-allowed')
 
         // Invisible hitbox
         hitboxGroup
@@ -630,22 +584,42 @@ export default function SeatMapViewer({
           .attr('cx', seat.x)
           .attr('cy', seat.y)
           .attr('r', 5)
-          .attr(
-            'fill',
-            status === 'locked'
-              ? '#6b7280'
-              : status === 'occupied'
-              ? '#ef4444'
-              : seat.category === 'vip'
-              ? '#ffd700'
-              : '#22c55e'
-          )
+          .attr('fill', seatColor)
           .attr('stroke', '#fff')
           .attr('stroke-width', 1)
           .attr('pointer-events', 'none')
 
-        // Lock icon
-        if (status === 'locked') {
+        // Countdown timer circle (for locked seats of current user or others)
+        const countdown = getSeatCountdown(seat.id)
+        if (countdown && seatInfo?.isSeatLock) {
+          const timerColor = seatInfo.email === userEmail ? '#3b82f6' : '#ef4444' // blue for user, red for others
+
+          // Timer circle background
+          hitboxGroup
+            .append('circle')
+            .attr('cx', seat.x)
+            .attr('cy', seat.y - 12)
+            .attr('r', 10)
+            .attr('fill', timerColor)
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 1)
+            .attr('pointer-events', 'none')
+
+          // Timer text
+          hitboxGroup
+            .append('text')
+            .attr('x', seat.x)
+            .attr('y', seat.y - 10)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '8px')
+            .attr('fill', 'white')
+            .attr('font-weight', 'bold')
+            .attr('pointer-events', 'none')
+            .text(countdown)
+        }
+
+        // Lock icon for paid seats
+        if (seatInfo?.isPayment) {
           hitboxGroup
             .append('text')
             .attr('x', seat.x)
@@ -658,18 +632,18 @@ export default function SeatMapViewer({
         }
 
         // Click handler
-        if (!readonly) {
+        if (!readonly && isClickable) {
           hitboxGroup.on('click', (event) => {
             event.stopPropagation()
-            handleQuickSeatToggle(seat.id, status)
+            handleQuickSeatToggle(seat.id, status, seatInfo?.seatPrice || seat.price)
           })
         }
 
         // Hover effects
-        hitboxGroup
-          .on('mouseover', function () {
-            if (status !== 'locked') {
-              d3.select(this).select('circle').attr('r', 7)
+        if (isClickable && !readonly) {
+          hitboxGroup
+            .on('mouseover', function () {
+              d3.select(this).select('circle:nth-child(2)').attr('r', 7)
 
               const tooltip = g.append('g').attr('class', 'tooltip')
               tooltip
@@ -689,99 +663,145 @@ export default function SeatMapViewer({
                 .attr('fill', 'white')
                 .attr('font-size', '11px')
                 .text(`${section.name} R${seat.row}S${seat.number}`)
-            }
-          })
-          .on('mouseout', function () {
-            if (status !== 'locked') {
-              d3.select(this).select('circle').attr('r', 5)
-            }
-            g.selectAll('.tooltip').remove()
-          })
+            })
+            .on('mouseout', function () {
+              d3.select(this).select('circle:nth-child(2)').attr('r', 5)
+              g.selectAll('.tooltip').remove()
+            })
+        }
       })
     })
-  }, [mapData, seatStatuses, generateSeatsForSection, readonly])
+
+    // Update countdown timers every second
+    const interval = setInterval(() => {
+      svg.selectAll('.seat-group').each(function () {
+        const group = d3.select(this)
+        const seatId = group.attr('class').split('seat-')[1]
+        if (!seatId) return
+
+        const countdown = getSeatCountdown(seatId)
+        if (countdown) {
+          group.select('text').text(countdown)
+        } else {
+          group.selectAll('circle:nth-child(3)').remove()
+          group.selectAll('text').remove()
+        }
+      })
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [
+    mapData,
+    seatStatuses,
+    generateSeatsForSection,
+    readonly,
+    ticketsForSeats,
+    userEmail,
+    showSectionNames,
+    getSeatCountdown,
+    getSeatInfo,
+    getSeatColor,
+    isSeatClickable
+  ])
 
   return (
     <div className='w-full h-full'>
-      {/* 3D View Modal */}
-      {is3DView && selectedSection && (
-        <div className='fixed inset-0 bg-black/80 z-50 flex items-center justify-center'>
-          <div className='bg-gray-900 rounded-lg w-[90vw] h-[90vh] p-6 relative'>
-            <Button
-              onClick={() => setIs3DView(false)}
-              variant='ghost'
-              size='sm'
-              className='absolute top-4 right-4 text-white hover:bg-white/20'
-            >
-              <X className='w-5 h-5' />
-            </Button>
-
-            <h2 className='text-2xl font-bold text-white mb-4 text-center'>
-              {selectedSection.displayName || selectedSection.name} - 3D View
-            </h2>
-
-            <div ref={seat3DRef} className='w-full h-[calc(100%-4rem)] overflow-auto' />
-          </div>
-        </div>
-      )}
-
       {/* Main View */}
-      <Card className='w-full h-full bg-gray-900 border-gray-800'>
-        <CardHeader>
-          <CardTitle className='text-white flex items-center justify-between'>
+      <Card className='w-full h-full bg-white border-cyan-200 shadow-lg'>
+        <CardHeader className='bg-gradient-to-r from-cyan-50 to-blue-50'>
+          <CardTitle className='text-gray-800 flex items-center justify-between'>
             <span className='flex items-center gap-2'>
-              <Eye className='w-6 h-6' />
-              Seat Map Viewer {readonly && '(Read Only)'}
+              <Eye className='w-6 h-6 text-cyan-600' />
+              <span className='bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent'>
+                Sơ đồ chỗ ngồi {readonly && '(Chỉ xem)'}
+              </span>
             </span>
-            {showControls && <span className='text-green-400 text-xl'>Total: ${totalPrice.toFixed(2)}</span>}
+            <div className='flex items-center gap-3'>
+              {/* Toggle Section Names */}
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => setShowSectionNames(!showSectionNames)}
+                className='text-cyan-600 border-cyan-300 hover:bg-cyan-50'
+              >
+                {showSectionNames ? (
+                  <>
+                    <EyeOff className='w-4 h-4 mr-2' />
+                    Ẩn tên khu vực
+                  </>
+                ) : (
+                  <>
+                    <Eye className='w-4 h-4 mr-2' />
+                    Hiện tên khu vực
+                  </>
+                )}
+              </Button>
+              {showControls && (
+                <span className='text-cyan-600 text-xl font-bold'>
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPrice)}
+                </span>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
 
-        <CardContent className='h-[calc(100%-5rem)]'>
-          <div className='flex gap-4 h-full'>
+        <CardContent className='h-[calc(100%-6rem)] p-6'>
+          <div className='flex gap-4 h-full w-full'>
             {/* Map */}
-            <div className='flex-1 bg-gray-950 rounded-lg overflow-hidden'>
-              <svg ref={svgRef} width='100%' height='100%' className='bg-gray-950' />
+            <div className='flex-1 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border border-gray-200 min-h-[700px]'>
+              <svg ref={svgRef} width='100%' height='100%' className='bg-gradient-to-br from-gray-50 to-gray-100' />
             </div>
 
             {/* Side Panel */}
             {showControls && (
               <div className='w-80 space-y-4 overflow-y-auto'>
-                <Alert className='bg-green-600/20 border-green-600/50'>
-                  <AlertDescription className='text-sm text-white'>
-                    🎬 <strong>Preview Mode</strong>
+                <Alert className='bg-cyan-50 border-cyan-200'>
+                  <AlertDescription className='text-sm text-gray-700'>
+                    🎬 <strong>Chú thích màu ghế</strong>
                     <br />
+                    <br />
+                    <div className='space-y-2'>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 rounded-full bg-green-500'></div>
+                        <span>Ghế trống</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 rounded-full bg-blue-500'></div>
+                        <span>Ghế của bạn (chờ thanh toán) + Timer</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 rounded-full bg-purple-500'></div>
+                        <span>Ghế bạn đã mua ✓</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 rounded-full bg-red-500'></div>
+                        <span>Ghế người khác giữ + Timer</span>
+                      </div>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-4 h-4 rounded-full bg-gray-400'></div>
+                        <span>Ghế đã bán 🔒</span>
+                      </div>
+                    </div>
                     <br />
                     {!readonly && (
                       <>
-                        • Click any seat to book/unbook
+                        • Click ghế để chọn + zoom + xem giá
                         <br />
                       </>
                     )}
-                    • Green = Available
-                    <br />
-                    • Red = Occupied
-                    <br />
-                    • Gray 🔒 = Locked
-                    <br />
-                    {!readonly && (
-                      <>
-                        • Click section for 3D view
-                        <br />
-                      </>
-                    )}
-                    <br />
-                    Use scroll to zoom
+                    • Cuộn để phóng to/thu nhỏ
                   </AlertDescription>
                 </Alert>
 
-                <div className='bg-green-600/20 border border-green-600/50 rounded-lg p-4'>
+                <div className='bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 shadow-sm'>
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-2'>
-                      <DollarSign className='w-5 h-5 text-green-400' />
-                      <span className='text-lg font-semibold text-green-400'>Total:</span>
+                      <DollarSign className='w-5 h-5 text-cyan-600' />
+                      <span className='text-lg font-semibold text-cyan-600'>Tổng:</span>
                     </div>
-                    <span className='text-2xl font-bold text-green-400'>${totalPrice.toFixed(2)}</span>
+                    <span className='text-2xl font-bold text-cyan-600'>
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalPrice)}
+                    </span>
                   </div>
                 </div>
               </div>

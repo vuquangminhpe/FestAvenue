@@ -2,6 +2,7 @@ import type { APIResponse } from '@/types/API.types'
 import type {
   bodyCreateTicketInEvent,
   bodyUpdateTicketInEvent,
+  resGetSeatMapByEventCode,
   Ticket,
   TicketResponse,
   TicketSearchRequest
@@ -33,6 +34,10 @@ const serviceTicketManagementApi = {
     const data = await http.get<APIResponse<{ seatingChartStructure: string; id: string }>>(
       `/seating-chart/event/${eventCode}/structure`
     )
+    return data?.data
+  },
+  getSeatMapByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<resGetSeatMapByEventCode>>(`/seating-chart/event/${eventCode}`)
     return data?.data
   },
   deleteSeatByEventCode: async (eventCode: string) => {
