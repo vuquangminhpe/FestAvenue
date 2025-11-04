@@ -18,6 +18,7 @@ import {
   sanitizeTitle,
   sanitizeDescription
 } from '@/utils/scheduleValidation'
+import { formatDateToLocalISOShort } from '@/utils/utils'
 
 interface ScheduleFormProps {
   eventCode: string
@@ -386,7 +387,7 @@ export default function ScheduleForm({
                 value={formData.startDate ? new Date(formData.startDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    setFormData({ ...formData, startDate: date.toISOString().slice(0, 16) })
+                    setFormData({ ...formData, startDate: formatDateToLocalISOShort(date) })
                     if (errors.startDate) setErrors({ ...errors, startDate: '' })
                   }
                 }}
@@ -414,7 +415,7 @@ export default function ScheduleForm({
                 value={formData.endDate ? new Date(formData.endDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    setFormData({ ...formData, endDate: date.toISOString().slice(0, 16) })
+                    setFormData({ ...formData, endDate: formatDateToLocalISOShort(date) })
                     if (errors.endDate) setErrors({ ...errors, endDate: '' })
                   }
                 }}

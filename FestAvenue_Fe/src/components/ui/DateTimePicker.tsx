@@ -79,7 +79,7 @@ export function DateTimePicker({
       setSelectedDate(date)
       // Apply current time to the selected date
       const newDate = new Date(date)
-      newDate.setHours(parseInt(hours), parseInt(minutes))
+      newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
       onChange?.(newDate)
     }
   }
@@ -90,7 +90,7 @@ export function DateTimePicker({
 
     if (selectedDate) {
       const newDate = new Date(selectedDate)
-      newDate.setHours(parseInt(newHours), parseInt(newMinutes))
+      newDate.setHours(parseInt(newHours), parseInt(newMinutes), 0, 0)
       onChange?.(newDate)
     }
   }

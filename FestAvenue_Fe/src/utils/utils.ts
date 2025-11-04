@@ -53,3 +53,30 @@ export function formatTime(date: Date) {
     minute: '2-digit'
   }).format(date)
 }
+
+/**
+ * Format Date to ISO-like string in local timezone (YYYY-MM-DDTHH:mm:ss)
+ * Prevents timezone conversion issues when working with forms
+ * @param date - The date to format
+ * @returns ISO-like string in local timezone (e.g., "2024-11-04T14:30:00")
+ */
+export function formatDateToLocalISO(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+}
+
+/**
+ * Format Date to local ISO string without seconds (YYYY-MM-DDTHH:mm)
+ * Useful for datetime-local inputs
+ * @param date - The date to format
+ * @returns ISO-like string without seconds (e.g., "2024-11-04T14:30")
+ */
+export function formatDateToLocalISOShort(date: Date): string {
+  return formatDateToLocalISO(date).slice(0, 16)
+}

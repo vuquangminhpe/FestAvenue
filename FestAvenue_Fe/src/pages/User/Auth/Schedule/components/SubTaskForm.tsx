@@ -29,6 +29,7 @@ import { format, eachDayOfInterval, parseISO, isValid } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { useGetUsersInEvent } from '@/pages/User/Process/UserManagementInEvents/hooks/useUserManagement'
 import { DateTimePicker } from '../../../../../components/ui/DateTimePicker'
+import { formatDateToLocalISO } from '@/utils/utils'
 
 interface SubTaskFormProps {
   eventCode: string
@@ -540,7 +541,7 @@ export default function SubTaskForm({
                               value={subTask.startDate ? new Date(subTask.startDate) : undefined}
                               onChange={(date) => {
                                 if (date) {
-                                  updateSubTask(index, 'startDate', date.toISOString())
+                                  updateSubTask(index, 'startDate', formatDateToLocalISO(date))
                                 }
                               }}
                               minDate={parentScheduleStart ? new Date(parentScheduleStart) : undefined}
@@ -562,7 +563,7 @@ export default function SubTaskForm({
                               error={!!dateError}
                               onChange={(date) => {
                                 if (date) {
-                                  updateSubTask(index, 'endDate', date.toISOString())
+                                  updateSubTask(index, 'endDate', formatDateToLocalISO(date))
                                 }
                               }}
                               minDate={

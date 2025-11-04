@@ -9,6 +9,7 @@ import { DateTimePicker } from '@/components/ui/DateTimePicker'
 import { AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { formatDateToLocalISO } from '@/utils/utils'
 
 interface EventDetailsProps {
   form: UseFormReturn<EventFormData>
@@ -174,7 +175,7 @@ export function EventDetails({ form }: EventDetailsProps) {
                     value={field.value ? new Date(field.value) : undefined}
                     onChange={(date) => {
                       if (date) {
-                        field.onChange(date.toISOString())
+                        field.onChange(formatDateToLocalISO(date))
                         // Trigger validation for dependent fields
                         setTimeout(() => {
                           form.trigger(['endEventLifecycleTime', 'startTicketSaleTime'])
@@ -204,7 +205,7 @@ export function EventDetails({ form }: EventDetailsProps) {
                     value={field.value ? new Date(field.value) : undefined}
                     onChange={(date) => {
                       if (date) {
-                        field.onChange(date.toISOString())
+                        field.onChange(formatDateToLocalISO(date))
                         // Trigger validation for dependent fields
                         setTimeout(() => {
                           form.trigger([
