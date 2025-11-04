@@ -202,10 +202,17 @@ export default function TemplateEditor({
         bannerUrl: data.bannerUrl,
         statusPostSocialMedia: 1, // 1 = Published
         body: data.content,
-        imageInPosts: data.images.map((img) => ({
-          url: img.url,
-          caption: img.caption || ''
-        })),
+        imageInPosts: data.images.map((img) => {
+          const imageData: any = {
+            url: img.url,
+            caption: img.caption || ''
+          }
+          // When updating, include imageInPostId for existing images from API
+          if (postId && img.isExisting && img.id) {
+            imageData.imageInPostId = img.id
+          }
+          return imageData
+        }),
         videoUrl: '',
         audioUrl: '',
         eventCode,

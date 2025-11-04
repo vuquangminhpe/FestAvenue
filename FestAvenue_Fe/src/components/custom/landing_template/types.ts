@@ -12,6 +12,7 @@ export interface SocialMediaImage {
   likes?: number
   reactions?: Reaction[]
   comments?: Comment[]
+  isExisting?: boolean // Flag to identify images loaded from API vs newly added
 }
 
 export interface Comment {

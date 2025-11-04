@@ -117,7 +117,8 @@ export const socialMediaImageSchema = z.object({
   caption: z.string().max(200, 'Mô tả hình ảnh không được quá 200 ký tự').optional().or(z.literal('')),
   likes: z.number().optional(),
   reactions: z.array(z.any()).optional(),
-  comments: z.array(z.any()).optional()
+  comments: z.array(z.any()).optional(),
+  isExisting: z.boolean().optional() // Flag to identify existing images from API
 })
 
 export const socialLinkSchema = z.object({

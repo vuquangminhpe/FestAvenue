@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import { Loader2, Lock, Plus, List, FileText } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -10,6 +10,7 @@ import {
   useUserPermissionsInEvent
 } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 import { useUsersStore } from '@/contexts/app.context'
+import { useSocialMediaDetail } from './hooks/useSocialMediaQueries'
 import type { TemplateType } from './types'
 import type { LandingTemplateProps } from '@/components/custom/landing_template'
 
@@ -44,7 +45,90 @@ export default function SocialMediaManagement() {
   const [currentView, setCurrentView] = useState<ViewType>('list')
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType | null>(null)
+  const [editTemplateData, setEditTemplateData] = useState<LandingTemplateProps | null>(null)
   const [activeTab, setActiveTab] = useState('list')
+
+  // Fetch post detail when editing (only when postId exists and in edit mode)
+  const shouldFetchPost = !!selectedPostId && currentView === 'edit'
+  const { data: postDetailData, isLoading: isLoadingPostDetail } = useSocialMediaDetail(
+    shouldFetchPost ? selectedPostId : ''
+  )
+
+  // Map template number to template type
+  const templateNumberToType: Record<number, TemplateType> = {
+    1: 'template1',
+    2: 'template2',
+    3: 'template3',
+    4: 'template4',
+    5: 'template5',
+    6: 'template6'
+  }
+
+  // Map social platform number to string
+  const socialPlatformNumberToString: Record<
+    number,
+    'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'tiktok' | 'youtube'
+  > = {
+    1: 'facebook',
+    2: 'twitter',
+    3: 'instagram',
+    4: 'linkedin',
+    5: 'tiktok',
+    6: 'youtube'
+  }
+
+  // Load post data when editing
+  useEffect(() => {
+    if (postDetailData?.data && currentView === 'edit' && selectedPostId) {
+      const post = postDetailData.data
+
+      // Determine template type from API response
+      // Assuming the API returns templateNumber in the post data
+      const templateType = templateNumberToType[1] || 'template1' // Default to template1 if not found
+      setSelectedTemplate(templateType)
+
+      // Convert API data to template format
+      const templateData: LandingTemplateProps = {
+        bannerUrl: post.bannerUrl || '',
+        title: post.title || '',
+        subtitle: post.subtitle || '',
+        description: post.description || '',
+        authorName: post.authorName || userName,
+        authorAvatar: post.authorAvatar || userAvatar,
+        eventDate: '',
+        eventLocation: '',
+        content: post.body || '',
+        images: (post.images || []).map((img) => ({
+          id: img.imageInPostId || Date.now().toString(),
+          url: img.url || '',
+          caption: img.caption || '',
+          likes: img.reactions?.length || 0,
+          isExisting: !!img.imageInPostId, // Mark as existing if it has imageInPostId
+          reactions:
+            img.reactions?.map((_r) => ({
+              type: 'like' as const,
+              count: 1
+            })) || [],
+          comments:
+            img.userCommentPosts?.map((c) => ({
+              id: c.commentId,
+              userId: c.userId,
+              userName: c.fullName,
+              userAvatar: c.avatar,
+              content: c.commentText,
+              createdAt: c.commentedAt
+            })) || []
+        })),
+        relatedEvents: [],
+        socialLinks: (post.socialLinks || []).map((link) => ({
+          platform: socialPlatformNumberToString[link.platform] || 'facebook',
+          url: link.url
+        }))
+      }
+
+      setEditTemplateData(templateData)
+    }
+  }, [postDetailData, currentView, selectedPostId, userName, userAvatar])
 
   // Initial template data
   const getInitialTemplateData = (): LandingTemplateProps => ({
@@ -81,8 +165,9 @@ export default function SocialMediaManagement() {
   }
 
   const handleEdit = (postId: string) => {
-    // TODO: Load post data and set template type
     setSelectedPostId(postId)
+    setSelectedTemplate(null) // Reset template, will be set by useEffect
+    setEditTemplateData(null) // Reset data
     setCurrentView('edit')
     setActiveTab('create')
   }
@@ -96,6 +181,8 @@ export default function SocialMediaManagement() {
   const handleBackToList = () => {
     setCurrentView('list')
     setSelectedPostId(null)
+    setSelectedTemplate(null)
+    setEditTemplateData(null)
     setActiveTab('list')
   }
 
@@ -178,22 +265,42 @@ export default function SocialMediaManagement() {
                   onPreview={handleTemplatePreview}
                 />
               )}
-              {currentView === 'edit' && selectedTemplate && (
+              {currentView === 'edit' && (
                 <>
-                  <h2 className='text-2xl font-bold mb-6'>
-                    {selectedPostId ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
-                  </h2>
-                  <TemplateEditor
-                    templateType={selectedTemplate}
-                    templateData={getInitialTemplateData()}
-                    eventCode={eventCode}
-                    authorId={userId}
-                    authorName={userName}
-                    authorAvatar={userAvatar}
-                    postId={selectedPostId || undefined}
-                    onSave={handleFormSuccess}
-                    onBack={handleBackToList}
-                  />
+                  {isLoadingPostDetail && selectedPostId ? (
+                    <div className='flex items-center justify-center py-12'>
+                      <div className='flex items-center gap-3'>
+                        <Loader2 className='w-8 h-8 animate-spin text-cyan-400' />
+                        <span className='text-gray-600 font-medium'>Đang tải dữ liệu bài viết...</span>
+                      </div>
+                    </div>
+                  ) : selectedTemplate ? (
+                    <>
+                      <h2 className='text-2xl font-bold mb-6'>
+                        {selectedPostId ? 'Chỉnh sửa bài viết' : 'Tạo bài viết mới'}
+                      </h2>
+                      <TemplateEditor
+                        templateType={selectedTemplate}
+                        templateData={editTemplateData || getInitialTemplateData()}
+                        eventCode={eventCode}
+                        authorId={userId}
+                        authorName={userName}
+                        authorAvatar={userAvatar}
+                        postId={selectedPostId || undefined}
+                        onSave={handleFormSuccess}
+                        onBack={handleBackToList}
+                      />
+                    </>
+                  ) : (
+                    <div className='flex items-center justify-center py-12'>
+                      <div className='text-center text-gray-500'>
+                        <p>Không thể tải template. Vui lòng thử lại.</p>
+                        <button onClick={handleBackToList} className='mt-4 text-cyan-600 hover:text-cyan-700 underline'>
+                          Quay lại danh sách
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

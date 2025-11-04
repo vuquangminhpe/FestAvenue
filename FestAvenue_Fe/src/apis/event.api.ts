@@ -64,8 +64,16 @@ const eventApis = {
   },
   searchEventWithAI: async (body: bodySearchWithAI) => {
     const formdata = new FormData()
-    formdata.append('SearchText', body?.SearchImage as any)
-    formdata.append('SearchImage', body?.SearchImage as any)
+
+    // Only append if value exists (not undefined/null/empty)
+    if (body?.SearchText && body.SearchText.trim().length > 0) {
+      formdata.append('SearchText', body.SearchText)
+    }
+
+    if (body?.SearchImage) {
+      formdata.append('SearchImage', body.SearchImage)
+    }
+
     const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-event-with-ai', formdata)
     return data?.data
   },

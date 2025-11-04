@@ -2,6 +2,7 @@ import type { Pagination } from './userManagement.types'
 
 // --- Interface con ---
 interface ImageInPost {
+  imageInPostId?: string // Optional for create, required for update
   url: string
   caption: string
 }
