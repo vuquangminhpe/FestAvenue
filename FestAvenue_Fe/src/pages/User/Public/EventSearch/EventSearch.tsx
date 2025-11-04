@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import {
   Search,
   Filter,
@@ -22,6 +23,7 @@ type SearchMode = 'ai' | 'normal'
 type AISearchType = 'text' | 'image' | 'both'
 
 export default function EventSearch() {
+  const [searchParams] = useSearchParams()
   const [searchMode, setSearchMode] = useState<SearchMode>('normal')
   const [aiSearchType, setAiSearchType] = useState<AISearchType>('text')
   const [searchText, setSearchText] = useState('')
@@ -35,11 +37,31 @@ export default function EventSearch() {
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [fromDate, setFromDate] = useState<Date | undefined>()
   const [toDate, setToDate] = useState<Date | undefined>()
+  const [fromCapacity, setFromCapacity] = useState<string>('')
+  const [toCapacity, setToCapacity] = useState<string>('')
+  const [fromSaleTicket, setFromSaleTicket] = useState<Date | undefined>()
+  const [toSaleTicket, setToSaleTicket] = useState<Date | undefined>()
+  const [searchMailEvent, setSearchMailEvent] = useState<string>('')
+  const [searchPhoneEvent, setSearchPhoneEvent] = useState<string>('')
+  const [hashtags, setHashtags] = useState<string>('')
+  const [searchOrganization, setSearchOrganization] = useState<string>('')
 
   // Filters for AI mode (client-side)
   const [aiSelectedCategory, setAiSelectedCategory] = useState<string>('')
   const [aiFromDate, setAiFromDate] = useState<Date | undefined>()
   const [aiToDate, setAiToDate] = useState<Date | undefined>()
+
+  // Handle hashtag from URL parameter
+  useEffect(() => {
+    const hashtagParam = searchParams.get('hashtag')
+    if (hashtagParam) {
+      setHashtags(hashtagParam)
+      setShowFilters(true) // Auto-expand filters to show hashtag
+      // Trigger search automatically
+      setSearchText('')
+      setSearchQuery('')
+    }
+  }, [searchParams])
 
   // Get categories
   const { data: categories } = useQuery({
@@ -54,11 +76,21 @@ export default function EventSearch() {
     refetch: refetchAiSearch
   } = useQuery({
     queryKey: ['aiSearchEvents', searchQuery, searchImage],
-    queryFn: () =>
-      eventApis.searchEventWithAI({
-        SearchText: aiSearchType === 'image' ? undefined : searchQuery,
-        SearchImage: searchImage || undefined
-      }),
+    queryFn: () => {
+      const payload: { SearchText?: string; SearchImage?: File } = {}
+
+      // Only add SearchText if not in image-only mode and has value
+      if (aiSearchType !== 'image' && searchQuery.trim().length > 0) {
+        payload.SearchText = searchQuery
+      }
+
+      // Only add SearchImage if not in text-only mode and has file
+      if (aiSearchType !== 'text' && searchImage instanceof File) {
+        payload.SearchImage = searchImage
+      }
+
+      return eventApis.searchEventWithAI(payload)
+    },
     enabled: searchMode === 'ai' && (searchQuery.length > 0 || searchImage !== null)
   })
 
@@ -70,19 +102,51 @@ export default function EventSearch() {
     hasNextPage,
     isFetchingNextPage
   } = useInfiniteQuery({
-    queryKey: ['normalSearchEvents', searchQuery, selectedCategory, fromDate, toDate],
-    queryFn: ({ pageParam = 1 }) =>
-      eventApis.searchEventsWithPaging({
-        searchText: searchQuery,
+    queryKey: [
+      'normalSearchEvents',
+      searchQuery,
+      selectedCategory,
+      fromDate,
+      toDate,
+      fromCapacity,
+      toCapacity,
+      fromSaleTicket,
+      toSaleTicket,
+      searchMailEvent,
+      searchPhoneEvent,
+      hashtags,
+      searchOrganization
+    ],
+    queryFn: ({ pageParam = 1 }) => {
+      // Parse hashtags string to array
+      const hashtagsArray =
+        hashtags && hashtags.trim().length > 0
+          ? hashtags
+              .split(',')
+              .map((tag) => tag.trim())
+              .filter((tag) => tag.length > 0)
+          : undefined
+
+      return eventApis.searchEventsWithPaging({
+        searchText: searchQuery || undefined,
         categoryId: selectedCategory || undefined,
         fromEventDate: fromDate ? fromDate.toISOString() : undefined,
         toEventDate: toDate ? toDate.toISOString() : undefined,
+        fromCapacity: fromCapacity ? parseInt(fromCapacity) : undefined,
+        toCapacity: toCapacity ? parseInt(toCapacity) : undefined,
+        fromSaleTicket: fromSaleTicket ? fromSaleTicket.toISOString() : undefined,
+        toSaleTicket: toSaleTicket ? toSaleTicket.toISOString() : undefined,
+        searchMailEvent: searchMailEvent || undefined,
+        searchPhoneEvent: searchPhoneEvent || undefined,
+        hashtags: hashtagsArray,
+        searchOrganization: searchOrganization || undefined,
         pagination: {
           pageIndex: pageParam,
           isPaging: true,
           pageSize: 12
         }
-      }),
+      })
+    },
     getNextPageParam: (lastPage: any, allPages) => {
       const currentPage = allPages.length
       const totalPages = Math.ceil((lastPage?.data?.pagination?.total || 0) / 12)
@@ -161,6 +225,14 @@ export default function EventSearch() {
       setSelectedCategory('')
       setFromDate(undefined)
       setToDate(undefined)
+      setFromCapacity('')
+      setToCapacity('')
+      setFromSaleTicket(undefined)
+      setToSaleTicket(undefined)
+      setSearchMailEvent('')
+      setSearchPhoneEvent('')
+      setHashtags('')
+      setSearchOrganization('')
     }
   }
 
@@ -404,27 +476,129 @@ export default function EventSearch() {
               </div>
 
               {/* Date Range Filter */}
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>Từ ngày</label>
-                <DateTimePicker
-                  value={searchMode === 'ai' ? aiFromDate : fromDate}
-                  onChange={(date) => (searchMode === 'ai' ? setAiFromDate(date) : setFromDate(date))}
-                  placeholder='Chọn ngày bắt đầu'
-                  variant='start'
-                  maxDate={searchMode === 'ai' ? aiToDate : toDate}
-                />
+              <div className='flex gap-2'>
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>Bắt đầy sự kiện</label>
+                  <DateTimePicker
+                    value={searchMode === 'ai' ? aiFromDate : fromDate}
+                    onChange={(date) => (searchMode === 'ai' ? setAiFromDate(date) : setFromDate(date))}
+                    placeholder='Chọn ngày bắt đầu'
+                    variant='start'
+                    maxDate={searchMode === 'ai' ? aiToDate : toDate}
+                  />
+                </div>
+
+                <div>
+                  <label className='block text-sm font-medium text-gray-700 mb-2'>Kết thúc sự kiện</label>
+                  <DateTimePicker
+                    value={searchMode === 'ai' ? aiToDate : toDate}
+                    onChange={(date) => (searchMode === 'ai' ? setAiToDate(date) : setToDate(date))}
+                    placeholder='Chọn ngày kết thúc'
+                    variant='end'
+                    minDate={searchMode === 'ai' ? aiFromDate : fromDate}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>Đến ngày</label>
-                <DateTimePicker
-                  value={searchMode === 'ai' ? aiToDate : toDate}
-                  onChange={(date) => (searchMode === 'ai' ? setAiToDate(date) : setToDate(date))}
-                  placeholder='Chọn ngày kết thúc'
-                  variant='end'
-                  minDate={searchMode === 'ai' ? aiFromDate : fromDate}
-                />
-              </div>
+              {/* Additional Filters - Only for Normal Search Mode */}
+              {searchMode === 'normal' && (
+                <>
+                  {/* Capacity Range */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Sức chứa</label>
+                    <div className='grid grid-cols-2 gap-2'>
+                      <input
+                        type='number'
+                        placeholder='Từ'
+                        value={fromCapacity}
+                        onChange={(e) => setFromCapacity(e.target.value)}
+                        className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                        min='0'
+                      />
+                      <input
+                        type='number'
+                        placeholder='Đến'
+                        value={toCapacity}
+                        onChange={(e) => setToCapacity(e.target.value)}
+                        className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                        min='0'
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sale Ticket Date Range */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Thời gian bán vé từ</label>
+                    <DateTimePicker
+                      value={fromSaleTicket}
+                      onChange={setFromSaleTicket}
+                      placeholder='Chọn ngày bắt đầu bán'
+                      variant='start'
+                      maxDate={toSaleTicket}
+                    />
+                  </div>
+
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Thời gian bán vé đến</label>
+                    <DateTimePicker
+                      value={toSaleTicket}
+                      onChange={setToSaleTicket}
+                      placeholder='Chọn ngày kết thúc bán'
+                      variant='end'
+                      minDate={fromSaleTicket}
+                    />
+                  </div>
+
+                  {/* Organization Search */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Tổ chức</label>
+                    <input
+                      type='text'
+                      placeholder='Tên tổ chức'
+                      value={searchOrganization}
+                      onChange={(e) => setSearchOrganization(e.target.value)}
+                      className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                    />
+                  </div>
+
+                  {/* Email Search */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Email</label>
+                    <input
+                      type='email'
+                      placeholder='Email tổ chức'
+                      value={searchMailEvent}
+                      onChange={(e) => setSearchMailEvent(e.target.value)}
+                      className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                    />
+                  </div>
+
+                  {/* Phone Search */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Số điện thoại</label>
+                    <input
+                      type='tel'
+                      placeholder='SĐT tổ chức'
+                      value={searchPhoneEvent}
+                      onChange={(e) => setSearchPhoneEvent(e.target.value)}
+                      className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                    />
+                  </div>
+
+                  {/* Hashtags */}
+                  <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>Hashtags</label>
+                    <input
+                      type='text'
+                      placeholder='#tag1, #tag2, #tag3'
+                      value={hashtags}
+                      onChange={(e) => setHashtags(e.target.value)}
+                      className='w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent'
+                    />
+                    <p className='text-xs text-gray-500 mt-1'>Nhập các hashtag, cách nhau bởi dấu phẩy</p>
+                  </div>
+                </>
+              )}
 
               {/* Clear Filters Button */}
               <button

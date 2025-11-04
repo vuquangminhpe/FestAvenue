@@ -567,11 +567,7 @@ const EventDetails: React.FC = () => {
               <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg hover:shadow-xl transition-shadow'>
                 <CardContent className='p-4 text-center'>
                   <Clock className='w-8 h-8 mx-auto mb-2 text-blue-600' />
-                  <p className='text-sm text-gray-600'>Thời gian</p>
-                  <p className='font-semibold text-gray-900'>
-                    {getEventStartDate() && formatTime(getEventStartDate())} -{' '}
-                    {getEventEndDate() && formatTime(getEventEndDate())}
-                  </p>
+                  <p className='text-sm text-gray-600'>Diễn ra trong</p>
                   {getEventStartDate() && getEventEndDate() && (
                     <p className='text-xs text-gray-500'>
                       ({calculateDuration(getEventStartDate(), getEventEndDate())} giờ)
@@ -582,10 +578,24 @@ const EventDetails: React.FC = () => {
 
               <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg hover:shadow-xl transition-shadow'>
                 <CardContent className='p-4 text-center'>
-                  <MapPin className='w-8 h-8 mx-auto mb-2 text-red-500' />
-                  <p className='text-sm text-gray-600'>Địa điểm</p>
-                  <p className='font-semibold text-gray-900'>{event.location?.address?.city || 'N/A'}</p>
-                  <p className='text-xs text-gray-500'>{event.location?.address?.street || ''}</p>
+                  {/* Hashtags */}
+                  {event.hashtags && event.hashtags.length > 0 && (
+                    <div>
+                      <h3 className='text-xl font-bold text-gray-900 mb-4'>Hashtags</h3>
+                      <div className='flex flex-wrap gap-2'>
+                        {event.hashtags.map((tag: string, index: number) => (
+                          <Badge
+                            key={index}
+                            variant='secondary'
+                            className='bg-cyan-100 text-cyan-700 cursor-pointer hover:bg-cyan-200 hover:text-cyan-800 transition-colors'
+                            onClick={() => navigate(`${path.events}?hashtag=${encodeURIComponent(tag)}`)}
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -845,22 +855,6 @@ const EventDetails: React.FC = () => {
                       <p className='text-sm text-red-600 text-center mt-2 font-medium'>{ticketSaleStatus.message}</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Hashtags */}
-            {event.hashtags && event.hashtags.length > 0 && (
-              <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg'>
-                <CardContent className='p-6'>
-                  <h3 className='text-xl font-bold text-gray-900 mb-4'>Hashtags</h3>
-                  <div className='flex flex-wrap gap-2'>
-                    {event.hashtags.map((tag: string, index: number) => (
-                      <Badge key={index} variant='secondary' className='bg-cyan-100 text-cyan-700'>
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
             )}

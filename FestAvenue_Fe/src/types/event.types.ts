@@ -359,10 +359,18 @@ export interface bodySearchWithAI {
   SearchImage?: File
 }
 export interface bodySearchEvent {
-  searchText: string
+  searchText?: string
   categoryId?: string
   fromEventDate?: string
   toEventDate?: string
+  fromCapacity?: number
+  toCapacity?: number
+  fromSaleTicket?: string
+  toSaleTicket?: string
+  searchMailEvent?: string
+  searchPhoneEvent?: string
+  hashtags?: string[]
+  searchOrganization?: string
   pagination: {
     pageIndex?: number
     isPaging: true

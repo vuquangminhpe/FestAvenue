@@ -65,16 +65,21 @@ const eventApis = {
   searchEventWithAI: async (body: bodySearchWithAI) => {
     const formdata = new FormData()
 
-    // Only append if value exists (not undefined/null/empty)
-    if (body?.SearchText && body.SearchText.trim().length > 0) {
+    // Only append if value exists and is not empty
+    if (body?.SearchText && typeof body.SearchText === 'string' && body.SearchText.trim().length > 0) {
       formdata.append('SearchText', body.SearchText)
     }
 
-    if (body?.SearchImage) {
-      formdata.append('SearchImage', body.SearchImage)
+    // Only append SearchImage if it's a valid File object
+    if (body?.SearchImage && body.SearchImage instanceof File && body.SearchImage.size > 0) {
+      formdata.append('SearchImage', body.SearchImage, body.SearchImage.name)
     }
 
-    const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-event-with-ai', formdata)
+    const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-event-with-ai', formdata, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
     return data?.data
   },
   getTop20EventFeaturedEvent: async () => {
