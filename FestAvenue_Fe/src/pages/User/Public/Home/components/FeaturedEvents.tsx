@@ -6,6 +6,7 @@ import { Calendar, User } from 'lucide-react'
 import path from '@/constants/path'
 import { generateNameId } from '@/utils/utils'
 import type { ReqFilterOwnerEvent } from '@/types/event.types'
+import OptimizedImage from '@/components/custom/OptimizedImage'
 
 export default function FeaturedEvents() {
   const navigate = useNavigate()
@@ -89,10 +90,10 @@ export default function FeaturedEvents() {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {featuredEvents?.slice(0, 8).map((event: ReqFilterOwnerEvent, index: number) => (
+          {featuredEvents?.slice(0, 8)?.map((event: ReqFilterOwnerEvent, index: number) => (
             <div
               key={event.id}
-              className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:scale-105 overflow-hidden cursor-pointer'
+              className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
               onClick={() =>
                 navigate(
                   `${path.user.event}/${generateNameId({
@@ -104,13 +105,16 @@ export default function FeaturedEvents() {
               }
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className='relative h-56 overflow-hidden'>
-                <img
-                  src={event.logoUrl || 'https://via.placeholder.com/400x300'}
+              <div className='relative overflow-hidden'>
+                <OptimizedImage
+                  src={event.logoUrl}
                   alt={event.eventName}
-                  className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
-                  loading='lazy'
+                  width={600}
+                  height={400}
+                  className='h-48 w-full'
+                  sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
                 />
+
                 <div className='absolute inset-0 bg-gradient-to-t from-black/70 to-transparent'></div>
               </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ImgHTMLAttributes } from 'react'
-
+import LOGO_DEFAULT from '../../../public/Images/FestDefault.png'
 interface OptimizedImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string
   alt: string
@@ -141,13 +141,7 @@ export default function OptimizedImage({
           />
         </picture>
       ) : hasError ? (
-        // Error fallback UI
-        <div className='w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center'>
-          <div className='text-center text-gray-500'>
-            <div className='w-12 h-12 mx-auto mb-2 bg-gray-300 rounded-full flex items-center justify-center'>📷</div>
-            <p className='text-sm'>Image not available</p>
-          </div>
-        </div>
+        <img src={LOGO_DEFAULT} alt='' className='w-full h-full' />
       ) : null}
     </div>
   )

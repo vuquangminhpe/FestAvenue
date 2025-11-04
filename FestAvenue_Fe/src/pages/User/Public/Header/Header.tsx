@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { clearLocalStorage } from '@/utils/auth'
 import { Search, Heart, HelpCircle, LogOut, Menu, X, Building } from 'lucide-react'
 import { useUsersStore } from '@/contexts/app.context'
-import LOGO_DEFAULT from '../../../../../public/Images/default-avatar.png'
+import LOGO_DEFAULT from '../../../../../public/Images/FestDefault.png'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export default function Header() {
   const isAuthenticated = useUsersStore((data) => data.isAuth)

@@ -708,70 +708,6 @@ const EventDetails: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Event Posts */}
-            <div className='animate-section'>
-              <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center'>
-                <div className='w-1 h-8 bg-gradient-to-b from-cyan-500 to-blue-500 mr-3 rounded-full' />
-                Các bài đăng của sự kiện
-              </h2>
-              <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-                {(posts as any).map((post: top5latestRes) => (
-                  <Card
-                    key={post.postSocialMediaId}
-                    onClick={() =>
-                      navigate(
-                        `${path.user.event.social_media_detail_base}/${generateNameId({
-                          id: post.postSocialMediaId,
-                          name: post.title,
-                          id_2: `eC${eventCode}eC`,
-                          templateNumber: post.templateNumber
-                        })}`
-                      )
-                    }
-                    className='group cursor-pointer overflow-hidden bg-white border-cyan-100 shadow-lg hover:shadow-2xl transition-shadow'
-                  >
-                    <div className='relative aspect-[3/4] overflow-hidden bg-gray-200'>
-                      {post.bannerPostUrl ? (
-                        <>
-                          <img
-                            src={post.bannerPostUrl}
-                            alt={post.title}
-                            className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
-                          />
-                          <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent' />
-                        </>
-                      ) : (
-                        <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100'>
-                          <span className='text-gray-400 text-sm'>Không có ảnh</span>
-                        </div>
-                      )}
-                    </div>
-                    <CardContent className='p-3'>
-                      <div className='flex items-center gap-2 mb-2'>
-                        <Avatar className='w-8 h-8 border border-cyan-200'>
-                          <AvatarImage src={post.avatarAthorUrl || '/avatar_default.jpg'} />
-                          <AvatarFallback>{post.authorName?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className='flex-1 min-w-0'>
-                          <p className='text-xs font-semibold text-gray-900 truncate'>{post.authorName}</p>
-                          <p className='text-xs text-gray-500'>{formatPostTime(post.createAt)}</p>
-                        </div>
-                      </div>
-                      <p className='text-xs text-gray-600 line-clamp-2 mb-2'>{post.body}</p>
-                      <div className='flex items-center gap-2 text-xs'>
-                        <span className='text-gray-500 flex items-center gap-1'>
-                          <Heart className='w-3 h-3' /> {post.totalReactions}
-                        </span>
-                        <span className='text-gray-500 flex items-center gap-1'>
-                          <Share2 className='w-3 h-3' /> {post.totalComments}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Right Sidebar */}
@@ -807,6 +743,81 @@ const EventDetails: React.FC = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Event Posts */}
+            <Card className='bg-white/80 backdrop-blur-sm border-cyan-100 shadow-lg overflow-hidden'>
+              <CardContent className='p-6'>
+                <h3 className='text-xl font-bold text-gray-900 mb-4 flex items-center'>
+                  <Share2 className='w-5 h-5 mr-2 text-cyan-600' />
+                  Bài đăng sự kiện
+                </h3>
+                <div className='space-y-4'>
+                  {posts && (posts as any).length > 0 ? (
+                    (posts as any).map((post: top5latestRes) => (
+                      <Card
+                        key={post.postSocialMediaId}
+                        onClick={() =>
+                          navigate(
+                            `${path.user.event.social_media_detail_base}/${generateNameId({
+                              id: post.postSocialMediaId,
+                              name: post.title,
+                              id_2: `eC${eventCode}eC`,
+                              templateNumber: post.templateNumber
+                            })}`
+                          )
+                        }
+                        className='group cursor-pointer overflow-hidden bg-white border-cyan-100 shadow-md hover:shadow-xl transition-all duration-300'
+                      >
+                        <div className='relative aspect-video overflow-hidden bg-gray-200'>
+                          {post.bannerPostUrl ? (
+                            <>
+                              <img
+                                src={post.bannerPostUrl}
+                                alt={post.title}
+                                className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
+                              />
+                              <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent' />
+                            </>
+                          ) : (
+                            <div className='w-full h-full flex items-center justify-center bg-gradient-to-br from-cyan-100 to-blue-100'>
+                              <span className='text-gray-400 text-sm'>Không có ảnh</span>
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className='p-3'>
+                          <div className='flex items-center gap-2 mb-2'>
+                            <Avatar className='w-7 h-7 border border-cyan-200'>
+                              <AvatarImage src={post.avatarAthorUrl || '/avatar_default.jpg'} />
+                              <AvatarFallback className='text-xs'>{post.authorName?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className='flex-1 min-w-0'>
+                              <p className='text-xs font-semibold text-gray-900 truncate'>{post.authorName}</p>
+                              <p className='text-xs text-gray-500'>{formatPostTime(post.createAt)}</p>
+                            </div>
+                          </div>
+                          <p className='text-xs text-gray-600 line-clamp-2 mb-2'>{post.body}</p>
+                          <div className='flex items-center gap-3 text-xs'>
+                            <span className='text-gray-500 flex items-center gap-1'>
+                              <Heart className='w-3 h-3' /> {post.totalReactions}
+                            </span>
+                            <span className='text-gray-500 flex items-center gap-1'>
+                              <Share2 className='w-3 h-3' /> {post.totalComments}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  ) : (
+                    <div className='text-center py-8'>
+                      <div className='w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center'>
+                        <Share2 className='w-6 h-6 text-cyan-600' />
+                      </div>
+                      <p className='text-sm text-gray-500'>Chưa có bài đăng</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
