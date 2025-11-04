@@ -10,7 +10,9 @@ import type {
 // Query keys
 export const socialMediaDetailKeys = {
   all: ['socialMediaDetail'] as const,
-  detail: (postId: string) => [...socialMediaDetailKeys.all, 'detail', postId] as const
+  detail: (postId: string) => [...socialMediaDetailKeys.all, 'detail', postId] as const,
+  imageDetail: (postId: string, imageId: string) =>
+    [...socialMediaDetailKeys.all, 'imageDetail', postId, imageId] as const
 }
 
 /**
@@ -50,6 +52,11 @@ export const useReactionImageInPost = () => {
       await queryClient.refetchQueries({
         queryKey: socialMediaDetailKeys.detail(variables.postId)
       })
+      // Also invalidate image detail
+      await queryClient.invalidateQueries({
+        queryKey: socialMediaDetailKeys.imageDetail(variables.postId, variables.imageInPostId),
+        refetchType: 'active'
+      })
     }
   })
 }
@@ -74,6 +81,11 @@ export const useCommentImageInPost = () => {
       // Force refetch để đảm bảo data được update
       await queryClient.refetchQueries({
         queryKey: socialMediaDetailKeys.detail(variables.postSocialMediaId)
+      })
+      // Also invalidate image detail
+      await queryClient.invalidateQueries({
+        queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
+        refetchType: 'active'
       })
     }
   })
@@ -100,6 +112,11 @@ export const useDeleteCommentInPost = () => {
       await queryClient.refetchQueries({
         queryKey: socialMediaDetailKeys.detail(variables.postSocialMediaId)
       })
+      // Also invalidate image detail
+      await queryClient.invalidateQueries({
+        queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
+        refetchType: 'active'
+      })
     }
   })
 }
@@ -125,6 +142,41 @@ export const useUpdateCommentInPost = () => {
       await queryClient.refetchQueries({
         queryKey: socialMediaDetailKeys.detail(variables.postSocialMediaId)
       })
+      // Also invalidate image detail
+      await queryClient.invalidateQueries({
+        queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
+        refetchType: 'active'
+      })
     }
+  })
+}
+
+/**
+ * Hook để lấy chi tiết comments và reactions của một ảnh cụ thể với pagination
+ */
+export const useGetImageCommentsAndReactions = (
+  postId: string,
+  imageId: string,
+  pageIndex: number = 1,
+  pageSize: number = 10,
+  enabled: boolean = false
+) => {
+  return useQuery({
+    queryKey: [...socialMediaDetailKeys.imageDetail(postId, imageId), 'page', pageIndex],
+    queryFn: async () => {
+      const response = await serviceSocialMediaApis.getCommentAndReactionInPostSocialMediaDetailsWithPaging({
+        postSocialMediaId: postId,
+        imageInPostId: imageId,
+        pagination: {
+          pageIndex,
+          isPaging: true,
+          pageSize
+        }
+      })
+      return response?.data
+    },
+    enabled: enabled && !!postId && !!imageId,
+    staleTime: 1 * 60 * 1000, // 1 minute
+    retry: 2
   })
 }

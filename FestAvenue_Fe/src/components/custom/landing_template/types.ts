@@ -69,6 +69,7 @@ export interface LandingTemplateProps {
   onComment?: (imageId: string, comment: string) => void
   onDeleteComment?: (commentId: string, imageId: string) => void
   onUpdateComment?: (commentId: string, imageId: string, newContent: string) => void
+  onImageClick?: (imageId: string, imageUrl: string, imageCaption?: string) => void // Custom handler for image click
   onShare?: () => void
   onRegister?: () => void
 }

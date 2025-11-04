@@ -199,8 +199,12 @@ export default function Template2(props: LandingTemplateProps) {
                       <button
                         className='flex items-center gap-2 hover:scale-110 transition-transform'
                         onClick={() => {
-                          setSelectedImage(image)
-                          setIsCommentModalOpen(true)
+                          if (props.onImageClick) {
+                            props.onImageClick(image.id, image.url, image.caption)
+                          } else {
+                            setSelectedImage(image)
+                            setIsCommentModalOpen(true)
+                          }
                         }}
                       >
                         <MessageCircle className='w-5 h-5' />

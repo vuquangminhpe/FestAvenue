@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { getIdFromNameId_ver } from '@/utils/utils'
@@ -17,6 +17,7 @@ import {
   Template4,
   Template5,
   Template6,
+  CommentModalWithPagination,
   type LandingTemplateProps
 } from '@/components/custom/landing_template'
 import type { SocialMediaImage } from '@/components/custom/landing_template/types'
@@ -25,6 +26,13 @@ const SocialMediaDetail = () => {
   const params = useParams()
   const navigate = useNavigate()
   const postNameId = params.postId as string
+
+  // State for modal
+  const [selectedImageForModal, setSelectedImageForModal] = useState<{
+    imageId: string
+    imageUrl: string
+    imageCaption?: string
+  } | null>(null)
 
   // Get current user info
   const { isProfile } = useUsersStore()
@@ -95,6 +103,13 @@ const SocialMediaDetail = () => {
       relatedEvents: [], // TODO: Có thể thêm related events nếu cần
       socialLinks,
       currentUserId,
+      onImageClick: (imageId: string, imageUrl: string, imageCaption?: string) => {
+        setSelectedImageForModal({
+          imageId,
+          imageUrl,
+          imageCaption
+        })
+      },
       onLike: (imageId: string) => {
         reactionMutation.mutate({
           postId: post.id,
@@ -190,7 +205,51 @@ const SocialMediaDetail = () => {
         <meta property='og:description' content={post.subtitle} />
         <meta property='og:image' content={post.bannerUrl} />
       </Helmet>
+
+      {/* Template Component */}
       <TemplateComponent {...templateProps} />
+
+      {/* Comment Modal with Pagination - Replaces template's built-in modal */}
+      {selectedImageForModal && (
+        <CommentModalWithPagination
+          isOpen={true}
+          onClose={() => setSelectedImageForModal(null)}
+          postId={post.id}
+          imageId={selectedImageForModal.imageId}
+          imageUrl={selectedImageForModal.imageUrl}
+          imageCaption={selectedImageForModal.imageCaption}
+          currentUserId={currentUserId}
+          onComment={(imageId, comment) => {
+            commentMutation.mutate({
+              postSocialMediaId: post.id,
+              imageInPostId: imageId,
+              commentText: comment
+            })
+          }}
+          onDeleteComment={(commentId, imageId) => {
+            deleteCommentMutation.mutate({
+              postSocialMediaId: post.id,
+              imageInPostId: imageId,
+              commentPostId: commentId
+            })
+          }}
+          onUpdateComment={(commentId, imageId, newContent) => {
+            updateCommentMutation.mutate({
+              postSocialMediaId: post.id,
+              imageInPostId: imageId,
+              commentPostId: commentId,
+              newContent
+            })
+          }}
+          onReaction={(imageId) => {
+            reactionMutation.mutate({
+              postId: post.id,
+              imageInPostId: imageId
+            })
+          }}
+        />
+      )}
+
       {isFetching && (
         <div className='fixed bottom-4 right-4 bg-cyan-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse'>
           <div className='flex items-center gap-2'>

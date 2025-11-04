@@ -191,8 +191,14 @@ export default function Template1(props: LandingTemplateProps) {
                       <button
                         className='flex items-center gap-2 hover:text-blue-400 transition-colors'
                         onClick={() => {
-                          setSelectedImage(image)
-                          setIsCommentModalOpen(true)
+                          if (props.onImageClick) {
+                            // Use custom handler if provided
+                            props.onImageClick(image.id, image.url, image.caption)
+                          } else {
+                            // Fallback to built-in modal
+                            setSelectedImage(image)
+                            setIsCommentModalOpen(true)
+                          }
                         }}
                       >
                         <MessageCircle className='w-5 h-5' />

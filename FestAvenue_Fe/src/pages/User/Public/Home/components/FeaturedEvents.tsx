@@ -3,6 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
 import { useNavigate } from 'react-router'
 import { Calendar, User } from 'lucide-react'
+import path from '@/constants/path'
+import { generateNameId } from '@/utils/utils'
+import type { ReqFilterOwnerEvent } from '@/types/event.types'
 
 export default function FeaturedEvents() {
   const navigate = useNavigate()
@@ -86,11 +89,19 @@ export default function FeaturedEvents() {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {featuredEvents?.slice(0, 8).map((event: any, index: number) => (
+          {featuredEvents?.slice(0, 8).map((event: ReqFilterOwnerEvent, index: number) => (
             <div
               key={event.id}
               className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:scale-105 overflow-hidden cursor-pointer'
-              onClick={() => navigate(`/event/${event.eventCode}`)}
+              onClick={() =>
+                navigate(
+                  `${path.user.event}/${generateNameId({
+                    id: event.eventCode,
+                    name: event.organization.name,
+                    id_2: event.eventName
+                  })}`
+                )
+              }
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className='relative h-56 overflow-hidden'>

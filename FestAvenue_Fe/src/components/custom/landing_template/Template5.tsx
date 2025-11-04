@@ -211,8 +211,12 @@ export default function Template5(props: LandingTemplateProps) {
                     <button
                       className='flex items-center gap-3 hover:scale-110 transition-transform'
                       onClick={() => {
-                        setSelectedImage(image)
-                        setIsCommentModalOpen(true)
+                        if (props.onImageClick) {
+                          props.onImageClick(image.id, image.url, image.caption)
+                        } else {
+                          setSelectedImage(image)
+                          setIsCommentModalOpen(true)
+                        }
                       }}
                     >
                       <MessageCircle className='w-6 h-6' />
@@ -246,8 +250,12 @@ export default function Template5(props: LandingTemplateProps) {
                           <button
                             className='flex items-center gap-3'
                             onClick={() => {
-                              setSelectedImage(image)
-                              setIsCommentModalOpen(true)
+                              if (props.onImageClick) {
+                                props.onImageClick(image.id, image.url, image.caption)
+                              } else {
+                                setSelectedImage(image)
+                                setIsCommentModalOpen(true)
+                              }
                             }}
                           >
                             <MessageCircle className='w-6 h-6' />
