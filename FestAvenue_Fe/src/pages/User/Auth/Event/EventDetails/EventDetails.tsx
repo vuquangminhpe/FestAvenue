@@ -35,6 +35,13 @@ const EventDetails: React.FC = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
 
+  // Sync isFollowing with event.isFollowed when event data loads
+  useEffect(() => {
+    if (event?.isFollowed !== undefined) {
+      setIsFollowing(event.isFollowed)
+    }
+  }, [event?.isFollowed])
+
   // Follow/Unfollow mutation
   const followMutation = useMutation({
     mutationFn: (eventCode: string) => eventApis.followOrUnfollowEvent(eventCode),
@@ -42,6 +49,7 @@ const EventDetails: React.FC = () => {
       if (data?.data) {
         setIsFollowing(data.data.isFollowing)
         queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
+        queryClient.invalidateQueries({ queryKey: ['eventDetails'] })
         toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
       }
     },
@@ -726,7 +734,11 @@ const EventDetails: React.FC = () => {
                             followMutation.mutate(relatedEvent.eventCode)
                           }}
                         >
-                          <Heart className='w-4 h-4' />
+                          <Heart
+                            className={`w-4 h-4 ${
+                              relatedEvent.isFollowed ? 'text-red-500 fill-red-500' : 'text-gray-600'
+                            }`}
+                          />
                         </Button>
                       </div>
                       <CardContent className='p-3'>
