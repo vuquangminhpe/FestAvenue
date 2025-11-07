@@ -2308,7 +2308,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                           <div className='flex items-center gap-2 flex-1 cursor-pointer' onClick={() => setSelectedSection(section)}>
                             <Checkbox
                               checked={selectedSections.has(section.id)}
-                              onCheckedChange={(checked) => {
+                              onCheckedChange={() => {
                                 handleToggleSectionSelection(section.id)
                               }}
                               onClick={(e) => e.stopPropagation()}
