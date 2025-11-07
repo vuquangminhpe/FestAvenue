@@ -68,8 +68,8 @@ export const SECTION_TEMPLATES: SectionTemplate[] = [
   // 1. Theater Style - Curved section
   {
     id: 'theater',
-    name: '🎭 Theater',
-    icon: '🎭',
+    name: 'Theater',
+    icon: '',
     description: 'Khu vực cong quanh sân khấu',
     gradient: { from: '#667eea', to: '#764ba2' },
     color: '#667eea',
@@ -96,8 +96,8 @@ export const SECTION_TEMPLATES: SectionTemplate[] = [
   // 2. Stadium Style - Wide arc
   {
     id: 'stadium',
-    name: '🏟️ Stadium',
-    icon: '🏟️',
+    name: 'Stadium',
+    icon: '',
     description: 'Khu vực hình oval rộng',
     gradient: { from: '#f093fb', to: '#f5576c' },
     color: '#f093fb',
@@ -121,81 +121,11 @@ export const SECTION_TEMPLATES: SectionTemplate[] = [
     }
   },
 
-  // 3. Arena Style - Rectangular premium section
-  {
-    id: 'arena',
-    name: '🏛️ Arena',
-    icon: '🏛️',
-    description: 'Khu vực chữ nhật cao cấp',
-    gradient: { from: '#4facfe', to: '#00f2fe' },
-    color: '#4facfe',
-    strokeColor: '#3d9bed',
-    generateSection: ({ centerX = 500, centerY = 300, rows = 6, seatsPerRow = 10, name = 'Arena' }) => {
-      const width = seatsPerRow * 20
-      const height = rows * 25
-      const points: Point[] = [
-        { x: centerX - width / 2, y: centerY - height / 2 },
-        { x: centerX + width / 2, y: centerY - height / 2 },
-        { x: centerX + width / 2, y: centerY + height / 2 },
-        { x: centerX - width / 2, y: centerY + height / 2 }
-      ]
-      const bounds = calculateBounds(points)
-      return {
-        name,
-        displayName: name.toUpperCase(),
-        points,
-        color: '#4facfe',
-        strokeColor: '#3d9bed',
-        gradient: { from: '#4facfe', to: '#00f2fe' },
-        rows,
-        seatsPerRow,
-        bounds,
-        shape: 'rectangle',
-        labelPosition: { x: centerX, y: centerY }
-      }
-    }
-  },
-
-  // 4. Conference Style - Grid layout
-  {
-    id: 'conference',
-    name: '📊 Conference',
-    icon: '📊',
-    description: 'Lưới ghế ngay ngắn',
-    gradient: { from: '#43e97b', to: '#38f9d7' },
-    color: '#43e97b',
-    strokeColor: '#3cd670',
-    generateSection: ({ centerX = 500, centerY = 300, rows = 8, seatsPerRow = 15, name = 'Conference' }) => {
-      const width = seatsPerRow * 18
-      const height = rows * 22
-      const points: Point[] = [
-        { x: centerX - width / 2, y: centerY - height / 2 },
-        { x: centerX + width / 2, y: centerY - height / 2 },
-        { x: centerX + width / 2, y: centerY + height / 2 },
-        { x: centerX - width / 2, y: centerY + height / 2 }
-      ]
-      const bounds = calculateBounds(points)
-      return {
-        name,
-        displayName: name.toUpperCase(),
-        points,
-        color: '#43e97b',
-        strokeColor: '#3cd670',
-        gradient: { from: '#43e97b', to: '#38f9d7' },
-        rows,
-        seatsPerRow,
-        bounds,
-        shape: 'grid',
-        labelPosition: { x: centerX, y: centerY }
-      }
-    }
-  },
-
   // 5. Circular Arena - Full circle section
   {
     id: 'circular',
-    name: '⭕ Circular',
-    icon: '⭕',
+    name: 'Circular',
+    icon: '',
     description: 'Vòng tròn 360 độ',
     gradient: { from: '#fa709a', to: '#fee140' },
     color: '#fa709a',
@@ -222,8 +152,8 @@ export const SECTION_TEMPLATES: SectionTemplate[] = [
   // 6. Concert Style - Deep curved section
   {
     id: 'concert',
-    name: '🎸 Concert',
-    icon: '🎸',
+    name: 'Concert',
+    icon: '',
     description: 'Khu vực cong sâu cho concert',
     gradient: { from: '#30cfd0', to: '#330867' },
     color: '#30cfd0',

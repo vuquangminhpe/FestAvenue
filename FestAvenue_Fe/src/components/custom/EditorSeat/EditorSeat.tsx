@@ -1679,10 +1679,6 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
 
                   {/* Template Gallery Section */}
                   <div className='space-y-3 pb-3 border-b border-purple-500/30'>
-                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
-                      <Palette className='w-4 h-4' />
-                      🎨 Mẫu Sơ Đồ Có Sẵn
-                    </h3>
                     <div className='grid grid-cols-2 gap-2'>
                       {SECTION_TEMPLATES.map((template) => (
                         <Button
@@ -1700,11 +1696,6 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                         </Button>
                       ))}
                     </div>
-                    <Alert className='bg-purple-600/20 border-purple-500/50'>
-                      <AlertDescription className='text-xs text-black'>
-                        💡 Click vào mẫu để tạo section mới với hình dạng đẹp!
-                      </AlertDescription>
-                    </Alert>
                   </div>
 
                   {/* Global Ticket Management */}
@@ -1733,7 +1724,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                               <SelectContent>
                                 {tickets.map((ticket) => (
                                   <SelectItem key={ticket.id} value={ticket.id}>
-                                    {ticket.name} - {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    {ticket.name} -{' '}
+                                    {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -2305,10 +2297,13 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                               : 'bg-slate-700/50 hover:bg-slate-700/70'
                           }`}
                         >
-                          <div className='flex items-center gap-2 flex-1 cursor-pointer' onClick={() => setSelectedSection(section)}>
+                          <div
+                            className='flex items-center gap-2 flex-1 cursor-pointer'
+                            onClick={() => setSelectedSection(section)}
+                          >
                             <Checkbox
                               checked={selectedSections.has(section.id)}
-                              onCheckedChange={(checked) => {
+                              onCheckedChange={() => {
                                 handleToggleSectionSelection(section.id)
                               }}
                               onClick={(e) => e.stopPropagation()}
