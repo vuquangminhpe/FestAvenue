@@ -48,8 +48,8 @@ export default function FavoriteEvents() {
     }
   })
 
-  const events = eventsData?.data || []
-  const filteredEvents = events.filter((event) =>
+  const events = (eventsData?.data as any)?.result || []
+  const filteredEvents = events.filter((event: ReqFilterOwnerEvent) =>
     event.eventName.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -193,9 +193,7 @@ export default function FavoriteEvents() {
             {searchQuery ? 'Không tìm thấy sự kiện' : 'Chưa có sự kiện yêu thích'}
           </h3>
           <p className='text-slate-500 mb-4'>
-            {searchQuery
-              ? 'Thử tìm kiếm với từ khóa khác'
-              : 'Khám phá và lưu những sự kiện bạn quan tâm'}
+            {searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Khám phá và lưu những sự kiện bạn quan tâm'}
           </p>
           {!searchQuery && (
             <Button
@@ -221,7 +219,7 @@ export default function FavoriteEvents() {
                   <TableHead>Hành động</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>{filteredEvents.map((event) => renderTableRow(event))}</TableBody>
+              <TableBody>{filteredEvents.map((event: ReqFilterOwnerEvent) => renderTableRow(event))}</TableBody>
             </Table>
           </div>
 
