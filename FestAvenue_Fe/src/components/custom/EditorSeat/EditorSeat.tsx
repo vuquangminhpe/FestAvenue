@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import {
   Download,
@@ -50,6 +51,7 @@ import { generateShapePath } from './utils/shapes'
 import { generateSeatsForSection } from './utils/seats'
 import { projectPointToConstraint } from './utils/shapeTransforms'
 import PointEditorPanel from './components/PointEditorPanel'
+import { SECTION_TEMPLATES, generateSectionFromTemplate } from './utils/templates'
 
 // Props interface
 interface AdvancedSeatMapDesignerProps {
@@ -145,6 +147,11 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     currentEmail?: string
   } | null>(null)
   const [seatEmails, setSeatEmails] = useState<Map<string, string>>(new Map())
+
+  // Template and bulk selection states
+  const [selectedSections, setSelectedSections] = useState<Set<string>>(new Set())
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
+  const [globalTicketId, setGlobalTicketId] = useState<string>('')
 
   useEffect(() => {
     const loadGSAP = () => {
@@ -1434,6 +1441,101 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     setBulkRowTicketId('')
   }
 
+  // Template application function
+  const applyTemplateToNewSection = (templateId: string) => {
+    const templateConfig = {
+      centerX: 500,
+      centerY: 300,
+      rows: sectionConfig.rows,
+      seatsPerRow: sectionConfig.seatsPerRow,
+      name: sectionConfig.name || templateId
+    }
+
+    const sectionData = generateSectionFromTemplate(templateId, templateConfig)
+    if (!sectionData) {
+      alert('Template không tồn tại!')
+      return
+    }
+
+    const newSection: Section = {
+      ...sectionData,
+      id: `section-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    }
+
+    // Generate seats for the section
+    newSection.seats = generateSeatsForSection(newSection, seatStatuses)
+
+    setMapData({
+      ...mapData,
+      sections: [...mapData.sections, newSection]
+    })
+
+    setSelectedSection(newSection)
+    setSelectedTemplateId(null)
+  }
+
+  // Bulk ticket assignment for selected sections
+  const handleBulkTicketAssignment = (ticketId: string) => {
+    if (selectedSections.size === 0 || !ticketId) return
+
+    const selectedTicket = tickets.find((t) => t.id === ticketId)
+    const ticketPrice = selectedTicket?.price || 0
+
+    const updatedSections = mapData.sections.map((section) => {
+      if (selectedSections.has(section.id)) {
+        return {
+          ...section,
+          ticketId,
+          price: ticketPrice,
+          seats: section.seats?.map((seat) => ({
+            ...seat,
+            ticketId,
+            price: ticketPrice
+          }))
+        }
+      }
+      return section
+    })
+
+    setMapData({ ...mapData, sections: updatedSections })
+    setSelectedSections(new Set())
+  }
+
+  // Set all seats to a specific ticket
+  const handleSetAllSeats = (ticketId: string) => {
+    if (!ticketId) return
+
+    const selectedTicket = tickets.find((t) => t.id === ticketId)
+    const ticketPrice = selectedTicket?.price || 0
+
+    const updatedSections = mapData.sections.map((section) => ({
+      ...section,
+      ticketId,
+      price: ticketPrice,
+      seats: section.seats?.map((seat) => ({
+        ...seat,
+        ticketId,
+        price: ticketPrice
+      }))
+    }))
+
+    setMapData({ ...mapData, sections: updatedSections })
+    setGlobalTicketId('')
+  }
+
+  // Toggle section selection
+  const handleToggleSectionSelection = (sectionId: string) => {
+    setSelectedSections((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId)
+      } else {
+        newSet.add(sectionId)
+      }
+      return newSet
+    })
+  }
+
   const deleteSection = (sectionId: string) => {
     setMapData({
       ...mapData,
@@ -1573,6 +1675,117 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                         </AlertDescription>
                       </Alert>
                     )}
+                  </div>
+
+                  {/* Template Gallery Section */}
+                  <div className='space-y-3 pb-3 border-b border-purple-500/30'>
+                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                      <Palette className='w-4 h-4' />
+                      🎨 Mẫu Sơ Đồ Có Sẵn
+                    </h3>
+                    <div className='grid grid-cols-2 gap-2'>
+                      {SECTION_TEMPLATES.map((template) => (
+                        <Button
+                          key={template.id}
+                          onClick={() => applyTemplateToNewSection(template.id)}
+                          className='h-auto py-3 px-2 flex flex-col items-center gap-1 border-2 transition-all'
+                          style={{
+                            background: `linear-gradient(135deg, ${template.gradient.from}, ${template.gradient.to})`,
+                            borderColor: selectedTemplateId === template.id ? '#fff' : 'transparent'
+                          }}
+                          size='sm'
+                        >
+                          <span className='text-2xl'>{template.icon}</span>
+                          <span className='text-xs font-semibold text-white'>{template.name}</span>
+                        </Button>
+                      ))}
+                    </div>
+                    <Alert className='bg-purple-600/20 border-purple-500/50'>
+                      <AlertDescription className='text-xs text-black'>
+                        💡 Click vào mẫu để tạo section mới với hình dạng đẹp!
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+
+                  {/* Global Ticket Management */}
+                  <div className='space-y-3 pb-3 border-b border-purple-500/30'>
+                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                      🎫 Quản Lý Vé Nhanh
+                    </h3>
+                    <div className='space-y-2'>
+                      {isLoadingTickets ? (
+                        <div className='text-xs text-gray-400'>Đang tải...</div>
+                      ) : tickets.length === 0 ? (
+                        <Alert className='bg-yellow-600/20 border-yellow-600/50'>
+                          <AlertDescription className='text-xs text-yellow-200'>
+                            Chưa có loại vé. Tạo vé trong tab "Cấu hình vé".
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <>
+                          {/* Set All Seats */}
+                          <div className='space-y-2'>
+                            <label className='text-xs text-gray-400 block'>Gán vé cho tất cả ghế</label>
+                            <Select value={globalTicketId} onValueChange={setGlobalTicketId}>
+                              <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
+                                <SelectValue placeholder='Chọn loại vé...' />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {tickets.map((ticket) => (
+                                  <SelectItem key={ticket.id} value={ticket.id}>
+                                    {ticket.name} - {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={() => handleSetAllSeats(globalTicketId)}
+                              disabled={!globalTicketId}
+                              className='w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 disabled:opacity-50'
+                              size='sm'
+                            >
+                              📍 Set Tất Cả Ghế
+                            </Button>
+                          </div>
+
+                          {/* Bulk Assignment for Selected Sections */}
+                          {selectedSections.size > 0 && (
+                            <div className='space-y-2 pt-2 border-t border-purple-500/30'>
+                              <Alert className='bg-blue-600/20 border-blue-500/50'>
+                                <AlertDescription className='text-xs text-blue-200'>
+                                  ✓ Đã chọn {selectedSections.size} section
+                                </AlertDescription>
+                              </Alert>
+                              <Select
+                                onValueChange={(ticketId) => {
+                                  handleBulkTicketAssignment(ticketId)
+                                }}
+                              >
+                                <SelectTrigger className='bg-slate-700 border-slate-600 text-white'>
+                                  <SelectValue placeholder='Gán vé cho sections đã chọn...' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tickets.map((ticket) => (
+                                    <SelectItem key={ticket.id} value={ticket.id}>
+                                      {ticket.name} -{' '}
+                                      {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                onClick={() => setSelectedSections(new Set())}
+                                variant='outline'
+                                className='w-full'
+                                size='sm'
+                              >
+                                Bỏ chọn tất cả
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   <div className='space-y-3'>
@@ -2086,14 +2299,21 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                       {mapData.sections.map((section) => (
                         <div
                           key={section.id}
-                          className={`flex items-center justify-between p-2 rounded cursor-pointer transition-colors ${
+                          className={`flex items-center justify-between p-2 rounded transition-colors ${
                             selectedSection?.id === section.id
                               ? 'bg-purple-700/50 border border-purple-500'
                               : 'bg-slate-700/50 hover:bg-slate-700/70'
                           }`}
-                          onClick={() => setSelectedSection(section)}
                         >
-                          <div className='flex items-center gap-2'>
+                          <div className='flex items-center gap-2 flex-1 cursor-pointer' onClick={() => setSelectedSection(section)}>
+                            <Checkbox
+                              checked={selectedSections.has(section.id)}
+                              onCheckedChange={(checked) => {
+                                handleToggleSectionSelection(section.id)
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className='border-purple-400 data-[state=checked]:bg-purple-600'
+                            />
                             <div
                               className='w-3 h-3 rounded'
                               style={{
@@ -2106,9 +2326,13 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                             <span className='text-xs text-gray-400'>
                               ({section.rows}x{section.seatsPerRow})
                             </span>
-                            {section.price && (
-                              <span className='text-xs text-green-400 font-semibold'>${section.price}</span>
-                            )}
+                            {section.ticketId &&
+                              (() => {
+                                const ticket = tickets.find((t) => t.id === section.ticketId)
+                                return ticket ? (
+                                  <span className='text-xs text-green-400 font-semibold'>{ticket.name}</span>
+                                ) : null
+                              })()}
                           </div>
                           <Button
                             onClick={(e) => {
