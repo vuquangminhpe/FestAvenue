@@ -1,6 +1,6 @@
 import path from '@/constants/path'
 import LOGO_IMG from '../../../../../public/Images/Fest.png'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useEffect, useState } from 'react'
 import { clearLocalStorage } from '@/utils/auth'
 import { Search, Heart, HelpCircle, LogOut, Menu, X, Building } from 'lucide-react'
@@ -8,6 +8,7 @@ import { useUsersStore } from '@/contexts/app.context'
 import LOGO_DEFAULT from '../../../../../public/Images/FestDefault.png'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export default function Header() {
+  const navigate = useNavigate()
   const isAuthenticated = useUsersStore((data) => data.isAuth)
   const profile = useUsersStore((data) => data.isProfile)
   const [searchQuery, setSearchQuery] = useState('')
@@ -37,6 +38,10 @@ export default function Header() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`${path.events}?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('') // Clear search after navigation
+    }
   }
 
   const toggleMobileMenu = (e: React.MouseEvent) => {
