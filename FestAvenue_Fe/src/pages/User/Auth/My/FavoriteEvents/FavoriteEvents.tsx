@@ -37,7 +37,7 @@ export default function FavoriteEvents() {
 
   const unfollowMutation = useMutation({
     mutationFn: (eventCode: string) => eventApis.followOrUnfollowEvent(eventCode),
-    onSuccess: (data, eventCode) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
       if (!data?.data?.isFollowing) {
         toast.success('Đã bỏ yêu thích sự kiện')
