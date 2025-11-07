@@ -22,6 +22,7 @@ const ResetPassword = lazy(() => import('./pages/User/Public/ResetPassword/Reset
 const ChatMyMessagesSystem = lazy(() => import('./pages/User/Auth/My/MyMessages'))
 const MyPayment = lazy(() => import('./pages/User/Auth/My/MyPayment'))
 const MyEvents = lazy(() => import('./pages/User/Auth/My/MyEvents'))
+const FavoriteEvents = lazy(() => import('./pages/User/Auth/My/FavoriteEvents/FavoriteEvents'))
 const PaymentEvent = lazy(() => import('./pages/User/Auth/Payment/PaymentEvent/PaymentEvent'))
 const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
 const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule/ScheduleManagement'))
@@ -465,6 +466,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <MyLayout>
                     <MyEvents />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.my.favorites,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <FavoriteEvents />
                   </MyLayout>
                 </SuspenseWrapper>
               )

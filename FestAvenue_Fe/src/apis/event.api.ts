@@ -89,6 +89,19 @@ const eventApis = {
   searchEventsWithPaging: async (body: bodySearchEvent) => {
     const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>('/event/search-events-with-paging', body)
     return data?.data
+  },
+  followOrUnfollowEvent: async (eventCode: string) => {
+    const data = await http.post<APIResponse<{ messages: string; isFollowing: boolean }>>(
+      `/user-follow-event/follow-or-unfollow/${eventCode}`
+    )
+    return data?.data
+  },
+  getListEventFollowWithPaging: async (body: bodySearchEvent) => {
+    const data = await http.post<APIResponse<ReqFilterOwnerEvent[]>>(
+      '/user-follow-event/get-list-event-follow-with-paging',
+      body
+    )
+    return data?.data
   }
 }
 

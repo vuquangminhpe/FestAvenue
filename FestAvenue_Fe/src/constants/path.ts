@@ -55,7 +55,8 @@ const path = {
       credit: '/user/my/credit',
       payment: '/user/my/payment',
       schedule: '/user/my/schedule',
-      analytics: '/user/my/analytics'
+      analytics: '/user/my/analytics',
+      favorites: '/user/my/favorites'
     },
     credit: {
       root: '/user/credit',

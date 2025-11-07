@@ -16,6 +16,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useEventDetailsData } from './hooks'
 import path from '@/constants/path'
 import type { top5latestRes } from '@/types/serviceSocialMedia.types'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { eventApis } from '@/apis/event.api'
+import { toast } from 'react-hot-toast'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -23,12 +26,29 @@ const EventDetails: React.FC = () => {
   const eventParams = useParams()
   const eventCode = getIdFromNameId(eventParams.eventId as string)
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
   // Use custom hooks for data fetching
   const { event, posts, relatedEvents, isLoading } = useEventDetailsData(eventCode)
 
-  const [isBookmarked, setIsBookmarked] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isFollowing, setIsFollowing] = useState(false)
+
+  // Follow/Unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: (eventCode: string) => eventApis.followOrUnfollowEvent(eventCode),
+    onSuccess: (data) => {
+      if (data?.data) {
+        setIsFollowing(data.data.isFollowing)
+        queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
+        toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
+      }
+    },
+    onError: () => {
+      toast.error('Không thể thực hiện thao tác')
+    }
+  })
 
   const heroRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -384,10 +404,11 @@ const EventDetails: React.FC = () => {
                   size='lg'
                   variant='outline'
                   className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
-                  onClick={() => setIsBookmarked(!isBookmarked)}
+                  onClick={() => followMutation.mutate(eventCode)}
+                  disabled={followMutation.isPending}
                 >
-                  <Bookmark className={`w-4 h-4 mr-2 ${isBookmarked ? 'fill-current' : ''}`} />
-                  Lưu
+                  <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
+                  {isFollowing ? 'Đã lưu' : 'Lưu'}
                 </Button>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -696,6 +717,17 @@ const EventDetails: React.FC = () => {
                           className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
                         />
                         <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
+                        <Button
+                          size='sm'
+                          variant='ghost'
+                          className='absolute top-2 right-2 bg-white/80 hover:bg-white opacity-0 group-hover:opacity-100 transition-opacity z-10'
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            followMutation.mutate(relatedEvent.eventCode)
+                          }}
+                        >
+                          <Heart className='w-4 h-4' />
+                        </Button>
                       </div>
                       <CardContent className='p-3'>
                         <p className='font-semibold text-sm text-gray-900 truncate'>{relatedEvent.eventName}</p>

@@ -51,15 +51,23 @@ export default function EventSearch() {
   const [aiFromDate, setAiFromDate] = useState<Date | undefined>()
   const [aiToDate, setAiToDate] = useState<Date | undefined>()
 
-  // Handle hashtag from URL parameter
+  // Handle hashtag and search query from URL parameters
   useEffect(() => {
     const hashtagParam = searchParams.get('hashtag')
+    const searchParam = searchParams.get('q')
+
     if (hashtagParam) {
       setHashtags(hashtagParam)
       setShowFilters(true) // Auto-expand filters to show hashtag
       // Trigger search automatically
       setSearchText('')
       setSearchQuery('')
+    }
+
+    if (searchParam) {
+      setSearchText(searchParam)
+      setSearchQuery(searchParam)
+      setSearchMode('normal') // Use normal search mode for text search from header
     }
   }, [searchParams])
 

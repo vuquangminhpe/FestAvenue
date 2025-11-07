@@ -4,6 +4,10 @@ import type { ReqFilterOwnerEvent } from '@/types/event.types'
 import path from '@/constants/path'
 import OptimizedImage from './OptimizedImage'
 import { generateNameId } from '@/utils/utils'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { eventApis } from '@/apis/event.api'
+import { toast } from 'react-hot-toast'
+import { useState } from 'react'
 
 interface EventCardProps {
   event: ReqFilterOwnerEvent
@@ -11,6 +15,29 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, priority = false }: EventCardProps) {
+  const queryClient = useQueryClient()
+  const [isFollowing, setIsFollowing] = useState(false)
+
+  // Follow/Unfollow mutation
+  const followMutation = useMutation({
+    mutationFn: (eventCode: string) => eventApis.followOrUnfollowEvent(eventCode),
+    onSuccess: (data) => {
+      if (data?.data) {
+        setIsFollowing(data.data.isFollowing)
+        queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
+        toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
+      }
+    },
+    onError: () => {
+      toast.error('Không thể thực hiện thao tác')
+    }
+  })
+
+  const handleFollow = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    followMutation.mutate(event.eventCode)
+  }
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Chưa xác định'
     const date = new Date(dateString)
@@ -50,8 +77,16 @@ export default function EventCard({ event, priority = false }: EventCardProps) {
           priority={priority}
           sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
         />
-        <button className='absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200'>
-          <Heart className='w-5 h-5 text-gray-600 hover:text-red-500 transition-colors' />
+        <button
+          onClick={handleFollow}
+          disabled={followMutation.isPending}
+          className='absolute top-4 right-4 p-2 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors duration-200 disabled:opacity-50'
+        >
+          <Heart
+            className={`w-5 h-5 transition-colors ${
+              isFollowing ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'
+            }`}
+          />
         </button>
       </div>
       <div className='p-6'>
