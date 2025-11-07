@@ -293,6 +293,7 @@ export interface ReqFilterOwnerEvent {
   location: EventLocation
 
   messageResponse: string | null
+  isFollowed?: boolean
 }
 export type ResEventByEventCode = ReqFilterOwnerEvent
 export interface EventLocation {

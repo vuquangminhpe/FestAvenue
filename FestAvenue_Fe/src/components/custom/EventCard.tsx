@@ -7,7 +7,7 @@ import { generateNameId } from '@/utils/utils'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { eventApis } from '@/apis/event.api'
 import { toast } from 'react-hot-toast'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface EventCardProps {
   event: ReqFilterOwnerEvent
@@ -16,7 +16,14 @@ interface EventCardProps {
 
 export default function EventCard({ event, priority = false }: EventCardProps) {
   const queryClient = useQueryClient()
-  const [isFollowing, setIsFollowing] = useState(false)
+  const [isFollowing, setIsFollowing] = useState(event.isFollowed || false)
+
+  // Sync isFollowing with event.isFollowed when it changes
+  useEffect(() => {
+    if (event.isFollowed !== undefined) {
+      setIsFollowing(event.isFollowed)
+    }
+  }, [event.isFollowed])
 
   // Follow/Unfollow mutation
   const followMutation = useMutation({
@@ -25,6 +32,9 @@ export default function EventCard({ event, priority = false }: EventCardProps) {
       if (data?.data) {
         setIsFollowing(data.data.isFollowing)
         queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
+        queryClient.invalidateQueries({ queryKey: ['aiSearchEvents'] })
+        queryClient.invalidateQueries({ queryKey: ['normalSearchEvents'] })
+        queryClient.invalidateQueries({ queryKey: ['top20FeaturedEvents'] })
         toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
       }
     },
