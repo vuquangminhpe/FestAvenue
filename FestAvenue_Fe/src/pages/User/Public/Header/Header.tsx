@@ -132,7 +132,7 @@ export default function Header() {
                     Tạo sự kiện
                   </Link>
                   <Link
-                    to='/favorites'
+                    to={path.user.my.favorites}
                     className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200 flex items-center space-x-1'
                   >
                     <Heart className='h-4 w-4' />
@@ -318,7 +318,7 @@ export default function Header() {
                     Tạo sự kiện
                   </Link>
                   <Link
-                    to='/favorites'
+                    to={path.user.my.favorites}
                     className='flex items-center space-x-2 px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
