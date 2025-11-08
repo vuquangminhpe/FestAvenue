@@ -71,6 +71,7 @@ export interface TicketsCharForSeatsType {
   seatPrice: number
   isPayment: boolean
   seatIndex: string
+  paymentInitiatedTime: string
   email?: string
   expirationTime?: string
   isSeatLock: boolean

@@ -811,8 +811,7 @@ export default function SeatMapViewerPage() {
             </Card>
 
             {/* User's reserved seats (locked but not paid - BLUE) */}
-            {ticketsForSeats.filter((t) => t.isLocked && !t.isPayment && t.email === userProfile?.email).length >
-              0 && (
+            {ticketsForSeats.filter((t) => t.isLocked && !t.isPayment && t.email === userProfile?.email).length > 0 && (
               <Card className='border-blue-200'>
                 <CardHeader className='bg-gradient-to-r from-blue-50 to-cyan-50'>
                   <CardTitle className='text-sm flex items-center gap-2'>
@@ -874,7 +873,10 @@ export default function SeatMapViewerPage() {
                     {ticketsForSeats
                       .filter((t) => t.isPayment && t.email === userProfile?.email)
                       .map((ticket) => (
-                        <div key={ticket.seatIndex} className='flex items-center justify-between p-2 bg-purple-50 rounded'>
+                        <div
+                          key={ticket.seatIndex}
+                          className='flex items-center justify-between p-2 bg-purple-50 rounded'
+                        >
                           <span className='font-medium text-sm'>{ticket.seatIndex}</span>
                           <span className='text-purple-600 font-semibold text-sm'>
                             {formatCurrency(ticket.price || 0)}
