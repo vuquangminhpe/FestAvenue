@@ -891,18 +891,32 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
         sectionElement = sectionGroup
           .append('path')
           .attr('d', section.path)
-          .attr('fill', section.hasSeats === false ? '#C0C0C0' : (section.gradient ? `url(#section-gradient-${index})` : section.color))
+          .attr(
+            'fill',
+            section.hasSeats === false
+              ? '#C0C0C0'
+              : section.gradient
+              ? `url(#section-gradient-${index})`
+              : section.color
+          )
           .attr('fill-opacity', 0.3)
-          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : (section.strokeColor || section.color))
+          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
       } else if (section.points.length > 0) {
         const polygonPoints = section.points.map((p) => `${p.x},${p.y}`).join(' ')
         sectionElement = sectionGroup
           .append('polygon')
           .attr('points', polygonPoints)
-          .attr('fill', section.hasSeats === false ? '#C0C0C0' : (section.gradient ? `url(#section-gradient-${index})` : section.color))
+          .attr(
+            'fill',
+            section.hasSeats === false
+              ? '#C0C0C0'
+              : section.gradient
+              ? `url(#section-gradient-${index})`
+              : section.color
+          )
           .attr('fill-opacity', 0.3)
-          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : (section.strokeColor || section.color))
+          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
       }
 
@@ -1706,11 +1720,6 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                         </Button>
                       ))}
                     </div>
-                    <Alert className='bg-purple-600/20 border-purple-500/50'>
-                      <AlertDescription className='text-xs text-black'>
-                        💡 Click vào mẫu để tạo section mới với hình dạng đẹp!
-                      </AlertDescription>
-                    </Alert>
                   </div>
 
                   {/* Global Ticket Management */}
@@ -1739,7 +1748,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                               <SelectContent>
                                 {tickets.map((ticket) => (
                                   <SelectItem key={ticket.id} value={ticket.id}>
-                                    {ticket.name} - {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
+                                    {ticket.name} -{' '}
+                                    {ticket.isFree ? 'Miễn phí' : `${ticket.price.toLocaleString()} VNĐ`}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -2092,9 +2102,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                       {/* Custom Seat Count */}
                       {selectedSection.hasSeats !== false && (
                         <div>
-                          <label className='text-xs text-gray-400 block mb-1'>
-                            Số ghế tùy chỉnh (Tùy chọn)
-                          </label>
+                          <label className='text-xs text-gray-400 block mb-1'>Số ghế tùy chỉnh (Tùy chọn)</label>
                           <input
                             type='number'
                             value={selectedSection.customSeatCount || ''}
@@ -2111,7 +2119,9 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                               setMapData({ ...mapData, sections: updatedSections })
                               setSelectedSection({ ...selectedSection, customSeatCount: customCount })
                             }}
-                            placeholder={`Mặc định: ${selectedSection.rows} × ${selectedSection.seatsPerRow} = ${selectedSection.rows * selectedSection.seatsPerRow} ghế`}
+                            placeholder={`Mặc định: ${selectedSection.rows} × ${selectedSection.seatsPerRow} = ${
+                              selectedSection.rows * selectedSection.seatsPerRow
+                            } ghế`}
                             className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
                             min='1'
                           />
@@ -2378,18 +2388,19 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                           chủ sự kiện xử lí) và khách hàng không thể đặt.
                         </AlertDescription>
                       </Alert>
-                    </div>
-                      {editTool === 'draw' && (
-                        <Button
-                          onClick={() => setIsDrawing(!isDrawing)}
-                          className={`w-full ${
-                            isDrawing ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                          }`}
-                          size='sm'
-                        >
-                          {isDrawing ? 'Hủy Vẽ' : 'Bắt Đầu Vẽ'}
-                        </Button>
-                      )}
+                      <div>
+                        {editTool === 'draw' && (
+                          <Button
+                            onClick={() => setIsDrawing(!isDrawing)}
+                            className={`w-full ${
+                              isDrawing ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                            }`}
+                            size='sm'
+                          >
+                            {isDrawing ? 'Hủy Vẽ' : 'Bắt Đầu Vẽ'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -2400,48 +2411,6 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                       </AlertDescription>
                     </Alert>
                   )}
-                  {/* 
-                  <div className='space-y-3'>
-                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
-                      <Sparkles className='w-4 h-4' />
-                      Tạo Bố Cục Thông Minh
-                    </h3>
-
-                    <div className='grid grid-cols-2 gap-2'>
-                      <div>
-                        <label className='text-xs text-gray-400'>Rows</label>
-                        <input
-                          type='number'
-                          value={layoutParams.rows}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              rows: parseInt(e.target.value) || 12
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='5'
-                          max='30'
-                        />
-                      </div>
-                      <div>
-                        <label className='text-xs text-gray-400'>Ghế/Hàng</label>
-                        <input
-                          type='number'
-                          value={layoutParams.cols}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              cols: parseInt(e.target.value) || 16
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='8'
-                          max='40'
-                        />
-                      </div>
-                    </div>
-                  </div> */}
 
                   <div className='space-y-2'>
                     <h3 className='text-sm font-semibold text-purple-300'>Các Khu Vực</h3>
@@ -2455,7 +2424,10 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                               : 'bg-slate-700/50 hover:bg-slate-700/70'
                           }`}
                         >
-                          <div className='flex items-center gap-2 flex-1 cursor-pointer' onClick={() => setSelectedSection(section)}>
+                          <div
+                            className='flex items-center gap-2 flex-1 cursor-pointer'
+                            onClick={() => setSelectedSection(section)}
+                          >
                             <Checkbox
                               checked={selectedSections.has(section.id)}
                               onCheckedChange={() => {
