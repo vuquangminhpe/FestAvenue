@@ -316,6 +316,15 @@ export default function SeatMapViewer({
     onTotalPriceChange?.(total)
   }, [seatStatuses, mapData, generateSeatsForSection, onTotalPriceChange])
 
+  // Get seat from mapData
+  const getSeatFromMapData = (seatId: string): Seat | undefined => {
+    for (const section of mapData.sections) {
+      const seat = section.seats?.find((s) => s.id === seatId)
+      if (seat) return seat
+    }
+    return undefined
+  }
+
   // Get seat info from ticketsForSeats
   const getSeatInfo = (seatId: string) => {
     return ticketsForSeats.find((t) => t.seatIndex === seatId)
@@ -338,7 +347,14 @@ export default function SeatMapViewer({
 
   // Get seat color based on status and ownership
   const getSeatColor = (seatId: string, status: string) => {
+    const seat = getSeatFromMapData(seatId)
     const seatInfo = getSeatInfo(seatId)
+
+    // PRIORITY 1: Nếu ghế chưa có ticketId → màu cam (đang được chủ sự kiện xử lí)
+    if (!seat?.ticketId) {
+      console.log(`${seatId} → ORANGE (no ticketId - being processed by organizer)`)
+      return '#f97316' // orange-500
+    }
 
     // Debug
     if (seatInfo) {
@@ -383,7 +399,11 @@ export default function SeatMapViewer({
 
   // Check if seat is clickable
   const isSeatClickable = (seatId: string) => {
+    const seat = getSeatFromMapData(seatId)
     const seatInfo = getSeatInfo(seatId)
+
+    // PRIORITY 1: Nếu ghế chưa có ticketId → không click được (đang được chủ sự kiện xử lí)
+    if (!seat?.ticketId) return false
 
     // Nếu đã payment → không click được
     if (seatInfo?.isPayment) return false

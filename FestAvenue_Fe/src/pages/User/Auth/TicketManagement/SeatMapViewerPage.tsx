@@ -702,6 +702,10 @@ export default function SeatMapViewerPage() {
                     <div className='w-4 h-4 rounded-full bg-gray-400'></div>
                     <span>Ghế đã bán</span>
                   </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-4 h-4 rounded-full bg-orange-500'></div>
+                    <span>Ghế đang được chủ sự kiện xử lí</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
