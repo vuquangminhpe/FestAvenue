@@ -100,7 +100,20 @@ export interface TicketForSeat {
   email?: string
   isPayment?: number
   expirationTime?: string
+  paymentInitiatedTime?: string // Thời điểm bắt đầu payment
   ticketId?: string
   price?: number
   isLocked: boolean
+}
+
+// UnlockSeat event for SignalR
+export interface UnlockSeatEvent {
+  eventCode: string
+  seatIndex: string
+  email?: string // undefined để loại bỏ
+}
+
+export interface UnlockSeatResult {
+  StatusCode: number
+  Message: string
 }

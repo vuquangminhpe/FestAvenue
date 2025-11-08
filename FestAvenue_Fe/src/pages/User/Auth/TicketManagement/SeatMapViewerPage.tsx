@@ -13,7 +13,7 @@ import type { SeatMapData } from '@/types/seat.types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import serviceTicketManagementApi from '@/apis/serviceTicketManagement.api'
 import paymentApis from '@/apis/payment.api'
-import type { TicketForSeat } from '@/types/payment.types'
+import type { TicketForSeat, UnlockSeatEvent, UnlockSeatResult } from '@/types/payment.types'
 import { PaymentStatus } from '@/types/payment.types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -70,9 +70,11 @@ export default function SeatMapViewerPage() {
   const [paymentAmount, setPaymentAmount] = useState<number>(0)
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+  const [seatCountdowns, setSeatCountdowns] = useState<Map<string, number>>(new Map())
 
   const connectionRef = useRef<signalR.HubConnection | null>(null)
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const seatUnlockTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   // Parse ticketsForSeats from API
   useEffect(() => {
@@ -85,6 +87,7 @@ export default function SeatMapViewerPage() {
           seatIndex: ticket.seatIndex,
           email: ticket.email,
           expirationTime: ticket.expirationTime,
+          paymentInitiatedTime: ticket.paymentInitiatedTime,
           ticketId: ticket.ticketId,
           price: ticket.seatPrice,
           seatPrice: ticket.seatPrice,
@@ -118,6 +121,90 @@ export default function SeatMapViewerPage() {
       }
     }
   }, [seatMapData, userProfile?.email])
+
+  // Auto-unlock seats when 15 minutes timer expires
+  useEffect(() => {
+    // Clear old timers
+    seatUnlockTimersRef.current.forEach((timer) => clearTimeout(timer))
+    seatUnlockTimersRef.current.clear()
+
+    // Create new timers for locked seats with paymentInitiatedTime
+    ticketsForSeats.forEach((ticket) => {
+      if (ticket.isLocked && !ticket.isPayment && ticket.paymentInitiatedTime) {
+        const initiatedTime = new Date(ticket.paymentInitiatedTime).getTime()
+        const currentTime = Date.now()
+        const elapsed = currentTime - initiatedTime
+        const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in ms
+        const timeLeft = fifteenMinutes - elapsed
+
+        console.log(`Seat ${ticket.seatIndex} - Time left: ${timeLeft}ms (${Math.round(timeLeft / 1000)}s)`)
+
+        if (timeLeft > 0) {
+          // Set timer to unlock seat after timeLeft
+          const timer = setTimeout(() => {
+            console.log(`Auto-unlocking seat ${ticket.seatIndex} after 15 minutes`)
+            autoUnlockSeat(ticket.seatIndex)
+          }, timeLeft)
+
+          seatUnlockTimersRef.current.set(ticket.seatIndex, timer)
+        } else {
+          // Time already expired, unlock immediately
+          console.log(`Seat ${ticket.seatIndex} already expired, unlocking now`)
+          autoUnlockSeat(ticket.seatIndex)
+        }
+      }
+    })
+
+    // Update countdown display every second
+    const countdownInterval = setInterval(() => {
+      const newCountdowns = new Map<string, number>()
+      ticketsForSeats.forEach((ticket) => {
+        if (ticket.isLocked && !ticket.isPayment && ticket.paymentInitiatedTime) {
+          const initiatedTime = new Date(ticket.paymentInitiatedTime).getTime()
+          const currentTime = Date.now()
+          const elapsed = currentTime - initiatedTime
+          const fifteenMinutes = 15 * 60 * 1000
+          const timeLeft = fifteenMinutes - elapsed
+
+          if (timeLeft > 0) {
+            newCountdowns.set(ticket.seatIndex, timeLeft)
+          }
+        }
+      })
+      setSeatCountdowns(newCountdowns)
+    }, 1000)
+
+    return () => {
+      clearInterval(countdownInterval)
+      seatUnlockTimersRef.current.forEach((timer) => clearTimeout(timer))
+      seatUnlockTimersRef.current.clear()
+    }
+  }, [ticketsForSeats])
+
+  // Auto-unlock seat when timer expires
+  const autoUnlockSeat = async (seatId: string) => {
+    const currentConnection = connectionRef.current
+
+    if (!currentConnection || currentConnection.state !== 'Connected') {
+      console.warn('Cannot auto-unlock seat: SignalR not connected')
+      return
+    }
+
+    try {
+      const unlockEvent: UnlockSeatEvent = {
+        eventCode: eventCode,
+        seatIndex: seatId,
+        email: undefined // undefined để loại bỏ
+      }
+
+      await currentConnection.invoke('UnlockSeat', unlockEvent)
+      console.log(`Successfully auto-unlocked seat ${seatId}`)
+      toast.info(`Ghế ${seatId} đã hết thời gian giữ và được mở khóa`)
+      refetchSeatMap()
+    } catch (error: any) {
+      console.error('Error auto-unlocking seat:', error)
+    }
+  }
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -174,6 +261,23 @@ export default function SeatMapViewerPage() {
           if (statusCode !== 200) {
             toast.error(message || 'Không thể khóa ghế')
             console.error('Lock seat failed:', { statusCode, message })
+          }
+        })
+
+        // Handle UnlockSeatResult (direct response to unlock)
+        newConnection.on('UnlockSeatResult', (result: UnlockSeatResult) => {
+          console.log('UnlockSeatResult received:', result)
+
+          if (!result) {
+            toast.error('Không nhận được phản hồi từ server')
+            return
+          }
+
+          if (result.StatusCode !== 200) {
+            toast.error(result.Message || 'Không thể mở khóa ghế')
+            console.error('Unlock seat failed:', result)
+          } else {
+            refetchSeatMap()
           }
         })
 
@@ -310,13 +414,13 @@ export default function SeatMapViewerPage() {
     }
 
     try {
-      await currentConnection.invoke('LockSeat', {
+      const unlockEvent: UnlockSeatEvent = {
         eventCode: eventCode,
         seatIndex: seatId,
-        email: undefined,
-        isSeatLock: false
-      })
+        email: undefined // undefined để loại bỏ
+      }
 
+      await currentConnection.invoke('UnlockSeat', unlockEvent)
       toast.success('Đã hủy ghế thành công')
       refetchSeatMap()
     } catch (error: any) {
@@ -504,14 +608,10 @@ export default function SeatMapViewerPage() {
     }).format(amount)
   }
 
-  // Get countdown for a specific seat
+  // Get countdown for a specific seat (15 minutes from paymentInitiatedTime)
   const getSeatCountdown = (seatId: string): number | null => {
-    const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
-    if (!seatInfo?.expirationTime || !seatInfo.isLocked) return null
-
-    const expTime = new Date(seatInfo.expirationTime).getTime()
-    const remaining = expTime - Date.now()
-    return remaining > 0 ? remaining : null
+    // Use seatCountdowns map for real-time countdown
+    return seatCountdowns.get(seatId) || null
   }
 
   // Loading state
