@@ -98,6 +98,7 @@ export interface SeatScannedBroadcast {
 export interface TicketForSeat {
   seatIndex: string
   email?: string
+  isPayment?: number
   expirationTime?: string
   ticketId?: string
   price?: number

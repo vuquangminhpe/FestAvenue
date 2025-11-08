@@ -107,7 +107,9 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
   const [sectionConfig, setSectionConfig] = useState({
     rows: 3,
     seatsPerRow: 4,
-    name: 'New Section'
+    name: 'New Section',
+    hasSeats: true,
+    customSeatCount: undefined as number | undefined
   })
   const [colorPicker, setColorPicker] = useState({
     fill: '#3498db',
@@ -556,7 +558,9 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       seatsPerRow: sectionConfig.seatsPerRow,
       shape: selectedShape === 'polygon' ? 'custom' : selectedShape,
       labelPosition: center,
-      price: 0
+      price: 0,
+      hasSeats: sectionConfig.hasSeats,
+      customSeatCount: sectionConfig.customSeatCount
     }
 
     newSection.seats = generateSeatsForSection(newSection, seatStatuses)
@@ -585,7 +589,9 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       bounds,
       shape: 'polygon',
       labelPosition: { x: centerX, y: centerY },
-      price: 0
+      price: 0,
+      hasSeats: sectionConfig.hasSeats,
+      customSeatCount: sectionConfig.customSeatCount
     }
 
     newSection.seats = generateSeatsForSection(newSection, seatStatuses)
@@ -885,18 +891,32 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
         sectionElement = sectionGroup
           .append('path')
           .attr('d', section.path)
-          .attr('fill', section.gradient ? `url(#section-gradient-${index})` : section.color)
+          .attr(
+            'fill',
+            section.hasSeats === false
+              ? '#C0C0C0'
+              : section.gradient
+              ? `url(#section-gradient-${index})`
+              : section.color
+          )
           .attr('fill-opacity', 0.3)
-          .attr('stroke', section.strokeColor || section.color)
+          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
       } else if (section.points.length > 0) {
         const polygonPoints = section.points.map((p) => `${p.x},${p.y}`).join(' ')
         sectionElement = sectionGroup
           .append('polygon')
           .attr('points', polygonPoints)
-          .attr('fill', section.gradient ? `url(#section-gradient-${index})` : section.color)
+          .attr(
+            'fill',
+            section.hasSeats === false
+              ? '#C0C0C0'
+              : section.gradient
+              ? `url(#section-gradient-${index})`
+              : section.color
+          )
           .attr('fill-opacity', 0.3)
-          .attr('stroke', section.strokeColor || section.color)
+          .attr('stroke', section.hasSeats === false ? '#A0A0A0' : section.strokeColor || section.color)
           .attr('stroke-width', selectedSection?.id === section.id ? 3 : 2)
       }
 
@@ -2043,8 +2063,94 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                     </div>
                   )}
 
-                  {/* Ticket Assignment for Selected Section */}
+                  {/* Edit Selected Section Config */}
                   {selectedSection && (
+                    <div className='space-y-3 pt-4 border-t border-purple-500/30'>
+                      <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
+                        ⚙️ Cấu Hình Section
+                      </h3>
+
+                      {/* Has Seats Toggle */}
+                      <div className='flex items-center gap-2 p-2 bg-slate-700/50 rounded'>
+                        <Checkbox
+                          id='selectedHasSeats'
+                          checked={selectedSection.hasSeats === false}
+                          onCheckedChange={(checked) => {
+                            const updatedSections = mapData.sections.map((s) =>
+                              s.id === selectedSection.id
+                                ? {
+                                    ...s,
+                                    hasSeats: !checked,
+                                    seats: checked ? [] : s.seats // Clear seats if no seats
+                                  }
+                                : s
+                            )
+                            setMapData({ ...mapData, sections: updatedSections })
+                            setSelectedSection({ ...selectedSection, hasSeats: !checked })
+                          }}
+                          className='border-purple-400 data-[state=checked]:bg-purple-600'
+                        />
+                        <label htmlFor='selectedHasSeats' className='text-xs text-gray-300 cursor-pointer flex-1'>
+                          Section không có ghế (Standing zone)
+                        </label>
+                      </div>
+
+                      {/* Custom Seat Count */}
+                      {selectedSection.hasSeats !== false && (
+                        <div>
+                          <label className='text-xs text-gray-400 block mb-1'>Số ghế tùy chỉnh (Tùy chọn)</label>
+                          <input
+                            type='number'
+                            value={selectedSection.customSeatCount || ''}
+                            onChange={(e) => {
+                              const customCount = e.target.value ? parseInt(e.target.value) : undefined
+                              const updatedSections = mapData.sections.map((s) =>
+                                s.id === selectedSection.id
+                                  ? {
+                                      ...s,
+                                      customSeatCount: customCount
+                                    }
+                                  : s
+                              )
+                              setMapData({ ...mapData, sections: updatedSections })
+                              setSelectedSection({ ...selectedSection, customSeatCount: customCount })
+                            }}
+                            placeholder={`Mặc định: ${selectedSection.rows} × ${selectedSection.seatsPerRow} = ${
+                              selectedSection.rows * selectedSection.seatsPerRow
+                            } ghế`}
+                            className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
+                            min='1'
+                          />
+                          {selectedSection.customSeatCount && (
+                            <p className='text-xs text-blue-300 mt-1'>
+                              ✓ Section này có {selectedSection.customSeatCount} ghế
+                            </p>
+                          )}
+                          <Button
+                            size='sm'
+                            className='w-full mt-2 bg-purple-600 hover:bg-purple-700'
+                            onClick={() => {
+                              const updatedSections = mapData.sections.map((s) => {
+                                if (s.id === selectedSection.id) {
+                                  const newSeats = generateSeatsForSection(s, seatStatuses)
+                                  return { ...s, seats: newSeats }
+                                }
+                                return s
+                              })
+                              setMapData({ ...mapData, sections: updatedSections })
+                              const updated = updatedSections.find((s) => s.id === selectedSection.id)
+                              if (updated) setSelectedSection(updated)
+                            }}
+                          >
+                            🔄 Tạo lại ghế
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Ticket Assignment for Selected Section */}
+                  {selectedSection && selectedSection.hasSeats !== false && (
                     <div className='space-y-3 pt-4 border-t border-purple-500/30'>
                       <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                         🎫 Gán Vé Cho Khu Vực
@@ -2221,17 +2327,76 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                           />
                         </div>
                       </div>
-                      {editTool === 'draw' && (
-                        <Button
-                          onClick={() => setIsDrawing(!isDrawing)}
-                          className={`w-full ${
-                            isDrawing ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-                          }`}
-                          size='sm'
-                        >
-                          {isDrawing ? 'Hủy Vẽ' : 'Bắt Đầu Vẽ'}
-                        </Button>
+
+                      {/* Section không có ghế */}
+                      <div className='flex items-center gap-2 p-2 bg-slate-700/50 rounded'>
+                        <Checkbox
+                          id='hasSeats'
+                          checked={!sectionConfig.hasSeats}
+                          onCheckedChange={(checked) =>
+                            setSectionConfig({
+                              ...sectionConfig,
+                              hasSeats: !checked,
+                              customSeatCount: checked ? undefined : sectionConfig.customSeatCount
+                            })
+                          }
+                          className='border-purple-400 data-[state=checked]:bg-purple-600'
+                        />
+                        <label htmlFor='hasSeats' className='text-xs text-gray-300 cursor-pointer flex-1'>
+                          Section không có ghế (Standing zone)
+                        </label>
+                      </div>
+
+                      {/* Custom seat count */}
+                      {sectionConfig.hasSeats && (
+                        <div>
+                          <label className='text-xs text-gray-400 block mb-1'>
+                            Số ghế tùy chỉnh (Tùy chọn - Thay vì Rows × Ghế/Hàng)
+                          </label>
+                          <input
+                            type='number'
+                            value={sectionConfig.customSeatCount || ''}
+                            onChange={(e) =>
+                              setSectionConfig({
+                                ...sectionConfig,
+                                customSeatCount: e.target.value ? parseInt(e.target.value) : undefined
+                              })
+                            }
+                            placeholder='Để trống để dùng Rows × Ghế/Hàng'
+                            className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
+                            min='1'
+                          />
+                          {sectionConfig.customSeatCount && (
+                            <p className='text-xs text-blue-300 mt-1'>
+                              ✓ Sẽ tạo {sectionConfig.customSeatCount} ghế cho section này
+                            </p>
+                          )}
+                        </div>
                       )}
+
+                      {/* Warning về ticket assignment */}
+                      <Alert className='bg-amber-600/20 border-amber-600/50'>
+                        <AlertCircle className='w-4 h-4 text-amber-400' />
+                        <AlertDescription className='text-xs text-amber-200'>
+                          <strong>⚠️ Lưu ý quan trọng:</strong>
+                          <br />
+                          Bạn cần chọn vé cho tất cả ghế sau khi tạo. Ghế chưa có vé sẽ hiển thị màu cam (Ghế đang được
+                          chủ sự kiện xử lí) và khách hàng không thể đặt.
+                        </AlertDescription>
+                      </Alert>
+                      <div>
+                        {editTool === 'draw' && (
+                          <Button
+                            onClick={() => setIsDrawing(!isDrawing)}
+                            className={`w-full ${
+                              isDrawing ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                            }`}
+                            size='sm'
+                          >
+                            {isDrawing ? 'Hủy Vẽ' : 'Bắt Đầu Vẽ'}
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -2242,48 +2407,6 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                       </AlertDescription>
                     </Alert>
                   )}
-                  {/* 
-                  <div className='space-y-3'>
-                    <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
-                      <Sparkles className='w-4 h-4' />
-                      Tạo Bố Cục Thông Minh
-                    </h3>
-
-                    <div className='grid grid-cols-2 gap-2'>
-                      <div>
-                        <label className='text-xs text-gray-400'>Rows</label>
-                        <input
-                          type='number'
-                          value={layoutParams.rows}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              rows: parseInt(e.target.value) || 12
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='5'
-                          max='30'
-                        />
-                      </div>
-                      <div>
-                        <label className='text-xs text-gray-400'>Ghế/Hàng</label>
-                        <input
-                          type='number'
-                          value={layoutParams.cols}
-                          onChange={(e) =>
-                            setLayoutParams({
-                              ...layoutParams,
-                              cols: parseInt(e.target.value) || 16
-                            })
-                          }
-                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
-                          min='8'
-                          max='40'
-                        />
-                      </div>
-                    </div>
-                  </div> */}
 
                   <div className='space-y-2'>
                     <h3 className='text-sm font-semibold text-purple-300'>Các Khu Vực</h3>

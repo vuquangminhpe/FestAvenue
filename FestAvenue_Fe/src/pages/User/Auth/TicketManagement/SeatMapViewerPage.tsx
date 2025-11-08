@@ -104,12 +104,20 @@ export default function SeatMapViewerPage() {
           }
         })
         setSeatStatuses(newStatuses)
+
+        // Auto-add user's reserved seats (blue - locked but not paid) to selectedSeats
+        const userReservedSeats = mapped.filter(
+          (ticket) => ticket.isLocked && !ticket.isPayment && ticket.email === userProfile?.email
+        )
+        if (userReservedSeats.length > 0) {
+          setSelectedSeats(new Set(userReservedSeats.map((t) => t.seatIndex)))
+        }
       } catch (error) {
         console.error('Error processing ticketsForSeats:', error)
         setTicketsForSeats([])
       }
     }
-  }, [seatMapData])
+  }, [seatMapData, userProfile?.email])
 
   // Initialize SignalR connection
   useEffect(() => {
@@ -694,23 +702,28 @@ export default function SeatMapViewerPage() {
                     <div className='w-4 h-4 rounded-full bg-gray-400'></div>
                     <span>Ghế đã bán</span>
                   </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-4 h-4 rounded-full bg-orange-500'></div>
+                    <span>Ghế đang được chủ sự kiện xử lí</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* User's locked seats */}
-            {ticketsForSeats.filter((t) => t.isLocked && t.email === userProfile?.email).length > 0 && (
+            {/* User's reserved seats (locked but not paid - BLUE) */}
+            {ticketsForSeats.filter((t) => t.isLocked && !t.isPayment && t.email === userProfile?.email).length >
+              0 && (
               <Card className='border-blue-200'>
                 <CardHeader className='bg-gradient-to-r from-blue-50 to-cyan-50'>
                   <CardTitle className='text-sm flex items-center gap-2'>
-                    <Clock className='w-4 h-4' />
+                    <Clock className='w-4 h-4 text-blue-600' />
                     Ghế đang giữ của bạn
                   </CardTitle>
                 </CardHeader>
                 <CardContent className='pt-4'>
                   <div className='space-y-2'>
                     {ticketsForSeats
-                      .filter((t) => t.isLocked && t.email === userProfile?.email)
+                      .filter((t) => t.isLocked && !t.isPayment && t.email === userProfile?.email)
                       .map((ticket) => {
                         const countdown = getSeatCountdown(ticket.seatIndex)
                         return (
@@ -718,24 +731,62 @@ export default function SeatMapViewerPage() {
                             key={ticket.seatIndex}
                             className='flex items-center justify-between p-2 bg-blue-50 rounded'
                           >
-                            <span className='font-medium text-sm'>{ticket.seatIndex}</span>
-                            <div className='flex items-center gap-2'>
+                            <div className='flex-1'>
+                              <div className='flex items-center justify-between'>
+                                <span className='font-medium text-sm'>{ticket.seatIndex}</span>
+                                <span className='text-blue-600 font-semibold text-sm'>
+                                  {formatCurrency(ticket.price || 0)}
+                                </span>
+                              </div>
                               {countdown && (
-                                <span className='text-blue-600 text-xs font-mono'>{formatTime(countdown)}</span>
+                                <span className='text-blue-600 text-xs font-mono block mt-1'>
+                                  ⏱ {formatTime(countdown)}
+                                </span>
                               )}
-                              <Button
-                                size='sm'
-                                variant='outline'
-                                className='text-xs'
-                                onClick={() => handleUnlockSeat(ticket.seatIndex)}
-                              >
-                                Hủy
-                              </Button>
                             </div>
+                            <Button
+                              size='sm'
+                              variant='outline'
+                              className='text-xs ml-2'
+                              onClick={() => handleUnlockSeat(ticket.seatIndex)}
+                            >
+                              Hủy
+                            </Button>
                           </div>
                         )
                       })}
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* User's purchased seats (paid - PURPLE) */}
+            {ticketsForSeats.filter((t) => t.isPayment && t.email === userProfile?.email).length > 0 && (
+              <Card className='border-purple-200'>
+                <CardHeader className='bg-gradient-to-r from-purple-50 to-pink-50'>
+                  <CardTitle className='text-sm flex items-center gap-2'>
+                    <CheckCircle2 className='w-4 h-4 text-purple-600' />
+                    Ghế đã mua
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className='pt-4'>
+                  <div className='space-y-2'>
+                    {ticketsForSeats
+                      .filter((t) => t.isPayment && t.email === userProfile?.email)
+                      .map((ticket) => (
+                        <div key={ticket.seatIndex} className='flex items-center justify-between p-2 bg-purple-50 rounded'>
+                          <span className='font-medium text-sm'>{ticket.seatIndex}</span>
+                          <span className='text-purple-600 font-semibold text-sm'>
+                            {formatCurrency(ticket.price || 0)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                  <Alert className='bg-green-50 border-green-200 mt-4'>
+                    <AlertDescription className='text-xs text-green-800'>
+                      ✅ Ghế đã được thanh toán thành công. Vui lòng giữ vé để check-in tại sự kiện.
+                    </AlertDescription>
+                  </Alert>
                 </CardContent>
               </Card>
             )}
