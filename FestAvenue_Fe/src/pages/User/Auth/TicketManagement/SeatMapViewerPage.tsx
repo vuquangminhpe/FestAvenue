@@ -492,12 +492,54 @@ export default function SeatMapViewerPage() {
     }
   })
 
+  // Handle reserve seat for free events (price = 0)
+  const handleReserveSeat = async () => {
+    if (selectedSeats.size === 0) {
+      toast.error('Vui lòng chọn ít nhất một ghế')
+      return
+    }
+
+    const currentConnection = connectionRef.current
+    if (!currentConnection || currentConnection.state !== 'Connected') {
+      toast.error('Chưa kết nối đến máy chủ')
+      return
+    }
+
+    try {
+      // Lock all selected seats via SignalR
+      for (const seatId of selectedSeats) {
+        await currentConnection.invoke('SeatLock', {
+          eventCode: eventCode,
+          seatIndex: seatId,
+          email: userProfile?.email,
+          isSeatLock: true
+        })
+      }
+
+      toast.success('Đã giữ ghế thành công!')
+      setSelectedSeats(new Set())
+      refetchSeatMap()
+    } catch (error: any) {
+      console.error('Error reserving seats:', error)
+      toast.error(error?.message || 'Không thể giữ ghế')
+    }
+  }
+
   const handleCreatePayment = () => {
     if (selectedSeats.size === 0) {
       toast.error('Vui lòng chọn ít nhất một ghế')
       return
     }
 
+    const totalPrice = calculateTotalPrice()
+
+    // If price is 0, just lock seats without payment
+    if (totalPrice === 0) {
+      handleReserveSeat()
+      return
+    }
+
+    // Otherwise, create payment
     const seatIndexes = Array.from(selectedSeats)
     createPaymentMutation.mutate({
       eventCode: eventCode,
@@ -762,6 +804,11 @@ export default function SeatMapViewerPage() {
                         <>
                           <RefreshCw className='w-4 h-4 mr-2 animate-spin' />
                           Đang xử lý...
+                        </>
+                      ) : calculateTotalPrice() === 0 ? (
+                        <>
+                          <CheckCircle2 className='w-4 h-4 mr-2' />
+                          Giữ ghế
                         </>
                       ) : (
                         <>
