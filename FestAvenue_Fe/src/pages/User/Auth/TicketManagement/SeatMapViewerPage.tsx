@@ -467,7 +467,7 @@ export default function SeatMapViewerPage() {
           if (currentConnection && currentConnection.state === 'Connected') {
             for (const seatId of selectedSeats) {
               try {
-                await currentConnection.invoke('LockSeat', {
+                await currentConnection.invoke('SeatLocked', {
                   eventCode: eventCode,
                   seatIndex: seatId,
                   email: userProfile?.email,
