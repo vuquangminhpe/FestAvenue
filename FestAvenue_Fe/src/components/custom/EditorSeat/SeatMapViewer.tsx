@@ -194,12 +194,14 @@ export default function SeatMapViewer({
   ticketsForSeats = [],
   userEmail
 }: SeatMapViewerProps) {
-  // Debug props
-  console.log('SeatMapViewer received:', {
-    ticketsForSeatsCount: ticketsForSeats.length,
-    ticketsForSeats,
-    userEmail
-  })
+  // Debug props (development only to avoid flooding production logs)
+  if (import.meta.env.DEV) {
+    console.log('SeatMapViewer received:', {
+      ticketsForSeatsCount: ticketsForSeats.length,
+      ticketsForSeats,
+      userEmail
+    })
+  }
 
   const deriveInitialSeatStatuses = useCallback(
     () => buildInitialSeatStatusMap(mapData, initialSeatStatuses),
@@ -360,46 +362,46 @@ export default function SeatMapViewer({
       const seat = getSeatFromMapData(seatId)
       const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
 
-    // PRIORITY 1: Nếu ghế chưa có ticketId → màu cam (đang được chủ sự kiện xử lí)
-    if (!seat?.ticketId) {
-      console.log(`${seatId} → ORANGE (no ticketId - being processed by organizer)`)
-      return '#f97316' // orange-500
-    }
+      // PRIORITY 1: Nếu ghế chưa có ticketId → màu cam (đang được chủ sự kiện xử lí)
+      if (!seat?.ticketId) {
+        console.log(`${seatId} → ORANGE (no ticketId - being processed by organizer)`)
+        return '#f97316' // orange-500
+      }
 
-    // Debug
-    if (seatInfo) {
-      console.log(`Seat ${seatId}:`, {
-        email: seatInfo.email,
-        userEmail,
-        isSeatLock: seatInfo.isSeatLock,
-        isPayment: seatInfo.isPayment,
-        match: seatInfo.email === userEmail
-      })
-    }
+      // Debug
+      if (seatInfo) {
+        console.log(`Seat ${seatId}:`, {
+          email: seatInfo.email,
+          userEmail,
+          isSeatLock: seatInfo.isSeatLock,
+          isPayment: seatInfo.isPayment,
+          match: seatInfo.email === userEmail
+        })
+      }
 
-    // Nếu đã payment và là của user → màu tím (ghế đã mua của bạn)
-    if (seatInfo?.isPayment && seatInfo?.email === userEmail) {
-      console.log(`${seatId} → PURPLE (you paid)`)
-      return '#a855f7' // purple-500
-    }
+      // Nếu đã payment và là của user → màu tím (ghế đã mua của bạn)
+      if (seatInfo?.isPayment && seatInfo?.email === userEmail) {
+        console.log(`${seatId} → PURPLE (you paid)`)
+        return '#a855f7' // purple-500
+      }
 
-    // Nếu đã payment và không phải user → màu xám (đã bán cho người khác)
-    if (seatInfo?.isPayment && seatInfo?.email && seatInfo?.email !== userEmail) {
-      console.log(`${seatId} → GRAY (other paid)`)
-      return '#9ca3af' // gray-400
-    }
+      // Nếu đã payment và không phải user → màu xám (đã bán cho người khác)
+      if (seatInfo?.isPayment && seatInfo?.email && seatInfo?.email !== userEmail) {
+        console.log(`${seatId} → GRAY (other paid)`)
+        return '#9ca3af' // gray-400
+      }
 
-    // Nếu có email của user và đang lock (chưa payment) → màu xanh dương
-    if (seatInfo?.email === userEmail && seatInfo?.isSeatLock && !seatInfo?.isPayment) {
-      console.log(`${seatId} → BLUE (user locked)`)
-      return '#3b82f6' // blue-500
-    }
+      // Nếu có email của user và đang lock (chưa payment) → màu xanh dương
+      if (seatInfo?.email === userEmail && seatInfo?.isSeatLock && !seatInfo?.isPayment) {
+        console.log(`${seatId} → BLUE (user locked)`)
+        return '#3b82f6' // blue-500
+      }
 
-    // Nếu có email khác và đang lock → màu đỏ
-    if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
-      console.log(`${seatId} → RED (other locked)`)
-      return '#ef4444' // red-500
-    }
+      // Nếu có email khác và đang lock → màu đỏ
+      if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
+        console.log(`${seatId} → RED (other locked)`)
+        return '#ef4444' // red-500
+      }
 
       // Default colors
       if (status === 'locked') return '#6b7280' // gray-500
@@ -466,10 +468,7 @@ export default function SeatMapViewer({
     const y = svgRect.height / 2 - bbox.y * scale - (bbox.height * scale) / 2
 
     // Apply zoom
-    svg
-      .transition()
-      .duration(750)
-      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(x, y).scale(scale))
+    svg.transition().duration(750).call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(x, y).scale(scale))
 
     // Show price tooltip
     if (seatPrice) {

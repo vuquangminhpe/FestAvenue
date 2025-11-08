@@ -246,9 +246,9 @@ export default function SeatMapViewerPage() {
           }
         })
 
-        // Handle LockSeatResult (direct response to caller)
-        newConnection.on('LockSeatResult', (result: any) => {
-          console.log('LockSeatResult received:', result)
+        // Handle SeatLockResult (direct response to caller)
+        newConnection.on('SeatLockResult', (result: any) => {
+          console.log('SeatLockResult received:', result)
 
           if (!result) {
             toast.error('Không nhận được phản hồi từ server')
@@ -467,7 +467,7 @@ export default function SeatMapViewerPage() {
           if (currentConnection && currentConnection.state === 'Connected') {
             for (const seatId of selectedSeats) {
               try {
-                await currentConnection.invoke('SeatLocked', {
+                await currentConnection.invoke('SeatLock', {
                   eventCode: eventCode,
                   seatIndex: seatId,
                   email: userProfile?.email,
