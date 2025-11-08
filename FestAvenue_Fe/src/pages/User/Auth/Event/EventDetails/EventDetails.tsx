@@ -29,7 +29,7 @@ const EventDetails: React.FC = () => {
   const queryClient = useQueryClient()
 
   // Use custom hooks for data fetching
-  const { event, posts, relatedEvents, isLoading } = useEventDetailsData(eventCode)
+  const { event, posts, relatedEvents, isLoading , refetch } = useEventDetailsData(eventCode)
 
   const [isCopied, setIsCopied] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
@@ -412,7 +412,11 @@ const EventDetails: React.FC = () => {
                   size='lg'
                   variant='outline'
                   className='bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20'
-                  onClick={() => followMutation.mutate(eventCode)}
+                  onClick={() => followMutation.mutate(eventCode,{
+                    onSuccess: ()=>{
+                      refetch()
+                    }
+                  })}
                   disabled={followMutation.isPending}
                 >
                   <Heart className={`w-4 h-4 mr-2 ${isFollowing ? 'fill-current' : ''}`} />
