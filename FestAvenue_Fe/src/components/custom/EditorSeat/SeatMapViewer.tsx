@@ -326,29 +326,39 @@ export default function SeatMapViewer({
   }
 
   // Get seat info from ticketsForSeats
-  const getSeatInfo = (seatId: string) => {
-    return ticketsForSeats.find((t) => t.seatIndex === seatId)
-  }
+  const getSeatInfo = useCallback(
+    (seatId: string) => {
+      return ticketsForSeats.find((t) => t.seatIndex === seatId)
+    },
+    [ticketsForSeats]
+  )
 
-  // Get countdown for a specific seat
-  const getSeatCountdown = (seatId: string): string | null => {
-    const seatInfo = getSeatInfo(seatId)
-    if (!seatInfo?.expirationTime || !seatInfo.isSeatLock) return null
+  // Get countdown for a specific seat (15 minutes from paymentInitiatedTime)
+  const getSeatCountdown = useCallback(
+    (seatId: string): string | null => {
+      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
+      if (!seatInfo?.paymentInitiatedTime || !seatInfo.isSeatLock || seatInfo.isPayment) return null
 
-    const expTime = new Date(seatInfo.expirationTime).getTime()
-    const remaining = expTime - Date.now()
+      const initiatedTime = new Date(seatInfo.paymentInitiatedTime).getTime()
+      const currentTime = Date.now()
+      const elapsed = currentTime - initiatedTime
+      const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in ms
+      const remaining = fifteenMinutes - elapsed
 
-    if (remaining <= 0) return null
+      if (remaining <= 0) return null
 
-    const minutes = Math.floor(remaining / 60000)
-    const seconds = Math.floor((remaining % 60000) / 1000)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
+      const minutes = Math.floor(remaining / 60000)
+      const seconds = Math.floor((remaining % 60000) / 1000)
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`
+    },
+    [ticketsForSeats]
+  )
 
   // Get seat color based on status and ownership
-  const getSeatColor = (seatId: string, status: string) => {
-    const seat = getSeatFromMapData(seatId)
-    const seatInfo = getSeatInfo(seatId)
+  const getSeatColor = useCallback(
+    (seatId: string, status: string) => {
+      const seat = getSeatFromMapData(seatId)
+      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
 
     // PRIORITY 1: Nếu ghế chưa có ticketId → màu cam (đang được chủ sự kiện xử lí)
     if (!seat?.ticketId) {
@@ -391,30 +401,35 @@ export default function SeatMapViewer({
       return '#ef4444' // red-500
     }
 
-    // Default colors
-    if (status === 'locked') return '#6b7280' // gray-500
-    if (status === 'occupied') return '#ef4444' // red-500
-    return '#22c55e' // green-500
-  }
+      // Default colors
+      if (status === 'locked') return '#6b7280' // gray-500
+      if (status === 'occupied') return '#ef4444' // red-500
+      return '#22c55e' // green-500
+    },
+    [ticketsForSeats, userEmail, mapData]
+  )
 
   // Check if seat is clickable
-  const isSeatClickable = (seatId: string) => {
-    const seat = getSeatFromMapData(seatId)
-    const seatInfo = getSeatInfo(seatId)
+  const isSeatClickable = useCallback(
+    (seatId: string) => {
+      const seat = getSeatFromMapData(seatId)
+      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
 
-    // PRIORITY 1: Nếu ghế chưa có ticketId → không click được (đang được chủ sự kiện xử lí)
-    if (!seat?.ticketId) return false
+      // PRIORITY 1: Nếu ghế chưa có ticketId → không click được (đang được chủ sự kiện xử lí)
+      if (!seat?.ticketId) return false
 
-    // Nếu đã payment → không click được
-    if (seatInfo?.isPayment) return false
+      // Nếu đã payment → không click được
+      if (seatInfo?.isPayment) return false
 
-    // Nếu email khác đang lock → không click được
-    if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
-      return false
-    }
+      // Nếu email khác đang lock → không click được
+      if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
+        return false
+      }
 
-    return true
-  }
+      return true
+    },
+    [ticketsForSeats, userEmail, mapData]
+  )
 
   // Handle seat toggle
   const handleQuickSeatToggle = (seatId: string, currentStatus: string, seatPrice?: number) => {

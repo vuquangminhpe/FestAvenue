@@ -56,8 +56,8 @@ export default function SeatMapViewerPage() {
   const { data: seatMapData, refetch: refetchSeatMap } = useQuery({
     queryKey: ['seatMap', eventCode],
     queryFn: () => serviceTicketManagementApi.getSeatMapByEventCode(eventCode),
-    enabled: !!eventCode,
-    refetchInterval: 5000 // Refetch every 5 seconds to update seat status
+    enabled: !!eventCode
+    // SignalR handles real-time updates, no need for polling
   })
 
   const [isConnected, setIsConnected] = useState(false)
