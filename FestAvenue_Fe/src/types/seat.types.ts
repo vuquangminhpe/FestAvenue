@@ -77,6 +77,8 @@ export interface Section {
   price?: number // Deprecated: Use ticketId instead
   ticketType?: 'vip' | 'premium' | 'standard' | 'economy' // Deprecated: Use ticketId instead
   ticketId?: string // ID của ticket từ API - áp dụng cho tất cả ghế trong section
+  hasSeats?: boolean // Nếu false, section không có ghế (standing zone, etc.)
+  customSeatCount?: number // Số lượng ghế tùy chỉnh thay vì rows * seatsPerRow
 }
 
 export interface SeatMapData {
