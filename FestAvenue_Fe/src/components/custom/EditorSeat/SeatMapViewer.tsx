@@ -330,13 +330,16 @@ export default function SeatMapViewer({
     return ticketsForSeats.find((t) => t.seatIndex === seatId)
   }
 
-  // Get countdown for a specific seat
+  // Get countdown for a specific seat (15 minutes from paymentInitiatedTime)
   const getSeatCountdown = (seatId: string): string | null => {
     const seatInfo = getSeatInfo(seatId)
-    if (!seatInfo?.expirationTime || !seatInfo.isSeatLock) return null
+    if (!seatInfo?.paymentInitiatedTime || !seatInfo.isSeatLock || seatInfo.isPayment) return null
 
-    const expTime = new Date(seatInfo.expirationTime).getTime()
-    const remaining = expTime - Date.now()
+    const initiatedTime = new Date(seatInfo.paymentInitiatedTime).getTime()
+    const currentTime = Date.now()
+    const elapsed = currentTime - initiatedTime
+    const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in ms
+    const remaining = fifteenMinutes - elapsed
 
     if (remaining <= 0) return null
 
