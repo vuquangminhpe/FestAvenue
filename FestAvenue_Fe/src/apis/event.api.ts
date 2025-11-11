@@ -1,6 +1,10 @@
 import type { APIResponse } from '@/types/API.types'
 import type {
+  bodyAcceptRequestWithDrawal,
   bodyApproveEventForStaff,
+  bodyCreateWithDrawal,
+  bodyGetListReqDrawalByAdmin,
+  bodyRejectRequestWithDrawal,
   bodySearchEvent,
   bodySearchWithAI,
   createEvent,
@@ -9,8 +13,11 @@ import type {
   EventSearchStaffFilter,
   EventTemp,
   EventVersionResForStaff,
+  getListWithDrawByAdminRes,
   ReqFilterOwnerEvent,
-  ResEventByEventCode
+  ResEventByEventCode,
+  WithdrawalRequest,
+  WithdrawalRequestItem
 } from '@/types/event.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
@@ -102,6 +109,26 @@ const eventApis = {
       body
     )
     return data?.data
+  },
+  //Lấy danh sách sự kiện kết thúc theo user là event owner
+  getEventEndTimeByUser: async () => {
+    const data = await http.get<APIResponse<ReqFilterOwnerEvent>>('/withdrawal-request/get-event-endtime-by-user')
+    return data?.data
+  },
+  //Lấy detail của yêu cầu rút tiền theo eventCode
+  getWithDrawalRequestByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<WithdrawalRequest>>(
+      `/withdrawal-request/get-withdrawal-request-by-event-code/${eventCode}`
+    )
+    return data?.data
+  },
+  //tạo yêu cầu rút tiền
+  createWithDrawalRequest: async (body: bodyCreateWithDrawal) => {
+    const data = await http.post<APIResponse<WithdrawalRequestItem>>(
+      '/withdrawal-request/create-withdrawal-request',
+      body
+    )
+    return data?.data
   }
 }
 
@@ -122,5 +149,28 @@ const staffEventApis = {
     return data?.data
   }
 }
-export { eventApis, staffEventApis }
+const adminEventApis = {
+  getListWithDrawalRequestWithPagingAndFilter: async (body: bodyGetListReqDrawalByAdmin) => {
+    const data = await http.post<APIResponse<getListWithDrawByAdminRes>>(
+      '/withdrawal-request/get-list-withdrawal-request-with-paging-and-filter',
+      body
+    )
+    return data?.data
+  },
+  acceptWithDrawalRequestByAdmin: async (body: bodyAcceptRequestWithDrawal) => {
+    const data = await http.post<APIResponse<{ message: string }>>(
+      '/withdrawal-request/accept-withdrawal-request-by-admin',
+      body
+    )
+    return data?.data
+  },
+  rejectWithDrawalRequestByAdmin: async (body: bodyRejectRequestWithDrawal) => {
+    const data = await http.post<APIResponse<{ message: string }>>(
+      '/withdrawal-request/reject-withdrawal-request-by-admin',
+      body
+    )
+    return data?.data
+  }
+}
+export { eventApis, staffEventApis, adminEventApis }
 export default eventApis

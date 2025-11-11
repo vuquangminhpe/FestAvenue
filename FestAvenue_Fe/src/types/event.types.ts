@@ -154,7 +154,7 @@ interface Organization {
   contact: OrganizationContact
 }
 interface Pagination {
-  orderBy: string
+  orderBy?: string
   pageIndex: number
   isPaging: boolean
   pageSize: number
@@ -377,4 +377,87 @@ export interface bodySearchEvent {
     isPaging: true
     pageSize: number
   }
+}
+export interface WithdrawalRequest {
+  withdrawalRequestId: string
+  eventCode: string
+  eventName: string
+  userId: string
+  fullName: string
+  avatarUrl: string
+  email: string
+  phoneNumber: string
+  organization: Organization
+  bankAccountNumber: string
+  bankName: string
+  noteByAdmin: string
+  linkExcel: string
+  imageUrlReject: string
+  totalTicketSold: number
+  totalAmountForTicket: number
+  reasonReject: string
+  timeCreated: string // ISO datetime (e.g. 2025-11-11T13:10:16.502Z)
+  timeResponse: string // ISO datetime
+}
+export interface WithdrawalRequestItem {
+  id: string
+  createdAt: string // ISO datetime (e.g. 2025-11-11T13:18:30.770Z)
+  updatedAt: string // ISO datetime
+  eventCode: string
+  eventName: string
+  userId: string
+  fullName: string
+  avatarUrl: string
+  email: string
+  phoneNumber: string
+  organization: {
+    name: string
+    description: string
+    logo: string
+    website: string
+    contact: {
+      email: string
+      phone: string
+    }
+  }
+  bankAccountNumber: string
+  bankName: string
+  noteByAdmin: string
+  linkExcel: string
+  imageUrlReject: string
+  totalTicketSold: number
+  totalAmountForTicket: number
+  reasonReject: string
+  status: number
+}
+export interface bodyCreateWithDrawal {
+  eventCode: string
+  email: string
+  phoneNumber: string
+  bankAccountNumber: string
+  bankName: string
+}
+export interface bodyGetListReqDrawalByAdmin {
+  searchText?: string
+  fromDateStartRequest?: string
+  toDateStartRequest?: string
+  fromDateResolveRequest?: string
+  toDateResolveRequest?: string
+  withdrawalRequestStatuses?: number[]
+  pagination: Pagination
+}
+export interface getListWithDrawByAdminRes {
+  result: WithdrawalRequest[]
+  pagination: Pagination
+}
+export interface bodyAcceptRequestWithDrawal {
+  withdrawalRequestId: string
+  linkExcel: string
+  noteByAdmin: string
+}
+export interface bodyRejectRequestWithDrawal {
+  withdrawalRequestId: string
+  reason: string
+  envidenceRejectImageUrl: string
+  noteByAdmin: string
 }

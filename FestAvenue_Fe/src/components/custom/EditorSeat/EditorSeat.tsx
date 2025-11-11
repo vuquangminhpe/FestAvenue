@@ -43,8 +43,6 @@ import type {
 } from '@/types/seat.types'
 import EmailLockModal from './EmailLockModal'
 import { useSeatManagement } from '@/pages/User/Auth/TicketManagement/hooks/useSeatManagement'
-
-// Import từ các modules đã tách
 import { SeatInteractionManager } from './classes/SeatInteractionManager'
 import { calculateBounds, lineIntersection, getPolygonColor } from './utils/geometry'
 import { generateShapePath } from './utils/shapes'
