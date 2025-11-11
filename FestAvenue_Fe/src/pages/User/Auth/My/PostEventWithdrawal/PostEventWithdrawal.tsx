@@ -18,7 +18,6 @@ import {
   Phone,
   CreditCard,
   AlertCircle,
-  TrendingUp,
   Users
 } from 'lucide-react'
 
@@ -266,9 +265,7 @@ export default function PostEventWithdrawal() {
                           </div>
                           <div className='flex items-center gap-2 text-sm'>
                             <Users className='w-4 h-4 text-gray-400' />
-                            <span className='text-gray-600'>
-                              {event.totalTicketSold || 0} vé đã bán
-                            </span>
+                            <span className='text-gray-600'>{event.totalTicketSold || 0} vé đã bán</span>
                           </div>
                           <div className='flex items-center gap-2 text-sm'>
                             <DollarSign className='w-4 h-4 text-gray-400' />
@@ -317,9 +314,7 @@ export default function PostEventWithdrawal() {
         <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>Tạo yêu cầu rút tiền</DialogTitle>
-            <DialogDescription>
-              Vui lòng điền đầy đủ thông tin để tạo yêu cầu rút tiền từ sự kiện
-            </DialogDescription>
+            <DialogDescription>Vui lòng điền đầy đủ thông tin để tạo yêu cầu rút tiền từ sự kiện</DialogDescription>
           </DialogHeader>
 
           <Form {...form}>
@@ -437,7 +432,11 @@ export default function PostEventWithdrawal() {
                 >
                   Hủy
                 </Button>
-                <Button type='submit' disabled={createWithdrawalMutation.isPending} className='bg-blue-600 hover:bg-blue-700'>
+                <Button
+                  type='submit'
+                  disabled={createWithdrawalMutation.isPending}
+                  className='bg-blue-600 hover:bg-blue-700'
+                >
                   {createWithdrawalMutation.isPending ? (
                     <>
                       <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>

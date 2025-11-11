@@ -388,6 +388,7 @@ export interface WithdrawalRequest {
   email: string
   phoneNumber: string
   organization: Organization
+  status: number
   bankAccountNumber: string
   bankName: string
   noteByAdmin: string

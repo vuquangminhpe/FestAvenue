@@ -5,8 +5,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { gsap } from 'gsap'
 import {
-  Calendar,
-  DollarSign,
   Wallet,
   CheckCircle,
   XCircle,
@@ -15,14 +13,10 @@ import {
   Search,
   RefreshCw,
   FileText,
-  Building2,
   Mail,
   Phone,
-  CreditCard,
   AlertCircle,
   Upload,
-  Users,
-  TrendingUp,
   Eye,
   ChevronLeft,
   ChevronRight
@@ -38,14 +32,7 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 import { adminEventApis } from '@/apis/event.api'
 import type { bodyAcceptRequestWithDrawal, bodyRejectRequestWithDrawal, WithdrawalRequest } from '@/types/event.types'
@@ -68,28 +55,19 @@ const acceptSchema = z.object({
     .min(1, 'Link Excel không được để trống')
     .url('Link Excel không hợp lệ')
     .max(500, 'Link không được quá 500 ký tự'),
-  noteByAdmin: z
-    .string()
-    .max(1000, 'Ghi chú không được quá 1000 ký tự')
-    .optional()
+  noteByAdmin: z.string().max(1000, 'Ghi chú không được quá 1000 ký tự').optional()
 })
 
 const rejectSchema = z.object({
   withdrawalRequestId: z.string().min(1, 'ID yêu cầu không hợp lệ'),
-  reason: z
-    .string()
-    .min(10, 'Lý do từ chối phải có ít nhất 10 ký tự')
-    .max(1000, 'Lý do không được quá 1000 ký tự'),
+  reason: z.string().min(10, 'Lý do từ chối phải có ít nhất 10 ký tự').max(1000, 'Lý do không được quá 1000 ký tự'),
   envidenceRejectImageUrl: z
     .string()
     .url('Link ảnh không hợp lệ')
     .max(500, 'Link không được quá 500 ký tự')
     .optional()
     .or(z.literal('')),
-  noteByAdmin: z
-    .string()
-    .max(1000, 'Ghi chú không được quá 1000 ký tự')
-    .optional()
+  noteByAdmin: z.string().max(1000, 'Ghi chú không được quá 1000 ký tự').optional()
 })
 
 type FilterFormData = z.infer<typeof filterSchema>
@@ -132,7 +110,7 @@ const getStatusBadge = (status: number) => {
 }
 
 export default function WithdrawalManagement() {
-  const [pageIndex, setPageIndex] = useState(0)
+  const [pageIndex, setPageIndex] = useState(1)
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
   const [showAcceptDialog, setShowAcceptDialog] = useState(false)
@@ -226,12 +204,12 @@ export default function WithdrawalManagement() {
     }
   })
 
-  const onAcceptSubmit = (data: AcceptFormData) => {
-    acceptMutation.mutate(data)
+  const onAcceptSubmit = async (data: AcceptFormData) => {
+    acceptMutation.mutateAsync(data as any)
   }
 
-  const onRejectSubmit = (data: RejectFormData) => {
-    rejectMutation.mutate(data)
+  const onRejectSubmit = async (data: RejectFormData) => {
+    rejectMutation.mutateAsync(data as any)
   }
 
   const handleViewDetail = (request: WithdrawalRequest) => {
@@ -257,7 +235,7 @@ export default function WithdrawalManagement() {
     } else {
       filterForm.setValue('withdrawalRequestStatuses', [parseInt(value)])
     }
-    setPageIndex(0)
+    setPageIndex(1)
   }
 
   // GSAP Animations
@@ -275,11 +253,11 @@ export default function WithdrawalManagement() {
 
   const requests = withdrawalRequestsQuery.data?.data?.result || []
   const pagination = withdrawalRequestsQuery.data?.data?.pagination
-  const totalPages = pagination?.totalPage || 0
+  const totalPages = (pagination as any)?.totalPage || 0
 
   // Calculate stats
   const stats = {
-    total: pagination?.total || 0,
+    total: (pagination as any)?.total || 0,
     pending: requests.filter((r: WithdrawalRequest) => r.status === 0).length,
     accepted: requests.filter((r: WithdrawalRequest) => r.status === 1).length,
     rejected: requests.filter((r: WithdrawalRequest) => r.status === 2).length
@@ -393,9 +371,7 @@ export default function WithdrawalManagement() {
               <FormItem>
                 <FormLabel>Trạng thái</FormLabel>
                 <Select
-                  value={
-                    selectedStatus && selectedStatus.length > 0 ? selectedStatus[0].toString() : 'all'
-                  }
+                  value={selectedStatus && selectedStatus.length > 0 ? selectedStatus[0].toString() : 'all'}
                   onValueChange={handleStatusFilter}
                 >
                   <SelectTrigger>
@@ -469,7 +445,7 @@ export default function WithdrawalManagement() {
                 type='button'
                 onClick={() => {
                   filterForm.reset()
-                  setPageIndex(0)
+                  setPageIndex(1)
                 }}
                 variant='outline'
               >
@@ -556,11 +532,7 @@ export default function WithdrawalManagement() {
                         </TableCell>
                         <TableCell>
                           <div className='flex gap-2 justify-center'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              onClick={() => handleViewDetail(request)}
-                            >
+                            <Button size='sm' variant='outline' onClick={() => handleViewDetail(request)}>
                               <Eye className='w-4 h-4' />
                             </Button>
                             {request.status === 0 && (
@@ -599,8 +571,8 @@ export default function WithdrawalManagement() {
                     <Button
                       size='sm'
                       variant='outline'
-                      onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
-                      disabled={pageIndex === 0}
+                      onClick={() => setPageIndex((prev) => Math.max(1, prev - 1))}
+                      disabled={pageIndex === 1}
                     >
                       <ChevronLeft className='w-4 h-4' />
                       Trước
@@ -753,9 +725,7 @@ export default function WithdrawalManagement() {
         <DialogContent className='max-w-2xl'>
           <DialogHeader>
             <DialogTitle>Chấp nhận yêu cầu rút tiền</DialogTitle>
-            <DialogDescription>
-              Vui lòng cung cấp link Excel chi tiết và ghi chú (nếu có)
-            </DialogDescription>
+            <DialogDescription>Vui lòng cung cấp link Excel chi tiết và ghi chú (nếu có)</DialogDescription>
           </DialogHeader>
 
           <Form {...acceptForm}>
@@ -819,11 +789,7 @@ export default function WithdrawalManagement() {
                 >
                   Hủy
                 </Button>
-                <Button
-                  type='submit'
-                  disabled={acceptMutation.isPending}
-                  className='bg-green-600 hover:bg-green-700'
-                >
+                <Button type='submit' disabled={acceptMutation.isPending} className='bg-green-600 hover:bg-green-700'>
                   {acceptMutation.isPending ? (
                     <>
                       <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
@@ -847,9 +813,7 @@ export default function WithdrawalManagement() {
         <DialogContent className='max-w-2xl'>
           <DialogHeader>
             <DialogTitle>Từ chối yêu cầu rút tiền</DialogTitle>
-            <DialogDescription>
-              Vui lòng cung cấp lý do từ chối rõ ràng
-            </DialogDescription>
+            <DialogDescription>Vui lòng cung cấp lý do từ chối rõ ràng</DialogDescription>
           </DialogHeader>
 
           <Form {...rejectForm}>
@@ -904,12 +868,7 @@ export default function WithdrawalManagement() {
                   <FormItem>
                     <FormLabel>Ghi chú</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder='Ghi chú thêm...'
-                        {...field}
-                        rows={3}
-                        disabled={rejectMutation.isPending}
-                      />
+                      <Textarea placeholder='Ghi chú thêm...' {...field} rows={3} disabled={rejectMutation.isPending} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -932,11 +891,7 @@ export default function WithdrawalManagement() {
                 >
                   Hủy
                 </Button>
-                <Button
-                  type='submit'
-                  disabled={rejectMutation.isPending}
-                  className='bg-red-600 hover:bg-red-700'
-                >
+                <Button type='submit' disabled={rejectMutation.isPending} className='bg-red-600 hover:bg-red-700'>
                   {rejectMutation.isPending ? (
                     <>
                       <div className='animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2'></div>
