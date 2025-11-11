@@ -396,6 +396,7 @@ export interface WithdrawalRequest {
   totalTicketSold: number
   totalAmountForTicket: number
   reasonReject: string
+  status: number // 0: Pending, 1: Accepted, 2: Rejected
   timeCreated: string // ISO datetime (e.g. 2025-11-11T13:10:16.502Z)
   timeResponse: string // ISO datetime
 }
