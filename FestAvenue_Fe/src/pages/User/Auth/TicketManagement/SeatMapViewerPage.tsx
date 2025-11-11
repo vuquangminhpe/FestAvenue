@@ -506,19 +506,32 @@ export default function SeatMapViewerPage() {
     }
 
     try {
-      // Lock all selected seats via SignalR
-      for (const seatId of selectedSeats) {
-        await currentConnection.invoke('SeatLock', {
-          eventCode: eventCode,
-          seatIndex: seatId,
-          email: userProfile?.email,
-          isSeatLock: true
-        })
-      }
+      // Call createPayment API (backend handles lock for price = 0)
+      const seatIndexes = Array.from(selectedSeats)
+      const response = await paymentApis.createEventSeatPayment({
+        eventCode: eventCode,
+        seatIndexes: seatIndexes
+      })
 
-      toast.success('Đã giữ ghế thành công!')
-      setSelectedSeats(new Set())
-      refetchSeatMap()
+      if (response?.data) {
+        // Also lock seats via SignalR for real-time sync
+        for (const seatId of selectedSeats) {
+          try {
+            await currentConnection.invoke('SeatLock', {
+              eventCode: eventCode,
+              seatIndex: seatId,
+              email: userProfile?.email,
+              isSeatLock: true
+            })
+          } catch (error) {
+            console.error('Error locking seat via SignalR:', error)
+          }
+        }
+
+        toast.success('Đặt ghế thành công!')
+        setSelectedSeats(new Set())
+        refetchSeatMap()
+      }
     } catch (error: any) {
       console.error('Error reserving seats:', error)
       toast.error(error?.message || 'Không thể giữ ghế')
