@@ -44,6 +44,8 @@ const SeatMapViewerPage = lazy(() => import('./pages/User/Auth/TicketManagement/
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents/UserManagementInEvent'))
 const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaManagement/SocialMediaManagement'))
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
+const PostEventWithdrawal = lazy(() => import('./pages/User/Auth/My/PostEventWithdrawal'))
+const WithdrawalManagement = lazy(() => import('./pages/Admin/Process/WithdrawalManagement'))
 
 const Loader = () => (
   <div
@@ -481,6 +483,16 @@ export default function useRouteElement() {
               )
             },
             {
+              path: path.user.my.withdrawal,
+              element: (
+                <SuspenseWrapper>
+                  <MyLayout>
+                    <PostEventWithdrawal />
+                  </MyLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
               path: path.user.schedule.view,
               element: (
                 <SuspenseWrapper>
@@ -649,6 +661,10 @@ export default function useRouteElement() {
             {
               path: path.admin.process.analytics,
               element: <Analytics />
+            },
+            {
+              path: path.admin.process.withdrawal,
+              element: <WithdrawalManagement />
             }
           ]
         }

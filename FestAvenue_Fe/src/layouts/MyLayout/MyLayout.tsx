@@ -48,6 +48,13 @@ const items = [
     url: path.user.my.payment,
     icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
     preloadKey: 'payment-page'
+  },
+
+  {
+    title: 'Xử lí sau sự kiện hoàn thành',
+    url: path.user.my.withdrawal,
+    icon: <CustomIcon name='CardOutline' className='w-4 h-3' />,
+    preloadKey: 'withdrawal-page'
   }
 ]
 

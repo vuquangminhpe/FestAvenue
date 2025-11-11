@@ -56,7 +56,8 @@ const path = {
       payment: '/user/my/payment',
       schedule: '/user/my/schedule',
       analytics: '/user/my/analytics',
-      favorites: '/user/my/favorites'
+      favorites: '/user/my/favorites',
+      withdrawal: '/user/my/withdrawal'
     },
     credit: {
       root: '/user/credit',
@@ -102,7 +103,8 @@ const path = {
       category: '/process/admin/category',
       package: '/process/admin/package',
       accounts: '/process/admin/accounts',
-      analytics: '/process/admin/analytics'
+      analytics: '/process/admin/analytics',
+      withdrawal: '/process/admin/withdrawal'
     }
   },
   landing: {

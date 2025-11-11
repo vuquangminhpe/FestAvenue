@@ -1,6 +1,6 @@
 import { type ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router'
-import { Shield, Menu, X, Settings, BarChart3, LogOut, UserCog, TrendingUp } from 'lucide-react'
+import { Shield, Menu, X, Settings, BarChart3, LogOut, UserCog, TrendingUp, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAdminStore } from '@/contexts/app.context'
 import path from '@/constants/path'
@@ -38,6 +38,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       icon: Settings,
       path: path.admin.process.package,
       description: ''
+    },
+    {
+      label: 'Xử lý rút tiền',
+      icon: Wallet,
+      path: path.admin.process.withdrawal,
+      description: 'Quản lý yêu cầu rút tiền'
     }
   ]
 
