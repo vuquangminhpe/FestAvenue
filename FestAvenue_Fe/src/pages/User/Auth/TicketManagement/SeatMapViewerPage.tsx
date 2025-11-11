@@ -380,19 +380,28 @@ export default function SeatMapViewerPage() {
   // Handle seat click - add to selection instead of locking immediately
   const handleSeatClick = (seatId: string, status: 'available' | 'occupied') => {
     if (!userProfile?.email) {
+      console.log(status)
+
       toast.error('Vui lòng đăng nhập để chọn ghế')
       return
     }
-    console.log(status)
 
-    // Check if seat is locked by current user, allow unlock
+    // Check seat info from ticketsForSeats
     const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
+
+    // BLOCK 1: Prevent clicking on seats locked by others
+    if (seatInfo && seatInfo.isLocked && seatInfo.email && seatInfo.email !== userProfile.email) {
+      toast.error('Ghế này đang được người khác giữ')
+      return
+    }
+
+    // BLOCK 2: Allow unlock for current user's locked seats
     if (seatInfo && seatInfo.isLocked && seatInfo.email === userProfile.email) {
       handleUnlockSeat(seatId)
       return
     }
 
-    // Toggle seat selection
+    // BLOCK 3: Toggle seat selection for available seats
     setSelectedSeats((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(seatId)) {
@@ -754,6 +763,7 @@ export default function SeatMapViewerPage() {
               showControls={false}
               ticketsForSeats={ticketsForSeats}
               userEmail={userProfile?.email}
+              selectedSeats={selectedSeats}
             />
           </div>
 
@@ -845,6 +855,10 @@ export default function SeatMapViewerPage() {
                   <div className='flex items-center gap-2'>
                     <div className='w-4 h-4 rounded-full bg-green-500'></div>
                     <span>Ghế trống</span>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-4 h-4 rounded-full bg-orange-400'></div>
+                    <span>Ghế đang chọn (chưa xác nhận)</span>
                   </div>
                   <div className='flex items-center gap-2'>
                     <div className='w-4 h-4 rounded-full bg-blue-500'></div>

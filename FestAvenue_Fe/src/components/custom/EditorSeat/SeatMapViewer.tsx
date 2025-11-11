@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import * as d3 from 'd3'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -182,6 +182,7 @@ interface SeatMapViewerProps {
   showControls?: boolean
   ticketsForSeats?: any[]
   userEmail?: string
+  selectedSeats?: Set<string>
 }
 
 export default function SeatMapViewer({
@@ -192,7 +193,8 @@ export default function SeatMapViewer({
   readonly = false,
   showControls = true,
   ticketsForSeats = [],
-  userEmail
+  userEmail,
+  selectedSeats = new Set()
 }: SeatMapViewerProps) {
   // Debug props (development only to avoid flooding production logs)
   if (import.meta.env.DEV) {
@@ -211,10 +213,16 @@ export default function SeatMapViewer({
     useState<Map<string, 'available' | 'occupied' | 'locked'>>(deriveInitialSeatStatuses)
   const [totalPrice, setTotalPrice] = useState(0)
   const [showSectionNames, setShowSectionNames] = useState(true)
+  const [seatCountdowns, setSeatCountdowns] = useState<Map<string, string>>(new Map())
 
   const svgRef = useRef<SVGSVGElement>(null)
   const seatManagerRef = useRef(new SeatInteractionManager())
   const zoomBehaviorRef = useRef<any>(null)
+  const currentTransformRef = useRef<any>(null) // Store current zoom/pan transform
+  const isInitialRenderRef = useRef(true) // Track if it's first render
+
+  // Memoize ticketsForSeats to prevent unnecessary re-renders
+  const stableTicketsForSeats = useMemo(() => ticketsForSeats, [JSON.stringify(ticketsForSeats)])
 
   useEffect(() => {
     const mergedStatuses = deriveInitialSeatStatuses()
@@ -252,6 +260,39 @@ export default function SeatMapViewer({
       seatManagerRef.current.setSeatStatus(seatId, status)
     })
   }, [seatStatuses])
+
+  // Update countdown timers every second
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const newCountdowns = new Map<string, string>()
+
+      stableTicketsForSeats.forEach((ticket) => {
+        if (!ticket?.paymentInitiatedTime || !ticket.isSeatLock || ticket.isPayment) return
+
+        const initiatedTime = new Date(ticket.paymentInitiatedTime).getTime()
+        const currentTime = Date.now()
+        const elapsed = currentTime - initiatedTime
+        const fifteenMinutes = 15 * 60 * 1000
+        const remaining = fifteenMinutes - elapsed
+
+        if (remaining > 0) {
+          const minutes = Math.floor(remaining / 60000)
+          const seconds = Math.floor((remaining % 60000) / 1000)
+          newCountdowns.set(ticket.seatIndex, `${minutes}:${seconds.toString().padStart(2, '0')}`)
+        }
+      })
+
+      setSeatCountdowns(newCountdowns)
+    }
+
+    // Initial update
+    updateCountdowns()
+
+    // Update every second
+    const interval = setInterval(updateCountdowns, 1000)
+
+    return () => clearInterval(interval)
+  }, [stableTicketsForSeats])
 
   // Generate seats for a section
   const generateSeatsForSection = useCallback(
@@ -330,92 +371,66 @@ export default function SeatMapViewer({
   // Get seat info from ticketsForSeats
   const getSeatInfo = useCallback(
     (seatId: string) => {
-      return ticketsForSeats.find((t) => t.seatIndex === seatId)
+      return stableTicketsForSeats.find((t) => t.seatIndex === seatId)
     },
-    [ticketsForSeats]
+    [stableTicketsForSeats]
   )
 
-  // Get countdown for a specific seat (15 minutes from paymentInitiatedTime)
+  // Get countdown for a specific seat from state
   const getSeatCountdown = useCallback(
     (seatId: string): string | null => {
-      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
-      if (!seatInfo?.paymentInitiatedTime || !seatInfo.isSeatLock || seatInfo.isPayment) return null
-
-      const initiatedTime = new Date(seatInfo.paymentInitiatedTime).getTime()
-      const currentTime = Date.now()
-      const elapsed = currentTime - initiatedTime
-      const fifteenMinutes = 15 * 60 * 1000 // 15 minutes in ms
-      const remaining = fifteenMinutes - elapsed
-
-      if (remaining <= 0) return null
-
-      const minutes = Math.floor(remaining / 60000)
-      const seconds = Math.floor((remaining % 60000) / 1000)
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`
+      return seatCountdowns.get(seatId) || null
     },
-    [ticketsForSeats]
+    [seatCountdowns]
   )
 
   // Get seat color based on status and ownership
   const getSeatColor = useCallback(
-    (seatId: string, status: string) => {
+    (seatId: string, _status: string) => {
       const seat = getSeatFromMapData(seatId)
-      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
+      const seatInfo = stableTicketsForSeats.find((t) => t.seatIndex === seatId)
 
       // PRIORITY 1: Nếu ghế chưa có ticketId → màu cam (đang được chủ sự kiện xử lí)
       if (!seat?.ticketId) {
-        console.log(`${seatId} → ORANGE (no ticketId - being processed by organizer)`)
         return '#f97316' // orange-500
       }
 
-      // Debug
-      if (seatInfo) {
-        console.log(`Seat ${seatId}:`, {
-          email: seatInfo.email,
-          userEmail,
-          isSeatLock: seatInfo.isSeatLock,
-          isPayment: seatInfo.isPayment,
-          match: seatInfo.email === userEmail
-        })
+      // PRIORITY 2: Ghế đang được chọn (chưa lock) → màu vàng/cam nhạt để phân biệt
+      if (selectedSeats.has(seatId) && !seatInfo?.isLocked) {
+        return '#fb923c' // orange-400 (ghế đang chọn tạm thời)
       }
 
       // Nếu đã payment và là của user → màu tím (ghế đã mua của bạn)
       if (seatInfo?.isPayment && seatInfo?.email === userEmail) {
-        console.log(`${seatId} → PURPLE (you paid)`)
         return '#a855f7' // purple-500
       }
 
       // Nếu đã payment và không phải user → màu xám (đã bán cho người khác)
       if (seatInfo?.isPayment && seatInfo?.email && seatInfo?.email !== userEmail) {
-        console.log(`${seatId} → GRAY (other paid)`)
         return '#9ca3af' // gray-400
       }
 
       // Nếu có email của user và đang lock (chưa payment) → màu xanh dương
       if (seatInfo?.email === userEmail && seatInfo?.isSeatLock && !seatInfo?.isPayment) {
-        console.log(`${seatId} → BLUE (user locked)`)
         return '#3b82f6' // blue-500
       }
 
       // Nếu có email khác và đang lock → màu đỏ
       if (seatInfo?.email && seatInfo?.email !== userEmail && seatInfo?.isSeatLock) {
-        console.log(`${seatId} → RED (other locked)`)
         return '#ef4444' // red-500
       }
 
-      // Default colors
-      if (status === 'locked') return '#6b7280' // gray-500
-      if (status === 'occupied') return '#ef4444' // red-500
+      // Default: ghế trống (xanh lá)
       return '#22c55e' // green-500
     },
-    [ticketsForSeats, userEmail, mapData]
+    [stableTicketsForSeats, userEmail, mapData, selectedSeats]
   )
 
   // Check if seat is clickable
   const isSeatClickable = useCallback(
     (seatId: string) => {
       const seat = getSeatFromMapData(seatId)
-      const seatInfo = ticketsForSeats.find((t) => t.seatIndex === seatId)
+      const seatInfo = stableTicketsForSeats.find((t) => t.seatIndex === seatId)
 
       // PRIORITY 1: Nếu ghế chưa có ticketId → không click được (đang được chủ sự kiện xử lí)
       if (!seat?.ticketId) return false
@@ -430,7 +445,7 @@ export default function SeatMapViewer({
 
       return true
     },
-    [ticketsForSeats, userEmail, mapData]
+    [stableTicketsForSeats, userEmail, mapData]
   )
 
   // Handle seat toggle
@@ -506,25 +521,115 @@ export default function SeatMapViewer({
     }
   }
 
+  // Update only seat colors and countdowns without full re-render
+  const updateSeatsOnly = useCallback(
+    (svg: any) => {
+      mapData.sections.forEach((section) => {
+        const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
+
+        seats.forEach((seat) => {
+          const status = seatStatuses.get(seat.id) || seat.status
+          const seatInfo = getSeatInfo(seat.id)
+          const seatColor = getSeatColor(seat.id, status)
+          const countdown = getSeatCountdown(seat.id)
+
+          const seatGroup = svg.select(`.seat-${seat.id}`)
+          if (seatGroup.empty()) return
+
+          // Update seat color
+          seatGroup.select('circle:nth-child(2)').attr('fill', seatColor)
+
+          // Update or add countdown
+          if (countdown && seatInfo?.isSeatLock) {
+            const timerColor = seatInfo.email === userEmail ? '#3b82f6' : '#ef4444'
+
+            // Check if countdown elements exist
+            let timerCircle = seatGroup.select('circle.timer-circle')
+            let timerText = seatGroup.select('text.timer-text')
+
+            if (timerCircle.empty()) {
+              // Create countdown elements
+              timerCircle = seatGroup
+                .append('circle')
+                .attr('class', 'timer-circle')
+                .attr('cx', seat.x)
+                .attr('cy', seat.y - 12)
+                .attr('r', 10)
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1)
+                .attr('pointer-events', 'none')
+            }
+
+            if (timerText.empty()) {
+              timerText = seatGroup
+                .append('text')
+                .attr('class', 'timer-text')
+                .attr('x', seat.x)
+                .attr('y', seat.y - 10)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '8px')
+                .attr('fill', 'white')
+                .attr('font-weight', 'bold')
+                .attr('pointer-events', 'none')
+            }
+
+            // Update values
+            timerCircle.attr('fill', timerColor)
+            timerText.text(countdown)
+          } else {
+            // Remove countdown if not needed
+            seatGroup.select('circle.timer-circle').remove()
+            seatGroup.select('text.timer-text').remove()
+          }
+        })
+      })
+    },
+    [
+      mapData,
+      seatStatuses,
+      getSeatInfo,
+      getSeatColor,
+      getSeatCountdown,
+      generateSeatsForSection,
+      userEmail,
+      selectedSeats
+    ]
+  )
+
   // Render map
   useEffect(() => {
     if (!svgRef.current) return
 
     const svg = d3.select(svgRef.current)
-    svg.selectAll('*').remove()
 
-    const g = svg.append('g')
+    // Only clear and rebuild if it's the initial render
+    if (isInitialRenderRef.current) {
+      svg.selectAll('*').remove()
+      isInitialRenderRef.current = false
+    } else {
+      // On subsequent renders, just update seat colors and countdowns without rebuilding
+      updateSeatsOnly(svg)
+      return
+    }
 
-    // Enable zoom
+    const g = svg.append('g').attr('class', 'main-group')
+
+    // Enable zoom and save transform state
     const zoom = d3
       .zoom()
       .scaleExtent([0.3, 5])
       .on('zoom', (event) => {
+        currentTransformRef.current = event.transform
         g.attr('transform', event.transform)
       })
 
     svg.call(zoom as any)
     zoomBehaviorRef.current = zoom
+
+    // Restore previous transform if exists
+    if (currentTransformRef.current) {
+      svg.call(zoom.transform as any, currentTransformRef.current)
+    }
 
     // Render stage
     if (mapData.stage) {
@@ -631,6 +736,7 @@ export default function SeatMapViewer({
           // Timer circle background
           hitboxGroup
             .append('circle')
+            .attr('class', 'timer-circle')
             .attr('cx', seat.x)
             .attr('cy', seat.y - 12)
             .attr('r', 10)
@@ -642,6 +748,7 @@ export default function SeatMapViewer({
           // Timer text
           hitboxGroup
             .append('text')
+            .attr('class', 'timer-text')
             .attr('x', seat.x)
             .attr('y', seat.y - 10)
             .attr('text-anchor', 'middle')
@@ -706,37 +813,23 @@ export default function SeatMapViewer({
       })
     })
 
-    // Update countdown timers every second
-    const interval = setInterval(() => {
-      svg.selectAll('.seat-group').each(function () {
-        const group = d3.select(this)
-        const seatId = group.attr('class').split('seat-')[1]
-        if (!seatId) return
-
-        const countdown = getSeatCountdown(seatId)
-        if (countdown) {
-          group.select('text').text(countdown)
-        } else {
-          group.selectAll('circle:nth-child(3)').remove()
-          group.selectAll('text').remove()
-        }
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
+    // No need for interval here - countdown state is updated separately
   }, [
     mapData,
-    seatStatuses,
-    generateSeatsForSection,
     readonly,
-    ticketsForSeats,
-    userEmail,
     showSectionNames,
-    getSeatCountdown,
-    getSeatInfo,
-    getSeatColor,
-    isSeatClickable
+    updateSeatsOnly
+    // Intentionally omitting: seatStatuses, stableTicketsForSeats, seatCountdowns
+    // These will trigger updateSeatsOnly instead of full rebuild
   ])
+
+  // Update seats when seat-related data changes (without full rebuild)
+  useEffect(() => {
+    if (!svgRef.current || isInitialRenderRef.current) return
+
+    const svg = d3.select(svgRef.current)
+    updateSeatsOnly(svg)
+  }, [seatStatuses, stableTicketsForSeats, seatCountdowns, selectedSeats, updateSeatsOnly])
 
   return (
     <div className='w-full h-full'>
