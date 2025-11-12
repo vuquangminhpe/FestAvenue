@@ -19,6 +19,7 @@ import type {
   WithdrawalRequest,
   WithdrawalRequestItem
 } from '@/types/event.types'
+import type { ResponseEventDashBoardGeneral } from '@/types/eventDashboard.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
   eventId: string
@@ -129,7 +130,13 @@ const eventApis = {
       body
     )
     return data?.data
-  }
+  },
+  getDashBoardEventGeneralByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<ResponseEventDashBoardGeneral>>(
+      `/general-statistics?EventCode=${eventCode}`
+    )
+    return data?.data
+  },
 }
 
 const staffEventApis = {

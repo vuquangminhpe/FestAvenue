@@ -20,7 +20,6 @@ import StatCard from './components/StatCard'
 import ParticipantsChart from './components/ParticipantsChart'
 import TicketSalesChart from './components/TicketSalesChart'
 import RevenueChart from './components/RevenueChart'
-import CheckInChart from './components/CheckInChart'
 import ViewsChart from './components/ViewsChart'
 import KeywordSearchChart from './components/KeywordSearchChart'
 import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
@@ -31,6 +30,7 @@ import { eventAnalyticsService } from '../../../../../services/eventAnalytics.se
 import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'
 import { useCheckIsEventOwner } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
+import { useGetDashboardEventGeneral } from './hooks/useEventAnalytics'
 
 type TabType =
   | 'overview'
@@ -56,6 +56,14 @@ export default function EventAnalyticsDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
 
+  // const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral("68fe21e94278d27ef06a03e8")
+  // console.log(dataDashboardEventGeneral);
+
+  const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral(eventCode)
+
+  const participants = dataDashboardEventGeneral?.participantAnalysis ?? [];
+  const ticketSalesAnalysis = dataDashboardEventGeneral?.ticketSalesAnalysis ?? [];
+  
   useEffect(() => {
     loadAnalytics()
   }, [])
@@ -195,10 +203,10 @@ export default function EventAnalyticsDashboard() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
                 <StatCard
                   title='Tổng người tham gia'
-                  value={summary.totalParticipants}
+                  value={dataDashboardEventGeneral?.eventSummary?.totalParticipants ?? 0}
                   change={12.5}
                   icon={Users}
                   iconColor='#22d3ee'
@@ -207,7 +215,7 @@ export default function EventAnalyticsDashboard() {
                 />
                 <StatCard
                   title='Doanh thu'
-                  value={formatCurrency(summary.totalRevenue)}
+                  value={formatCurrency(dataDashboardEventGeneral?.eventSummary?.totalRevenue ?? 0)}
                   change={23.8}
                   icon={DollarSign}
                   iconColor='#10b981'
@@ -216,50 +224,34 @@ export default function EventAnalyticsDashboard() {
                 />
                 <StatCard
                   title='Lượt xem sự kiện'
-                  value={summary.totalViews.toLocaleString()}
+                  value={dataDashboardEventGeneral?.eventSummary?.totalViews ?? 0}
                   change={18.2}
                   icon={Eye}
                   iconColor='#3b82f6'
                   iconBg='#dbeafe'
                   trend='up'
                 />
-                <StatCard
-                  title='Lượt tìm kiếm'
-                  value={summary.totalSearches.toLocaleString()}
-                  change={42.3}
-                  icon={Share2}
-                  iconColor='#8b5cf6'
-                  iconBg='#ede9fe'
-                  trend='up'
-                />
               </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
                 <StatCard
                   title='Tỷ lệ check-in'
-                  value={summary.checkInRate}
+                  value={dataDashboardEventGeneral?.eventSummary?.checkInRate ?? 0}
                   icon={CheckCircle}
                   iconColor='#10b981'
                   iconBg='#d1fae5'
                   suffix='%'
                 />
                 <StatCard
-                  title='Lợi nhuận'
-                  value={formatCurrency(summary.profit)}
-                  icon={TrendingUp}
-                  iconColor='#f59e0b'
-                  iconBg='#fef3c7'
-                />
-                <StatCard
                   title='Loại vé phổ biến nhất'
-                  value={summary.popularTicketType}
+                  value={dataDashboardEventGeneral?.eventSummary?.popularTicketType ?? "-"}
                   icon={Users}
                   iconColor='#ec4899'
                   iconBg='#fce7f3'
                 />
                 <StatCard
                   title='Bài đăng social media'
-                  value={summary.totalSocialPosts}
+                  value={dataDashboardEventGeneral?.eventSummary?.totalSocialPosts ?? 0}
                   icon={Share2}
                   iconColor='#06b6d4'
                   iconBg='#cffafe'
@@ -289,12 +281,9 @@ export default function EventAnalyticsDashboard() {
               </div>
               {/* Người tham gia + Bán vé (Flex) */}
               <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                <ParticipantsChart data={analytics.participants} />
-                <TicketSalesChart data={analytics.ticketSales} />
+                <ParticipantsChart data={participants} />
+                <TicketSalesChart data={ticketSalesAnalysis} />
               </div>
-
-              {/* Check-in (Full width) */}
-              <CheckInChart data={analytics.checkIn} />
 
               {/* Doanh thu + Lượt xem (Flex) */}
               <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
@@ -305,16 +294,13 @@ export default function EventAnalyticsDashboard() {
           )}
 
           {/* Participants Tab */}
-          {activeTab === 'participants' && <ParticipantsChart data={analytics.participants} />}
+          {activeTab === 'participants' && <ParticipantsChart data={participants} />}
 
           {/* Tickets Tab */}
-          {activeTab === 'tickets' && <TicketSalesChart data={analytics.ticketSales} />}
+          {activeTab === 'tickets' && <TicketSalesChart data={ticketSalesAnalysis} />}
 
           {/* Revenue Tab */}
           {activeTab === 'revenue' && <RevenueChart data={analytics.revenue} />}
-
-          {/* Check-in Tab */}
-          {activeTab === 'checkin' && <CheckInChart data={analytics.checkIn} />}
 
           {/* Views Tab */}
           {activeTab === 'views' && <ViewsChart data={analytics.eventViews} />}
