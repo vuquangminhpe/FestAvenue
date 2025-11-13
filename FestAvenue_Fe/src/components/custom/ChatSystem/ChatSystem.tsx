@@ -21,7 +21,7 @@ import type {
   MessageUpdated,
   MessageDeleted,
   MessageError,
-  GetChatMessagesInput
+  bodyGetMessagesFilterPaging
 } from '@/types/ChatMessage.types'
 
 interface Message {
@@ -218,7 +218,7 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
         await newConnection.invoke('JoinChatGroup', groupChatId)
 
         // Load messages
-        const input: GetChatMessagesInput = {
+        const input: bodyGetMessagesFilterPaging = {
           groupChatId,
           page: 1,
           pageSize: 50

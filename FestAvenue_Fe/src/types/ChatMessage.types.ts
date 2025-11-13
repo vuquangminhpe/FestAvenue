@@ -1,4 +1,3 @@
-// Legacy types
 export interface bodyGetMessagesFilterPaging {
   groupChatId: string
   page: number
@@ -9,18 +8,10 @@ export interface bodyGetMessagesFilterPaging {
   isUrl?: boolean
 }
 
-// New types matching SignalR ChatMessageHub
+// SignalR ChatMessageHub input types
 export interface CreateChatMessageInput {
   groupChatId: string
   message?: string
-  isUrl?: boolean
-}
-
-export interface GetChatMessagesInput {
-  groupChatId: string
-  page?: number
-  pageSize?: number
-  keyword?: string
   isUrl?: boolean
 }
 

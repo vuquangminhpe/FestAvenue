@@ -14,7 +14,7 @@ import type {
   MessageUpdated,
   MessageDeleted,
   MessageError,
-  GetChatMessagesInput,
+  bodyGetMessagesFilterPaging,
   EventGroup
 } from '@/types/ChatMessage.types'
 import { EmojiPicker } from '@/utils/helper'
@@ -260,7 +260,7 @@ export default function ChatMyMessagesSystem() {
     const loadMessages = async () => {
       try {
         setIsLoadingMessages(true)
-        const input: GetChatMessagesInput = {
+        const input: bodyGetMessagesFilterPaging = {
           groupChatId: selectedChatId,
           page: 1,
           pageSize: 50
