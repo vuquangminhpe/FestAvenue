@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Send, MessageCircle, Smile, Search, Wifi, WifiOff, ImagePlus, X, Edit2, Trash2, Check } from 'lucide-react'
 import { gsap } from 'gsap'
@@ -70,28 +70,6 @@ export default function ChatMyMessagesSystem() {
     }
   })
 
-  const updateMessageMutation = useMutation({
-    mutationFn: ({ messageId, newContent }: { messageId: string; newContent: string }) =>
-      chatApi.ChatApis.updateMessage(messageId, newContent),
-    onSuccess: () => {
-      toast.success('Cập nhật tin nhắn thành công')
-      setEditingMessageId(null)
-      setEditingMessageContent('')
-    },
-    onError: () => {
-      toast.error('Cập nhật tin nhắn thất bại')
-    }
-  })
-
-  const deleteMessageMutation = useMutation({
-    mutationFn: (messageId: string) => chatApi.ChatApis.deleteMessage(messageId),
-    onSuccess: () => {
-      toast.success('Xóa tin nhắn thành công')
-    },
-    onError: () => {
-      toast.error('Xóa tin nhắn thất bại')
-    }
-  })
 
   useEffect(() => {
     const handleResize = () => {
@@ -169,7 +147,20 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('ChatMessagesLoaded', (data: any) => {
-          console.log('Chat messages loaded:', data)
+          if (data && data.chatMessages) {
+            const formattedMessages: Message[] = data.chatMessages.map((msg: any) => ({
+              id: msg.id,
+              groupChatId: msg.groupChatId,
+              senderId: msg.senderId,
+              message: msg.message,
+              senderName: msg.senderName,
+              avatar: msg.avatar || undefined,
+              sentAt: new Date(msg.createdAt),
+              isCurrentUser: msg.senderId === userProfile?.id,
+              isUrl: msg.isUrl
+            }))
+            setMessages(formattedMessages)
+          }
         })
 
         newConnection.on('MessageUpdated', (data: MessageUpdated) => {
@@ -260,38 +251,33 @@ export default function ChatMyMessagesSystem() {
     return filteredChats.find((chat) => chat.id === selectedChatId)
   }, [filteredChats, selectedChatId])
 
-  // Load messages when chat is selected
-  const { data: chatMessagesData, isLoading: isLoadingMessages } = useQuery({
-    queryKey: ['chat-messages', selectedChatId],
-    queryFn: async () => {
-      if (!selectedChatId) return null
-      const input: GetChatMessagesInput = {
-        groupChatId: selectedChatId,
-        page: 1,
-        pageSize: 50
-      }
-      const response = await chatApi.ChatApis.getChatMessages(input)
-      return response
-    },
-    enabled: !!selectedChatId
-  })
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
 
+  // Load messages when chat is selected
   useEffect(() => {
-    if (chatMessagesData?.chatMessages) {
-      const formattedMessages: Message[] = chatMessagesData.chatMessages.map((msg) => ({
-        id: msg.id,
-        groupChatId: msg.groupChatId,
-        senderId: msg.senderId,
-        message: msg.message,
-        senderName: msg.senderName,
-        avatar: msg.avatar || undefined,
-        sentAt: new Date(msg.createdAt),
-        isCurrentUser: msg.senderId === userProfile?.id,
-        isUrl: msg.isUrl
-      }))
-      setMessages(formattedMessages)
+    if (!selectedChatId || !connection || !isConnected) return
+
+    const loadMessages = async () => {
+      try {
+        setIsLoadingMessages(true)
+        const input: GetChatMessagesInput = {
+          groupChatId: selectedChatId,
+          page: 1,
+          pageSize: 50
+        }
+        await connection.invoke('GetMessages', input)
+      } catch (error) {
+        console.error('Error loading messages:', error)
+        toast.error('Không thể tải tin nhắn')
+      } finally {
+        setIsLoadingMessages(false)
+      }
     }
-  }, [chatMessagesData, userProfile?.id])
+
+    // Clear messages when switching chat
+    setMessages([])
+    loadMessages()
+  }, [selectedChatId, connection, isConnected])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -371,12 +357,16 @@ export default function ChatMyMessagesSystem() {
   }
 
   const handleSaveEdit = async () => {
-    if (!editingMessageId || !editingMessageContent.trim()) return
+    if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
 
-    await updateMessageMutation.mutateAsync({
-      messageId: editingMessageId,
-      newContent: editingMessageContent.trim()
-    })
+    try {
+      await connection.invoke('UpdateMessage', editingMessageId, editingMessageContent.trim())
+      setEditingMessageId(null)
+      setEditingMessageContent('')
+    } catch (error) {
+      console.error('Error updating message:', error)
+      toast.error('Cập nhật tin nhắn thất bại')
+    }
   }
 
   const handleCancelEdit = () => {
@@ -385,8 +375,15 @@ export default function ChatMyMessagesSystem() {
   }
 
   const handleDeleteMessage = async (messageId: string) => {
+    if (!connection || !isConnected) return
+
     if (window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
-      await deleteMessageMutation.mutateAsync(messageId)
+      try {
+        await connection.invoke('DeleteMessage', messageId)
+      } catch (error) {
+        console.error('Error deleting message:', error)
+        toast.error('Xóa tin nhắn thất bại')
+      }
     }
   }
 

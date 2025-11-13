@@ -12,7 +12,7 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import chatApi from '@/apis/chat.api'
 import { formatTime } from '@/utils/utils'
@@ -73,60 +73,7 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
     }
   })
 
-  const updateMessageMutation = useMutation({
-    mutationFn: ({ messageId, newContent }: { messageId: string; newContent: string }) =>
-      chatApi.ChatApis.updateMessage(messageId, newContent),
-    onSuccess: () => {
-      toast.success('Cập nhật tin nhắn thành công')
-      setEditingMessageId(null)
-      setEditingMessageContent('')
-    },
-    onError: () => {
-      toast.error('Cập nhật tin nhắn thất bại')
-    }
-  })
 
-  const deleteMessageMutation = useMutation({
-    mutationFn: (messageId: string) => chatApi.ChatApis.deleteMessage(messageId),
-    onSuccess: () => {
-      toast.success('Xóa tin nhắn thành công')
-    },
-    onError: () => {
-      toast.error('Xóa tin nhắn thất bại')
-    }
-  })
-
-  // Load initial messages
-  const { data: initialMessages } = useQuery({
-    queryKey: ['chat-messages', groupChatId],
-    queryFn: async () => {
-      const input: GetChatMessagesInput = {
-        groupChatId,
-        page: 1,
-        pageSize: 50
-      }
-      const response = await chatApi.ChatApis.getChatMessages(input)
-      return response
-    },
-    enabled: !!groupChatId && isVisible
-  })
-
-  useEffect(() => {
-    if (initialMessages?.chatMessages) {
-      const formattedMessages: Message[] = initialMessages.chatMessages.map((msg) => ({
-        id: msg.id,
-        groupChatId: msg.groupChatId,
-        senderId: msg.senderId,
-        message: msg.message,
-        senderName: msg.senderName,
-        avatar: msg.avatar || undefined,
-        sentAt: new Date(msg.createdAt),
-        isCurrentUser: msg.senderId === userProfile?.id,
-        isUrl: msg.isUrl
-      }))
-      setMessages(formattedMessages)
-    }
-  }, [initialMessages, userProfile?.id])
 
   const handleDeleteGroupChat = () => {
     deletedGroupChatMutation.mutateAsync(groupChatId, {
@@ -195,7 +142,20 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
         })
 
         newConnection.on('ChatMessagesLoaded', (data: any) => {
-          console.log('Chat messages loaded:', data)
+          if (data && data.chatMessages) {
+            const formattedMessages: Message[] = data.chatMessages.map((msg: any) => ({
+              id: msg.id,
+              groupChatId: msg.groupChatId,
+              senderId: msg.senderId,
+              message: msg.message,
+              senderName: msg.senderName,
+              avatar: msg.avatar || undefined,
+              sentAt: new Date(msg.createdAt),
+              isCurrentUser: msg.senderId === userProfile?.id,
+              isUrl: msg.isUrl
+            }))
+            setMessages(formattedMessages)
+          }
         })
 
         newConnection.on('MessageUpdated', (data: MessageUpdated) => {
@@ -256,6 +216,14 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
 
         // Join chat group
         await newConnection.invoke('JoinChatGroup', groupChatId)
+
+        // Load messages
+        const input: GetChatMessagesInput = {
+          groupChatId,
+          page: 1,
+          pageSize: 50
+        }
+        await newConnection.invoke('GetMessages', input)
 
         toast.success('Kết nối chat thành công')
       } catch (error) {
@@ -342,12 +310,16 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
   }
 
   const handleSaveEdit = async () => {
-    if (!editingMessageId || !editingMessageContent.trim()) return
+    if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
 
-    await updateMessageMutation.mutateAsync({
-      messageId: editingMessageId,
-      newContent: editingMessageContent.trim()
-    })
+    try {
+      await connection.invoke('UpdateMessage', editingMessageId, editingMessageContent.trim())
+      setEditingMessageId(null)
+      setEditingMessageContent('')
+    } catch (error) {
+      console.error('Error updating message:', error)
+      toast.error('Cập nhật tin nhắn thất bại')
+    }
   }
 
   const handleCancelEdit = () => {
@@ -356,8 +328,15 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
   }
 
   const handleDeleteMessage = async (messageId: string) => {
+    if (!connection || !isConnected) return
+
     if (window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
-      await deleteMessageMutation.mutateAsync(messageId)
+      try {
+        await connection.invoke('DeleteMessage', messageId)
+      } catch (error) {
+        console.error('Error deleting message:', error)
+        toast.error('Xóa tin nhắn thất bại')
+      }
     }
   }
 
