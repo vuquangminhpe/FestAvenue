@@ -1,23 +1,54 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useInfiniteQuery, useQuery, useMutation } from '@tanstack/react-query'
-import { Send, MessageCircle, Smile, Search, Wifi, WifiOff, ImagePlus, X } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Send, MessageCircle, Smile, Search, Wifi, WifiOff, ImagePlus, X, Edit2, Trash2, Check } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
 import { useUsersStore } from '@/contexts/app.context'
 import { getAccessTokenFromLS } from '@/utils/auth'
 import userApi from '@/apis/user.api'
+import chatApi from '@/apis/chat.api'
 import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import type { ChatMessage, ChatMessagesResponse, SignalRMessage } from '@/types/chat.types'
+import type {
+  NewMessageReceived,
+  MessageUpdated,
+  MessageDeleted,
+  MessageError,
+  GetChatMessagesInput
+} from '@/types/ChatMessage.types'
 import { EmojiPicker } from '@/utils/helper'
 import { toast } from 'sonner'
 
+interface Message {
+  id: string
+  groupChatId: string
+  senderId: string
+  message: string
+  senderName: string
+  avatar?: string
+  sentAt: Date
+  isCurrentUser?: boolean
+  isUrl?: boolean
+}
+
+interface GroupChat {
+  groupChatId: string
+  groupChatName: string
+  avatarGroupUrl?: string
+  lastMessage?: {
+    senderName: string
+    content: string
+    sentAt: string
+  }
+}
+
 export default function ChatMyMessagesSystem() {
   const userProfile = useUsersStore().isProfile
+  const queryClient = useQueryClient()
 
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [realtimeMessages, setRealtimeMessages] = useState<SignalRMessage[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -25,11 +56,18 @@ export default function ChatMyMessagesSystem() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
-  const [totalPages, setTotalPages] = useState<number | undefined>()
-  const [click, setClick] = useState<boolean>(false)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageContent, setEditingMessageContent] = useState('')
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  const chatButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
     onSuccess: (data) => {
@@ -41,18 +79,29 @@ export default function ChatMyMessagesSystem() {
       setIsUploadingImage(false)
     }
   })
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null)
-  const loadPreviousRef = useRef<HTMLDivElement>(null)
-  const observerRef = useRef<IntersectionObserver | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const chatButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
-  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const animatedMessages = useRef<Set<string>>(new Set())
-  const lastMessageCount = useRef<number>(0)
-  const shouldAutoScroll = useRef<boolean>(true)
-  const isInitialLoad = useRef<boolean>(true)
+
+  const updateMessageMutation = useMutation({
+    mutationFn: ({ messageId, newContent }: { messageId: string; newContent: string }) =>
+      chatApi.ChatApis.updateMessage(messageId, newContent),
+    onSuccess: () => {
+      toast.success('Cập nhật tin nhắn thành công')
+      setEditingMessageId(null)
+      setEditingMessageContent('')
+    },
+    onError: () => {
+      toast.error('Cập nhật tin nhắn thất bại')
+    }
+  })
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: (messageId: string) => chatApi.ChatApis.deleteMessage(messageId),
+    onSuccess: () => {
+      toast.success('Xóa tin nhắn thành công')
+    },
+    onError: () => {
+      toast.error('Xóa tin nhắn thất bại')
+    }
+  })
 
   useEffect(() => {
     const handleResize = () => {
@@ -77,6 +126,7 @@ export default function ChatMyMessagesSystem() {
     }
   }, [sidebarVisible, isMobile])
 
+  // Initialize SignalR connection to ChatMessageHub
   useEffect(() => {
     if (!userProfile?.id) return
 
@@ -89,48 +139,72 @@ export default function ChatMyMessagesSystem() {
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl('https://hoalacrent.io.vn/chathub', {
+          .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
             accessTokenFactory: () => token
           })
           .configureLogging(signalR.LogLevel.Information)
+          .withAutomaticReconnect()
           .build()
 
-        newConnection.on('ReceiveGroupMessage', (response: any) => {
-          const newMessage: SignalRMessage = {
-            id: response.id || `signalr-${Date.now()}-${Math.random()}`,
-            groupChatId: response.groupChatId,
-            senderId: response.senderId,
-            message: response.message,
-            senderName: response.senderName || 'Unknown',
-            avatar: response.avatar,
-            sentAt: new Date(response.sentAt || new Date()),
-            isCurrentUser: response.senderId === userProfile?.id
+        // Register SignalR event handlers
+        newConnection.on('NewMessageReceived', (data: NewMessageReceived) => {
+          const newMessage: Message = {
+            id: data.id,
+            groupChatId: data.groupChatId,
+            senderId: data.senderId,
+            message: data.message,
+            senderName: data.senderName,
+            avatar: data.avatar,
+            sentAt: new Date(data.sentAt),
+            isCurrentUser: data.senderId === userProfile?.id,
+            isUrl: data.isUrl
           }
 
-          // Only add if not already exists (prevent duplicates)
-          setRealtimeMessages((prev) => {
-            const isImageMessage =
-              newMessage.message.startsWith('http') &&
-              (newMessage.message.includes('.jpg') ||
-                newMessage.message.includes('.png') ||
-                newMessage.message.includes('.jpeg') ||
-                newMessage.message.includes('.gif') ||
-                newMessage.message.includes('.webp'))
-
-            const exists = prev.some((msg) => {
-              const isSameUser = msg.senderId === newMessage.senderId
-              const isSameMessage = msg.message === newMessage.message
-
-              // For image messages, use larger time tolerance due to upload delay
-              const timeLimit = isImageMessage ? 15000 : 5000 // 15s for images, 5s for text
-              const isSameTime = Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < timeLimit
-
-              return isSameMessage && isSameUser && isSameTime
-            })
-
+          setMessages((prev) => {
+            const exists = prev.some((msg) => msg.id === newMessage.id)
             if (exists) return prev
             return [...prev, newMessage]
           })
+
+          // Invalidate group chats to update last message
+          queryClient.invalidateQueries({ queryKey: ['group-chats'] })
+        })
+
+        newConnection.on('MessageSentResult', (data: any) => {
+          if (data.success) {
+            console.log('Message sent successfully:', data.messageId)
+          } else {
+            toast.error(data.error || 'Gửi tin nhắn thất bại')
+          }
+        })
+
+        newConnection.on('ChatMessagesLoaded', (data: any) => {
+          console.log('Chat messages loaded:', data)
+        })
+
+        newConnection.on('MessageUpdated', (data: MessageUpdated) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === data.messageId ? { ...msg, message: data.newMessage, sentAt: new Date(data.updatedAt) } : msg
+            )
+          )
+        })
+
+        newConnection.on('MessageDeleted', (data: MessageDeleted) => {
+          setMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
+        })
+
+        newConnection.on('MessagesMarkedAsRead', (data: any) => {
+          console.log('Messages marked as read:', data)
+        })
+
+        newConnection.on('MessageReadByUser', (data: any) => {
+          console.log('Message read by user:', data)
+        })
+
+        newConnection.on('MessageError', (data: MessageError) => {
+          toast.error(data.error)
+          console.error('Message error:', data)
         })
 
         newConnection.onclose(() => {
@@ -143,6 +217,10 @@ export default function ChatMyMessagesSystem() {
 
         newConnection.onreconnected(() => {
           setIsConnected(true)
+          // Rejoin current group if exists
+          if (selectedChatId) {
+            newConnection.invoke('JoinChatGroup', selectedChatId)
+          }
         })
 
         // Start connection
@@ -158,7 +236,14 @@ export default function ChatMyMessagesSystem() {
 
     return () => {
       if (connection) {
-        connection.off('ReceiveGroupMessage')
+        connection.off('NewMessageReceived')
+        connection.off('MessageSentResult')
+        connection.off('ChatMessagesLoaded')
+        connection.off('MessageUpdated')
+        connection.off('MessageDeleted')
+        connection.off('MessagesMarkedAsRead')
+        connection.off('MessageReadByUser')
+        connection.off('MessageError')
         connection.stop()
       }
     }
@@ -166,219 +251,77 @@ export default function ChatMyMessagesSystem() {
 
   const { data: groupChatsData, isLoading: isLoadingChats } = useQuery({
     queryKey: ['group-chats'],
-    queryFn: userApi.getGroupChats,
+    queryFn: async () => {
+      const response = await chatApi.GroupChat.getGroupChatByUserId(userProfile?.id || '')
+      return response
+    },
+    enabled: !!userProfile?.id,
     staleTime: 5 * 60 * 1000
   })
 
   const filteredChats = useMemo(() => {
-    if (!groupChatsData?.data || !searchTerm) return groupChatsData?.data || []
-    return groupChatsData.data.filter((chat) => chat.groupChatName.toLowerCase().includes(searchTerm.toLowerCase()))
+    if (!groupChatsData?.data || !searchTerm) return (groupChatsData?.data || []) as GroupChat[]
+    return (groupChatsData.data as GroupChat[]).filter((chat) =>
+      chat.groupChatName.toLowerCase().includes(searchTerm.toLowerCase())
+    )
   }, [groupChatsData, searchTerm])
 
   const selectedChat = useMemo(() => {
-    return groupChatsData?.data?.find((chat) => chat.groupChatId === selectedChatId)
-  }, [groupChatsData, selectedChatId])
+    return filteredChats.find((chat) => chat.groupChatId === selectedChatId)
+  }, [filteredChats, selectedChatId])
 
-  // Fetch initial data to get totalPages
-  useEffect(() => {
-    async function fetchInitialData() {
-      if (selectedChatId) {
-        try {
-          const response = (await userApi.getChatMessagesWithPagging({
-            groupChatId: selectedChatId,
-            pageSize: 20,
-            page: 1
-          })) as any
-          setTotalPages(response.data.totalPages)
-        } catch (error) {
-          console.error('Error fetching initial chat data:', error)
-        }
-      }
-    }
-
-    if (selectedChatId) {
-      fetchInitialData()
-    }
-  }, [selectedChatId])
-
-  const {
-    data: chatData,
-    fetchPreviousPage,
-    hasPreviousPage,
-    isFetchingPreviousPage,
-    isLoading: isLoadingMessages
-  } = useInfiniteQuery({
-    queryKey: ['chat-messages', selectedChatId, totalPages],
-    queryFn: async ({ pageParam = Number(totalPages) }) => {
-      if (!selectedChatId) throw new Error('No chat selected')
-
-      const res = (await userApi.getChatMessagesWithPagging({
+  // Load messages when chat is selected
+  const { data: chatMessagesData, isLoading: isLoadingMessages } = useQuery({
+    queryKey: ['chat-messages', selectedChatId],
+    queryFn: async () => {
+      if (!selectedChatId) return null
+      const input: GetChatMessagesInput = {
         groupChatId: selectedChatId,
-        pageSize: 10,
-        page: pageParam
-      })) as any
-      return res.data as ChatMessagesResponse
-    },
-    getPreviousPageParam: (firstPage: ChatMessagesResponse) => {
-      if (click && firstPage.currentPage < firstPage.totalPages) {
-        return firstPage.currentPage + 1
+        page: 1,
+        pageSize: 50
       }
-      return undefined
+      const response = await chatApi.ChatApis.getChatMessages(input)
+      return response
     },
-    getNextPageParam: () => undefined,
-    initialPageParam: 1,
-    enabled: !!selectedChatId && !!totalPages,
-    staleTime: 5 * 60 * 1000,
-    select: (data) => ({
-      pages: [...data.pages],
-      pageParams: [...data.pageParams]
-    })
+    enabled: !!selectedChatId
   })
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: {
-      message: string
-      senderId: string
-      senderName: string
-      avatar: string | null
-      groupChatId: string
-      isImage?: boolean
-    }) => {
-      if (!connection || !isConnected) {
-        throw new Error('SignalR connection not established')
-      }
-
-      return connection.invoke('SendMessage', messageData)
-    },
-    onSuccess: () => {
-      setMessageInput('')
-      setSelectedImage(null)
-      setImagePreview(null)
-      setIsUploadingImage(false)
-    },
-    onError: (error) => {
-      console.error('Error sending message:', error)
-      setIsUploadingImage(false)
+  useEffect(() => {
+    if (chatMessagesData?.chatMessages) {
+      const formattedMessages: Message[] = chatMessagesData.chatMessages.map((msg) => ({
+        id: msg.id,
+        groupChatId: msg.groupChatId,
+        senderId: msg.senderId,
+        message: msg.message,
+        senderName: msg.senderName,
+        avatar: msg.avatar || undefined,
+        sentAt: new Date(msg.createdAt),
+        isCurrentUser: msg.senderId === userProfile?.id,
+        isUrl: msg.isUrl
+      }))
+      setMessages(formattedMessages)
     }
-  })
-
-  const allMessages = useMemo(() => {
-    const fetchedMessages = chatData?.pages?.flatMap((page: ChatMessagesResponse) => page?.chatMessages) ?? []
-    const currentChatRealtimeMessages = realtimeMessages.filter((msg) => msg.groupChatId === selectedChatId)
-
-    // Convert realtime messages to ChatMessage format
-    const convertedRealtimeMessages: ChatMessage[] = currentChatRealtimeMessages.map((msg) => ({
-      id: msg.id || `temp-${Date.now()}-${Math.random()}`,
-      groupChatId: msg.groupChatId,
-      senderId: msg.senderId,
-      senderName: msg.senderName,
-      avatar: msg.avatar || '',
-      message: msg.message,
-      createdAt: msg.sentAt.toISOString(),
-      createAtNumbers: msg.sentAt.getTime(),
-      updatedAt: null,
-      updateAtNumbers: null
-    }))
-
-    // Combine and remove duplicates based on message content, sender and timestamp
-    const allMessages = [...fetchedMessages, ...convertedRealtimeMessages]
-    const uniqueMessages = allMessages.reduce((acc: ChatMessage[], current) => {
-      const duplicate = acc.find(
-        (msg) =>
-          msg.message === current.message &&
-          msg.senderId === current.senderId &&
-          Math.abs(new Date(msg.createdAt).getTime() - new Date(current.createdAt).getTime()) < 5000 // 5 seconds tolerance
-      )
-      if (!duplicate) {
-        acc.push(current)
-      }
-      return acc
-    }, [])
-
-    return uniqueMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-  }, [chatData, realtimeMessages, selectedChatId])
-
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const target = entries[0]
-      if (target.isIntersecting && hasPreviousPage && !isFetchingPreviousPage) {
-        const currentScrollHeight = chatContainerRef.current?.scrollHeight || 0
-        fetchPreviousPage().then(() => {
-          requestAnimationFrame(() => {
-            if (chatContainerRef.current) {
-              const newScrollHeight = chatContainerRef.current.scrollHeight
-              chatContainerRef.current.scrollTop = newScrollHeight - currentScrollHeight
-            }
-          })
-        })
-      }
-    },
-    [fetchPreviousPage, hasPreviousPage, isFetchingPreviousPage]
-  )
+  }, [chatMessagesData, userProfile?.id])
 
   useEffect(() => {
-    const element = loadPreviousRef.current
-    if (element && selectedChatId) {
-      observerRef.current = new IntersectionObserver(handleObserver, {
-        threshold: 0.5,
-        rootMargin: '50px'
-      })
-      observerRef.current.observe(element)
-    }
-    return () => {
-      if (observerRef.current) observerRef.current.disconnect()
-    }
-  }, [handleObserver, selectedChatId])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
-  // Handle scroll behavior - simplified and more reliable auto-scrolling
-  useEffect(() => {
-    const container = chatContainerRef.current
-    if (!container || !messagesEndRef.current || isFetchingPreviousPage) return
-
-    // Check if this is a new message (not just a re-render)
-    const currentMessageCount = allMessages.length
-    const isNewMessage = currentMessageCount > lastMessageCount.current
-    lastMessageCount.current = currentMessageCount
-
-    // Auto-scroll for new messages when user is near bottom or on initial load
-    if ((isNewMessage || isInitialLoad.current) && allMessages.length > 0) {
-      const container = chatContainerRef.current
-      const isNearBottom = container
-        ? container.scrollHeight - container.scrollTop - container.clientHeight < 100
-        : true
-
-      // Auto-scroll if user is near bottom, it's initial load, or it's user's own message
-      const lastMessage = allMessages[allMessages.length - 1]
-      const isOwnMessage = lastMessage?.senderId === userProfile?.id
-
-      if (isInitialLoad.current || isNearBottom || isOwnMessage) {
-        const scrollBehavior = isInitialLoad.current ? 'auto' : 'smooth'
-        setTimeout(
-          () => {
-            messagesEndRef.current?.scrollIntoView({ behavior: scrollBehavior })
-          },
-          isInitialLoad.current ? 100 : 150
-        )
-      }
-    }
-
-    // Mark initial load as complete after first render
-    if (isInitialLoad.current && allMessages.length > 0) {
-      isInitialLoad.current = false
-    }
-  }, [allMessages.length, isFetchingPreviousPage, userProfile?.id])
-
-  const handleChatSelect = (chatId: string, chatName: string) => {
+  const handleChatSelect = async (chatId: string, chatName: string) => {
     setSelectedChatId(chatId)
-
-    isInitialLoad.current = true
-    shouldAutoScroll.current = true
-    lastMessageCount.current = 0
-    animatedMessages.current.clear()
     generateNameId({ name: chatName, id: chatId })
 
     if (isMobile) {
       setSidebarVisible(false)
+    }
+
+    // Join the chat group via SignalR
+    if (connection && isConnected) {
+      try {
+        await connection.invoke('JoinChatGroup', chatId)
+      } catch (error) {
+        console.error('Error joining chat group:', error)
+      }
     }
   }
 
@@ -400,36 +343,60 @@ export default function ChatMyMessagesSystem() {
   }
 
   const handleSendMessage = async () => {
-    if ((!messageInput.trim() && !selectedImage) || !selectedChatId || !userProfile) return
+    if ((!messageInput.trim() && !selectedImage) || !selectedChatId || !userProfile || !connection || !isConnected)
+      return
 
     try {
-      let imageUrl = null
-      let currentAvatar = userProfile.avatar
+      let messageContent = messageInput.trim()
+      let isUrl = false
 
       if (selectedImage) {
         setIsUploadingImage(true)
         const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
-        imageUrl = uploadResult.data || uploadResult
-
-        if (imageUrl && !userProfile.avatar) {
-          currentAvatar = imageUrl as any
-        }
+        messageContent = (uploadResult.data || uploadResult) as string
+        isUrl = true
       }
 
       const messageData = {
-        message: selectedImage ? imageUrl || 'Image' : messageInput.trim(),
-        senderId: userProfile.id,
-        senderName: `${userProfile.firstName} ${userProfile.lastName}`.trim(),
-        avatar: currentAvatar,
         groupChatId: selectedChatId,
-        isImage: !!selectedImage
+        message: messageContent,
+        isUrl: isUrl
       }
 
-      sendMessageMutation.mutate(messageData as any)
+      await connection.invoke('SendMessage', messageData)
+      setMessageInput('')
+      setSelectedImage(null)
+      setImagePreview(null)
+      setIsUploadingImage(false)
     } catch (error) {
       console.error('Error handling message send:', error)
       setIsUploadingImage(false)
       toast.error('Gửi tin nhắn thất bại')
+    }
+  }
+
+  const handleEditMessage = (message: Message) => {
+    setEditingMessageId(message.id)
+    setEditingMessageContent(message.message)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editingMessageContent.trim()) return
+
+    await updateMessageMutation.mutateAsync({
+      messageId: editingMessageId,
+      newContent: editingMessageContent.trim()
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingMessageContent('')
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
+      await deleteMessageMutation.mutateAsync(messageId)
     }
   }
 
@@ -447,7 +414,11 @@ export default function ChatMyMessagesSystem() {
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSendMessage()
+      if (editingMessageId) {
+        handleSaveEdit()
+      } else {
+        handleSendMessage()
+      }
     }
   }
 
@@ -537,30 +508,6 @@ export default function ChatMyMessagesSystem() {
                     }
                   }}
                   onClick={() => handleChatSelect(chat.groupChatId, chat.groupChatName)}
-                  onMouseEnter={() => {
-                    const element = chatButtonRefs.current.get(chat.groupChatId)
-                    if (element) {
-                      gsap.to(element, { x: 4, duration: 0.2 })
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    const element = chatButtonRefs.current.get(chat.groupChatId)
-                    if (element) {
-                      gsap.to(element, { x: 0, duration: 0.2 })
-                    }
-                  }}
-                  onMouseDown={() => {
-                    const element = chatButtonRefs.current.get(chat.groupChatId)
-                    if (element) {
-                      gsap.to(element, { scale: 0.98, duration: 0.1 })
-                    }
-                  }}
-                  onMouseUp={() => {
-                    const element = chatButtonRefs.current.get(chat.groupChatId)
-                    if (element) {
-                      gsap.to(element, { scale: 1, duration: 0.1 })
-                    }
-                  }}
                   className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
                     selectedChatId === chat.groupChatId
                       ? 'bg-gradient-to-r from-cyan-50 to-blue-50 border-l-4 border-cyan-400'
@@ -570,8 +517,8 @@ export default function ChatMyMessagesSystem() {
                   <div className='flex items-center space-x-3'>
                     <div className='relative'>
                       <Avatar className='w-12 h-12 rounded-full object-cover'>
-                        <AvatarImage src={selectedChat?.avatarGroupUrl || selectedChat?.groupChatName} />
-                        <AvatarFallback>{selectedChat?.groupChatName.slice(0, 3)}</AvatarFallback>
+                        <AvatarImage src={chat.avatarGroupUrl || chat.groupChatName} />
+                        <AvatarFallback>{chat.groupChatName.slice(0, 3)}</AvatarFallback>
                       </Avatar>
 
                       <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white'></div>
@@ -580,11 +527,15 @@ export default function ChatMyMessagesSystem() {
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center justify-between'>
                         <h3 className='font-semibold text-gray-900 truncate'>{chat.groupChatName}</h3>
-                        <span className='text-xs text-gray-500'>{formatTime(new Date(chat.chatMessage.sentAt))}</span>
+                        {chat.lastMessage && (
+                          <span className='text-xs text-gray-500'>{formatTime(new Date(chat.lastMessage.sentAt))}</span>
+                        )}
                       </div>
-                      <p className='text-sm text-gray-600 truncate mt-1'>
-                        {chat.chatMessage.senderName}: {chat.chatMessage.content}
-                      </p>
+                      {chat.lastMessage && (
+                        <p className='text-sm text-gray-600 truncate mt-1'>
+                          {chat.lastMessage.senderName}: {chat.lastMessage.content}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </button>
@@ -610,65 +561,19 @@ export default function ChatMyMessagesSystem() {
             </div>
 
             {/* Messages Container */}
-            <div
-              ref={chatContainerRef}
-              className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50'
-              onScroll={() => {
-                // Track user manual scrolling - simplified logic
-                const container = chatContainerRef.current
-                if (container) {
-                  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50
-                  shouldAutoScroll.current = isAtBottom
-                }
-              }}
-            >
-              {/* Show button only when at page 1 and click is false */}
-              {chatData?.pages && chatData.pages.length === 1 && !click && (
-                <div className='flex justify-center py-4 relative z-10'>
-                  <button
-                    onClick={() => {
-                      setClick(true)
-                    }}
-                    className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer'
-                  >
-                    Bạn có muốn tải tin nhắn cũ hay không?
-                  </button>
-                </div>
-              )}
-
-              {/* Load previous messages trigger */}
-              <div ref={loadPreviousRef} className='h-1'>
-                {isFetchingPreviousPage && (
-                  <div className='flex justify-center py-2'>
-                    <div className='animate-spin w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full'></div>
-                  </div>
-                )}
-              </div>
-
-              {/* Messages */}
+            <div ref={chatContainerRef} className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50'>
               {isLoadingMessages ? (
                 <div className='flex items-center justify-center h-32'>
                   <div className='animate-spin w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full'></div>
                 </div>
               ) : (
-                allMessages.map((message) => {
-                  const messageKey = message.id
-                  return (
+                messages
+                  .filter((msg) => msg.groupChatId === selectedChatId)
+                  .map((message) => (
                     <div
                       key={message.id}
-                      ref={(el) => {
-                        if (el && !animatedMessages.current.has(messageKey)) {
-                          messageRefs.current.set(messageKey, el)
-                          animatedMessages.current.add(messageKey)
-                          gsap.fromTo(
-                            el,
-                            { opacity: 0, y: 20 },
-                            { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
-                          )
-                        }
-                      }}
-                      className={`flex items-start space-x-3 ${
-                        message.senderId === userProfile?.id ? 'flex-row-reverse space-x-reverse' : ''
+                      className={`flex items-start space-x-3 group ${
+                        message.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
                       }`}
                     >
                       <img
@@ -680,45 +585,72 @@ export default function ChatMyMessagesSystem() {
                         className='w-8 h-8 rounded-full object-cover'
                       />
 
-                      <div
-                        className={`max-w-[70%] ${message.senderId === userProfile?.id ? 'items-end' : 'items-start'}`}
-                      >
+                      <div className={`max-w-[70%] ${message.isCurrentUser ? 'items-end' : 'items-start'}`}>
                         <div
                           className={`flex items-center space-x-2 mb-1 ${
-                            message.senderId === userProfile?.id ? 'justify-end' : 'justify-start'
+                            message.isCurrentUser ? 'justify-end' : 'justify-start'
                           }`}
                         >
                           <span className='text-sm font-medium text-gray-700'>{message.senderName}</span>
-                          <span className='text-xs text-gray-500'>{formatTime(new Date(message.createdAt))}</span>
+                          <span className='text-xs text-gray-500'>{formatTime(message.sentAt)}</span>
                         </div>
 
-                        <div
-                          className={`px-4 py-2 rounded-lg max-w-full break-words ${
-                            message.senderId === userProfile?.id
-                              ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-sm'
-                              : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
-                          }`}
-                        >
-                          {message.message.startsWith('http') &&
-                          (message.message.includes('.jpg') ||
-                            message.message.includes('.png') ||
-                            message.message.includes('.jpeg') ||
-                            message.message.includes('.gif') ||
-                            message.message.includes('.webp')) ? (
-                            <img
-                              src={message.message}
-                              alt='Shared image'
-                              className='max-w-full h-auto rounded-lg'
-                              style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                        <div className='relative'>
+                          <div
+                            className={`px-4 py-2 rounded-lg max-w-full break-words ${
+                              message.isCurrentUser
+                                ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-sm'
+                                : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
+                            }`}
+                          >
+                            {editingMessageId === message.id ? (
+                              <div className='flex items-center space-x-2'>
+                                <input
+                                  type='text'
+                                  value={editingMessageContent}
+                                  onChange={(e) => setEditingMessageContent(e.target.value)}
+                                  onKeyPress={handleKeyPress as any}
+                                  className='text-sm px-2 py-1 rounded text-gray-900'
+                                />
+                                <button onClick={handleSaveEdit}>
+                                  <Check className='w-4 h-4' />
+                                </button>
+                                <button onClick={handleCancelEdit}>
+                                  <X className='w-4 h-4' />
+                                </button>
+                              </div>
+                            ) : message.isUrl ? (
+                              <img
+                                src={message.message}
+                                alt='Shared image'
+                                className='max-w-full h-auto rounded-lg'
+                                style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                            )}
+                          </div>
+
+                          {/* Message actions */}
+                          {message.isCurrentUser && editingMessageId !== message.id && (
+                            <div className='absolute right-0 top-0 -mt-6 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1'>
+                              {!message.isUrl && (
+                                <button className='text-xs p-1' onClick={() => handleEditMessage(message)}>
+                                  <Edit2 className='w-3 h-3' />
+                                </button>
+                              )}
+                              <button
+                                className='text-xs p-1 text-red-600'
+                                onClick={() => handleDeleteMessage(message.id)}
+                              >
+                                <Trash2 className='w-3 h-3' />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
                     </div>
-                  )
-                })
+                  ))
               )}
 
               <div ref={messagesEndRef} />
@@ -758,13 +690,9 @@ export default function ChatMyMessagesSystem() {
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={
-                      imagePreview
-                        ? 'Thêm mô tả cho ảnh (tùy chọn)...'
-                        : isConnected
-                        ? 'Nhập tin nhắn...'
-                        : 'Connecting...'
+                      imagePreview ? 'Thêm mô tả cho ảnh (tùy chọn)...' : isConnected ? 'Nhập tin nhắn...' : 'Connecting...'
                     }
-                    disabled={!isConnected || sendMessageMutation.isPending || isUploadingImage}
+                    disabled={!isConnected || isUploadingImage}
                     className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all'
                   />
                 </div>
@@ -779,10 +707,7 @@ export default function ChatMyMessagesSystem() {
                       className='hidden'
                       id='image-upload'
                     />
-                    <label
-                      htmlFor='image-upload'
-                      className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'
-                    >
+                    <label htmlFor='image-upload' className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'>
                       <ImagePlus className='w-5 h-5' />
                     </label>
                   </div>
@@ -808,15 +733,10 @@ export default function ChatMyMessagesSystem() {
                   {/* Send Button */}
                   <button
                     onClick={handleSendMessage}
-                    disabled={
-                      (!messageInput.trim() && !selectedImage) ||
-                      !isConnected ||
-                      sendMessageMutation.isPending ||
-                      isUploadingImage
-                    }
+                    disabled={(!messageInput.trim() && !selectedImage) || !isConnected || isUploadingImage}
                     className='px-4 py-2 bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-lg hover:from-cyan-500 hover:to-blue-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2'
                   >
-                    {sendMessageMutation.isPending || isUploadingImage ? (
+                    {isUploadingImage ? (
                       <div className='animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full'></div>
                     ) : (
                       <Send className='w-4 h-4' />

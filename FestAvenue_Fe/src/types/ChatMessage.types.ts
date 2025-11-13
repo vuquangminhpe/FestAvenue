@@ -1,3 +1,4 @@
+// Legacy types
 export interface bodyGetMessagesFilterPaging {
   groupChatId: string
   page: number
@@ -7,6 +8,22 @@ export interface bodyGetMessagesFilterPaging {
   toDate?: string
   isUrl?: boolean
 }
+
+// New types matching SignalR ChatMessageHub
+export interface CreateChatMessageInput {
+  groupChatId: string
+  message?: string
+  isUrl?: boolean
+}
+
+export interface GetChatMessagesInput {
+  groupChatId: string
+  page?: number
+  pageSize?: number
+  keyword?: string
+  isUrl?: boolean
+}
+
 export interface Member {
   userId: string
   email: string
@@ -24,6 +41,7 @@ export interface EventGroup {
   createdAt: string // ISO date string
   updatedAt: string // ISO date string
 }
+
 export interface ChatMessage {
   message: string
   senderId: string
@@ -42,4 +60,52 @@ export interface ChatMessageResponse {
   currentPage: number
   totalPages: number
   pageSize: number
+}
+
+// SignalR event types
+export interface NewMessageReceived {
+  id: string
+  groupChatId: string
+  senderId: string
+  senderName: string
+  message: string
+  avatar?: string
+  sentAt: string
+  isUrl: boolean
+}
+
+export interface MessageSentResult {
+  success: boolean
+  messageId?: string
+  error?: string
+}
+
+export interface MessageUpdated {
+  messageId: string
+  groupChatId: string
+  newMessage: string
+  updatedAt: string
+}
+
+export interface MessageDeleted {
+  messageId: string
+  groupChatId: string
+}
+
+export interface MessagesMarkedAsRead {
+  groupChatId: string
+  userId: string
+  markedAt: string
+}
+
+export interface MessageReadByUser {
+  messageId: string
+  userId: string
+  userName: string
+  readAt: string
+}
+
+export interface MessageError {
+  error: string
+  details?: string
 }

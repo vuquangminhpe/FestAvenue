@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useRef } from 'react'
 import * as signalR from '@microsoft/signalr'
-import { Send, MessageCircle, X, User, Trash2, ImagePlus } from 'lucide-react'
+import { Send, MessageCircle, X, User, Trash2, ImagePlus, Edit2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,36 +12,37 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
+import chatApi from '@/apis/chat.api'
 import { formatTime } from '@/utils/utils'
+import type {
+  NewMessageReceived,
+  MessageUpdated,
+  MessageDeleted,
+  MessageError,
+  GetChatMessagesInput
+} from '@/types/ChatMessage.types'
 
 interface Message {
-  id?: string
-  groupId: string
-  userId: string
+  id: string
+  groupChatId: string
+  senderId: string
   message: string
   senderName: string
   avatar?: string
   sentAt: Date
   isCurrentUser?: boolean
+  isUrl?: boolean
 }
 
 interface ChatSystemProps {
   groupChatId: string
-  organizationName: string
   isVisible: boolean
   onClose: () => void
-  requestType: 'request_admin' | 'request_user' | 'dispute'
 }
 
-export default function ChatSystem({
-  groupChatId,
-  organizationName,
-  isVisible,
-  onClose,
-  requestType
-}: ChatSystemProps) {
+export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSystemProps) {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
@@ -51,10 +52,13 @@ export default function ChatSystem({
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageContent, setEditingMessageContent] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const userProfile = useUsersStore((state) => state.isProfile)
-  const deletedGroupChatOrganizationMutation = useMutation({
-    mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId)
+
+  const deletedGroupChatMutation = useMutation({
+    mutationFn: (groupChatId: string) => chatApi.GroupChat.deleteGroupChatByGroupChatId(groupChatId)
   })
 
   const uploadsImagesMutation = useMutation({
@@ -69,8 +73,63 @@ export default function ChatSystem({
     }
   })
 
+  const updateMessageMutation = useMutation({
+    mutationFn: ({ messageId, newContent }: { messageId: string; newContent: string }) =>
+      chatApi.ChatApis.updateMessage(messageId, newContent),
+    onSuccess: () => {
+      toast.success('Cập nhật tin nhắn thành công')
+      setEditingMessageId(null)
+      setEditingMessageContent('')
+    },
+    onError: () => {
+      toast.error('Cập nhật tin nhắn thất bại')
+    }
+  })
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: (messageId: string) => chatApi.ChatApis.deleteMessage(messageId),
+    onSuccess: () => {
+      toast.success('Xóa tin nhắn thành công')
+    },
+    onError: () => {
+      toast.error('Xóa tin nhắn thất bại')
+    }
+  })
+
+  // Load initial messages
+  const { data: initialMessages } = useQuery({
+    queryKey: ['chat-messages', groupChatId],
+    queryFn: async () => {
+      const input: GetChatMessagesInput = {
+        groupChatId,
+        page: 1,
+        pageSize: 50
+      }
+      const response = await chatApi.ChatApis.getChatMessages(input)
+      return response
+    },
+    enabled: !!groupChatId && isVisible
+  })
+
+  useEffect(() => {
+    if (initialMessages?.chatMessages) {
+      const formattedMessages: Message[] = initialMessages.chatMessages.map((msg) => ({
+        id: msg.id,
+        groupChatId: msg.groupChatId,
+        senderId: msg.senderId,
+        message: msg.message,
+        senderName: msg.senderName,
+        avatar: msg.avatar || undefined,
+        sentAt: new Date(msg.createdAt),
+        isCurrentUser: msg.senderId === userProfile?.id,
+        isUrl: msg.isUrl
+      }))
+      setMessages(formattedMessages)
+    }
+  }, [initialMessages, userProfile?.id])
+
   const handleDeleteGroupChat = () => {
-    deletedGroupChatOrganizationMutation.mutateAsync(groupChatId, {
+    deletedGroupChatMutation.mutateAsync(groupChatId, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['group-chats'] })
         toast.success('Xóa group chat thành công!')
@@ -81,50 +140,8 @@ export default function ChatSystem({
       }
     })
   }
-  const getChatTitle = () => {
-    switch (requestType) {
-      case 'request_admin':
-        return `Yêu cầu admin - ${organizationName}`
-      case 'request_user':
-        return `Yêu cầu tham gia - ${organizationName}`
-      case 'dispute':
-        return `Tranh chấp tổ chức - ${organizationName}`
-      default:
-        return `Chat - ${organizationName}`
-    }
-  }
 
-  // Get chat description based on request type
-  const getChatDescription = () => {
-    switch (requestType) {
-      case 'request_admin':
-        return 'Yêu cầu quyền admin cho tầng làm việc cùng tòa nhà'
-      case 'request_user':
-        return 'Yêu cầu tham gia tổ chức từ người dùng đã tạo trước'
-      case 'dispute':
-        return 'Tranh chấp về quyền sở hữu tổ chức'
-      default:
-        return 'Cuộc trò chuyện về tổ chức'
-    }
-  }
-
-  // Get initial message based on request type
-  const getInitialMessage = () => {
-    const userName = `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim() || 'Người dùng'
-
-    switch (requestType) {
-      case 'request_admin':
-        return `Xin chào! Tôi là ${userName}. Tôi đang làm việc tại cùng tòa nhà với tổ chức "${organizationName}" và muốn yêu cầu quyền admin để quản lý tầng làm việc của tôi. Tôi có thể cung cấp bằng chứng về việc làm việc tại đây.`
-      case 'request_user':
-        return `Xin chào! Tôi là ${userName}. Tôi muốn tham gia vào tổ chức "${organizationName}" mà bạn đã tạo. Có thể tôi đã nhầm lẫn khi tạo tổ chức mới. Bạn có thể cho tôi tham gia được không?`
-      case 'dispute':
-        return `Xin chào! Tôi là ${userName}. Tôi tin rằng có vấn đề với quyền sở hữu tổ chức "${organizationName}". Tôi có thể cung cấp bằng chứng về quyền hợp pháp của mình đối với tổ chức này. Chúng ta có thể thảo luận để giải quyết vấn đề này.`
-      default:
-        return `Xin chào! Tôi muốn thảo luận về tổ chức "${organizationName}".`
-    }
-  }
-
-  // Initialize SignalR connection
+  // Initialize SignalR connection to ChatMessageHub
   useEffect(() => {
     if (!isVisible || !groupChatId) return
 
@@ -139,48 +156,79 @@ export default function ChatSystem({
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl('https://hoalacrent.io.vn/chathub', {
+          .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
             accessTokenFactory: () => token
           })
           .configureLogging(signalR.LogLevel.Information)
+          .withAutomaticReconnect()
           .build()
 
-        newConnection.on('ReceiveGroupMessage', (response: any) => {
-          const newMessage: Message = {
-            id: response.id || `signalr-${Date.now()}-${Math.random()}`,
-            groupId: response.groupChatId,
-            userId: response.senderId,
-            message: response.message,
-            senderName: response.senderName || 'Unknown',
-            avatar: response.avatar,
-            sentAt: new Date(response.sentAt || new Date()),
-            isCurrentUser: response.senderId === userProfile?.id
-          }
+        // Register SignalR event handlers
+        newConnection.on('NewMessageReceived', (data: NewMessageReceived) => {
+          if (data.groupChatId === groupChatId) {
+            const newMessage: Message = {
+              id: data.id,
+              groupChatId: data.groupChatId,
+              senderId: data.senderId,
+              message: data.message,
+              senderName: data.senderName,
+              avatar: data.avatar,
+              sentAt: new Date(data.sentAt),
+              isCurrentUser: data.senderId === userProfile?.id,
+              isUrl: data.isUrl
+            }
 
-          // Only add if not already exists (prevent duplicates)
-          setMessages((prev) => {
-            const isImageMessage =
-              newMessage.message.startsWith('http') &&
-              (newMessage.message.includes('.jpg') ||
-                newMessage.message.includes('.png') ||
-                newMessage.message.includes('.jpeg') ||
-                newMessage.message.includes('.gif') ||
-                newMessage.message.includes('.webp'))
-
-            const exists = prev.some((msg) => {
-              const isSameUser = msg.userId === newMessage.userId
-              const isSameMessage = msg.message === newMessage.message
-
-              // For image messages, use larger time tolerance due to upload delay
-              const timeLimit = isImageMessage ? 15000 : 5000 // 15s for images, 5s for text
-              const isSameTime = Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < timeLimit
-
-              return isSameMessage && isSameUser && isSameTime
+            setMessages((prev) => {
+              const exists = prev.some((msg) => msg.id === newMessage.id)
+              if (exists) return prev
+              return [...prev, newMessage]
             })
+          }
+        })
 
-            if (exists) return prev
-            return [...prev, newMessage]
-          })
+        newConnection.on('MessageSentResult', (data: any) => {
+          if (data.success) {
+            console.log('Message sent successfully:', data.messageId)
+          } else {
+            toast.error(data.error || 'Gửi tin nhắn thất bại')
+          }
+        })
+
+        newConnection.on('ChatMessagesLoaded', (data: any) => {
+          console.log('Chat messages loaded:', data)
+        })
+
+        newConnection.on('MessageUpdated', (data: MessageUpdated) => {
+          if (data.groupChatId === groupChatId) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === data.messageId
+                  ? { ...msg, message: data.newMessage, sentAt: new Date(data.updatedAt) }
+                  : msg
+              )
+            )
+            toast.success('Tin nhắn đã được cập nhật')
+          }
+        })
+
+        newConnection.on('MessageDeleted', (data: MessageDeleted) => {
+          if (data.groupChatId === groupChatId) {
+            setMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
+            toast.success('Tin nhắn đã được xóa')
+          }
+        })
+
+        newConnection.on('MessagesMarkedAsRead', (data: any) => {
+          console.log('Messages marked as read:', data)
+        })
+
+        newConnection.on('MessageReadByUser', (data: any) => {
+          console.log('Message read by user:', data)
+        })
+
+        newConnection.on('MessageError', (data: MessageError) => {
+          toast.error(data.error)
+          console.error('Message error:', data)
         })
 
         // Handle connection events
@@ -197,6 +245,8 @@ export default function ChatSystem({
         newConnection.onreconnected(() => {
           setIsConnected(true)
           console.log('SignalR reconnected')
+          // Rejoin group after reconnection
+          newConnection.invoke('JoinChatGroup', groupChatId)
         })
 
         // Start connection
@@ -204,17 +254,8 @@ export default function ChatSystem({
         setIsConnected(true)
         setConnection(newConnection)
 
-        // Send initial message
-        const initialMessage = getInitialMessage()
-        const messageData = {
-          message: initialMessage,
-          senderId: userProfile?.id || '',
-          senderName: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim() || 'Anonymous',
-          avatar: userProfile?.avatar || null,
-          groupChatId: groupChatId
-        }
-
-        await newConnection.invoke('SendMessage', messageData)
+        // Join chat group
+        await newConnection.invoke('JoinChatGroup', groupChatId)
 
         toast.success('Kết nối chat thành công')
       } catch (error) {
@@ -229,7 +270,14 @@ export default function ChatSystem({
 
     return () => {
       if (connection) {
-        connection.off('ReceiveGroupMessage')
+        connection.off('NewMessageReceived')
+        connection.off('MessageSentResult')
+        connection.off('ChatMessagesLoaded')
+        connection.off('MessageUpdated')
+        connection.off('MessageDeleted')
+        connection.off('MessagesMarkedAsRead')
+        connection.off('MessageReadByUser')
+        connection.off('MessageError')
         connection.stop()
       }
     }
@@ -260,26 +308,20 @@ export default function ChatSystem({
     if (!connection || (!messageInput.trim() && !selectedImage) || !isConnected) return
 
     try {
-      let imageUrl = null
-      let currentAvatar = userProfile?.avatar
+      let messageContent = messageInput.trim()
+      let isUrl = false
 
       if (selectedImage) {
         setIsUploadingImage(true)
         const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
-        imageUrl = uploadResult.data || uploadResult
-
-        if (imageUrl && !userProfile?.avatar) {
-          currentAvatar = imageUrl as any
-        }
+        messageContent = (uploadResult.data || uploadResult) as string
+        isUrl = true
       }
 
       const messageData = {
-        message: selectedImage ? imageUrl || 'Image' : messageInput.trim(),
-        senderId: userProfile?.id || '',
-        senderName: `${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}`.trim() || 'Anonymous',
-        avatar: currentAvatar || null,
         groupChatId: groupChatId,
-        isImage: !!selectedImage
+        message: messageContent,
+        isUrl: isUrl
       }
 
       await connection.invoke('SendMessage', messageData)
@@ -294,11 +336,39 @@ export default function ChatSystem({
     }
   }
 
-  // Handle key press
+  const handleEditMessage = (message: Message) => {
+    setEditingMessageId(message.id)
+    setEditingMessageContent(message.message)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editingMessageContent.trim()) return
+
+    await updateMessageMutation.mutateAsync({
+      messageId: editingMessageId,
+      newContent: editingMessageContent.trim()
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingMessageContent('')
+  }
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
+      await deleteMessageMutation.mutateAsync(messageId)
+    }
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      if (editingMessageId) {
+        handleSaveEdit()
+      } else {
+        sendMessage()
+      }
     }
   }
 
@@ -315,8 +385,8 @@ export default function ChatSystem({
                 <MessageCircle className='w-5 h-5 text-white' />
               </div>
               <div>
-                <CardTitle className='text-lg font-semibold text-slate-800'>{getChatTitle()}</CardTitle>
-                <p className='text-sm text-slate-600'>{getChatDescription()}</p>
+                <CardTitle className='text-lg font-semibold text-slate-800'>Chat</CardTitle>
+                <p className='text-sm text-slate-600'>Group Chat</p>
               </div>
             </div>
 
@@ -328,10 +398,10 @@ export default function ChatSystem({
                 variant='ghost'
                 size='sm'
                 onClick={handleDeleteGroupChat}
-                disabled={deletedGroupChatOrganizationMutation.isPending}
+                disabled={deletedGroupChatMutation.isPending}
                 className='hover:bg-red-50 hover:text-red-600'
               >
-                {deletedGroupChatOrganizationMutation.isPending ? (
+                {deletedGroupChatMutation.isPending ? (
                   <div className='w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin' />
                 ) : (
                   <Trash2 className='w-4 h-4' />
@@ -358,17 +428,17 @@ export default function ChatSystem({
               <div className='flex items-center justify-center h-full'>
                 <div className='text-center'>
                   <MessageCircle className='w-12 h-12 text-slate-300 mx-auto mb-3' />
-                  <p className='text-slate-500'>Đang khởi tạo cuộc trò chuyện...</p>
-                  <p className='text-sm text-slate-400'>Tin nhắn đầu tiên sẽ được gửi tự động</p>
+                  <p className='text-slate-500'>Chưa có tin nhắn nào</p>
+                  <p className='text-sm text-slate-400'>Hãy bắt đầu cuộc trò chuyện</p>
                 </div>
               </div>
             ) : (
               <div className='space-y-4'>
-                {messages.map((message, index) => (
+                {messages.map((message) => (
                   <div
-                    key={index}
+                    key={message.id}
                     className={cn(
-                      'flex items-start space-x-3',
+                      'flex items-start space-x-3 group',
                       message.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
                     )}
                   >
@@ -390,28 +460,59 @@ export default function ChatSystem({
                         <span>{formatTime(message.sentAt)}</span>
                       </div>
 
-                      <div
-                        className={cn(
-                          'p-3 rounded-2xl max-w-full break-words',
-                          message.isCurrentUser
-                            ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-md'
-                            : 'bg-slate-100 text-slate-800 rounded-bl-md'
-                        )}
-                      >
-                        {message.message.startsWith('http') &&
-                        (message.message.includes('.jpg') ||
-                          message.message.includes('.png') ||
-                          message.message.includes('.jpeg') ||
-                          message.message.includes('.gif') ||
-                          message.message.includes('.webp')) ? (
-                          <img
-                            src={message.message}
-                            alt='Shared image'
-                            className='max-w-full h-auto rounded-lg'
-                            style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                      <div className='relative'>
+                        <div
+                          className={cn(
+                            'p-3 rounded-2xl max-w-full break-words',
+                            message.isCurrentUser
+                              ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-md'
+                              : 'bg-slate-100 text-slate-800 rounded-bl-md'
+                          )}
+                        >
+                          {editingMessageId === message.id ? (
+                            <div className='flex items-center space-x-2'>
+                              <Input
+                                value={editingMessageContent}
+                                onChange={(e) => setEditingMessageContent(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                className='text-sm'
+                              />
+                              <Button size='sm' onClick={handleSaveEdit}>
+                                <Check className='w-4 h-4' />
+                              </Button>
+                              <Button size='sm' variant='ghost' onClick={handleCancelEdit}>
+                                <X className='w-4 h-4' />
+                              </Button>
+                            </div>
+                          ) : message.isUrl ? (
+                            <img
+                              src={message.message}
+                              alt='Shared image'
+                              className='max-w-full h-auto rounded-lg'
+                              style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+                          )}
+                        </div>
+
+                        {/* Message actions */}
+                        {message.isCurrentUser && editingMessageId !== message.id && (
+                          <div className='absolute right-0 top-0 -mt-8 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1'>
+                            {!message.isUrl && (
+                              <Button size='sm' variant='ghost' onClick={() => handleEditMessage(message)}>
+                                <Edit2 className='w-3 h-3' />
+                              </Button>
+                            )}
+                            <Button
+                              size='sm'
+                              variant='ghost'
+                              className='text-red-600'
+                              onClick={() => handleDeleteMessage(message.id)}
+                            >
+                              <Trash2 className='w-3 h-3' />
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
