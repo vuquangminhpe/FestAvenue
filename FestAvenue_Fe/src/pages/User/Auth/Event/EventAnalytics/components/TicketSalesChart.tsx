@@ -65,7 +65,7 @@ export default function TicketSalesChart({ data }: TicketSalesChartProps) {
             fill='#8884d8'
             dataKey='sold'
           >
-            {dataWithTotal.map((entry, index) => (
+            {dataWithTotal.map((_, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>

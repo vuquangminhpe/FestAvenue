@@ -96,7 +96,7 @@ export default function FeaturedEvents() {
               className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
               onClick={() =>
                 navigate(
-                  `${path.user.event}/${generateNameId({
+                  `${path.user.event.root}/${generateNameId({
                     id: event.eventCode,
                     name: event.organization.name,
                     id_2: event.eventName
@@ -143,7 +143,7 @@ export default function FeaturedEvents() {
         {featuredEvents && featuredEvents.length > 8 && (
           <div className='text-center mt-12'>
             <button
-              onClick={() => navigate('/events')}
+              onClick={() => navigate(path.user.event.root)}
               className='px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl'
             >
               Xem Tất Cả Sự Kiện
