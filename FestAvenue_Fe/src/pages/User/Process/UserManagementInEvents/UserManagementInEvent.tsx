@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, MessageCircle } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { UserServicePackageResult } from '@/types/userManagement.types'
 import { InvitationStatus } from '@/types/userManagement.types'
 import UserFilters from './components/UserFilters'
@@ -16,6 +18,7 @@ import gsap from 'gsap'
 import { useGetUsersInEvent, useGetInvitationsEvent } from './hooks/useUserManagement'
 import { getIdFromNameId } from '@/utils/utils'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
+import chatApi from '@/apis/chat.api'
 
 export default function UserManagementInEvents() {
   const [searchParams] = useSearchParams()
@@ -35,7 +38,34 @@ export default function UserManagementInEvents() {
   const [selectedUser, setSelectedUser] = useState<UserServicePackageResult | null>(null)
 
   const headerRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
   const usersPerPage = 10
+
+  const createGroupChatMutation = useMutation({
+    mutationFn: (data: { name: string; informationInvites: string[]; eventCode: string }) =>
+      chatApi.GroupChat.createGroupChat(data),
+    onSuccess: () => {
+      toast.success('Tạo nhóm chat thành công!')
+      queryClient.invalidateQueries({ queryKey: ['group-chats'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.data?.message || 'Tạo nhóm chat thất bại')
+    }
+  })
+
+  const handleCreateGroupChat = () => {
+    const emails = users.map((user) => user.email)
+    if (emails.length === 0) {
+      toast.error('Không có thành viên nào để tạo nhóm chat')
+      return
+    }
+
+    createGroupChatMutation.mutate({
+      name: `Nhóm chat sự kiện ${eventId}`,
+      informationInvites: emails,
+      eventCode: eventId
+    })
+  }
 
   const { data: usersData, isLoading } = useGetUsersInEvent(
     {
@@ -124,15 +154,29 @@ export default function UserManagementInEvents() {
           <p className='text-gray-600 mt-2'>Quản lý và phân quyền cho các thành viên tham gia sự kiện</p>
         </div>
 
-        {/* Only Event Owner can add members */}
+        {/* Only Event Owner can add members and create group chats */}
         <PermissionGuard requiresEventOwner>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
-          >
-            <Plus className='w-5 h-5' />
-            Thêm thành viên
-          </Button>
+          <div className='flex gap-3'>
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
+            >
+              <Plus className='w-5 h-5' />
+              Thêm thành viên
+            </Button>
+            <Button
+              onClick={handleCreateGroupChat}
+              disabled={createGroupChatMutation.isPending}
+              className='bg-gradient-to-r from-purple-400 to-pink-300 hover:from-purple-500 hover:to-pink-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
+            >
+              {createGroupChatMutation.isPending ? (
+                <Loader2 className='w-5 h-5 animate-spin' />
+              ) : (
+                <MessageCircle className='w-5 h-5' />
+              )}
+              Tạo nhóm chat
+            </Button>
+          </div>
         </PermissionGuard>
       </div>
 
