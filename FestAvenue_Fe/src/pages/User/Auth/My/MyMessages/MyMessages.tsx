@@ -14,7 +14,8 @@ import type {
   MessageUpdated,
   MessageDeleted,
   MessageError,
-  GetChatMessagesInput
+  GetChatMessagesInput,
+  EventGroup
 } from '@/types/ChatMessage.types'
 import { EmojiPicker } from '@/utils/helper'
 import { toast } from 'sonner'
@@ -29,17 +30,6 @@ interface Message {
   sentAt: Date
   isCurrentUser?: boolean
   isUrl?: boolean
-}
-
-interface GroupChat {
-  groupChatId: string
-  groupChatName: string
-  avatarGroupUrl?: string
-  lastMessage?: {
-    senderName: string
-    content: string
-    sentAt: string
-  }
 }
 
 export default function ChatMyMessagesSystem() {
@@ -260,14 +250,14 @@ export default function ChatMyMessagesSystem() {
   })
 
   const filteredChats = useMemo(() => {
-    if (!groupChatsData?.data || !searchTerm) return (groupChatsData?.data || []) as GroupChat[]
-    return (groupChatsData.data as GroupChat[]).filter((chat) =>
-      chat.groupChatName.toLowerCase().includes(searchTerm.toLowerCase())
+    if (!groupChatsData?.data || !searchTerm) return (groupChatsData?.data || []) as EventGroup[]
+    return (groupChatsData.data as EventGroup[]).filter((chat) =>
+      chat.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
   }, [groupChatsData, searchTerm])
 
   const selectedChat = useMemo(() => {
-    return filteredChats.find((chat) => chat.groupChatId === selectedChatId)
+    return filteredChats.find((chat) => chat.id === selectedChatId)
   }, [filteredChats, selectedChatId])
 
   // Load messages when chat is selected
@@ -307,9 +297,9 @@ export default function ChatMyMessagesSystem() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleChatSelect = async (chatId: string, chatName: string) => {
-    setSelectedChatId(chatId)
-    generateNameId({ name: chatName, id: chatId })
+  const handleChatSelect = async (chat: EventGroup) => {
+    setSelectedChatId(chat.id)
+    generateNameId({ name: chat.name, id: chat.id })
 
     if (isMobile) {
       setSidebarVisible(false)
@@ -318,7 +308,7 @@ export default function ChatMyMessagesSystem() {
     // Join the chat group via SignalR
     if (connection && isConnected) {
       try {
-        await connection.invoke('JoinChatGroup', chatId)
+        await connection.invoke('JoinChatGroup', chat.id)
       } catch (error) {
         console.error('Error joining chat group:', error)
       }
@@ -501,15 +491,15 @@ export default function ChatMyMessagesSystem() {
             ) : (
               filteredChats.map((chat) => (
                 <button
-                  key={chat.groupChatId}
+                  key={chat.id}
                   ref={(el) => {
                     if (el) {
-                      chatButtonRefs.current.set(chat.groupChatId, el)
+                      chatButtonRefs.current.set(chat.id, el)
                     }
                   }}
-                  onClick={() => handleChatSelect(chat.groupChatId, chat.groupChatName)}
+                  onClick={() => handleChatSelect(chat)}
                   className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                    selectedChatId === chat.groupChatId
+                    selectedChatId === chat.id
                       ? 'bg-gradient-to-r from-cyan-50 to-blue-50 border-l-4 border-cyan-400'
                       : ''
                   }`}
@@ -517,8 +507,8 @@ export default function ChatMyMessagesSystem() {
                   <div className='flex items-center space-x-3'>
                     <div className='relative'>
                       <Avatar className='w-12 h-12 rounded-full object-cover'>
-                        <AvatarImage src={chat.avatarGroupUrl || chat.groupChatName} />
-                        <AvatarFallback>{chat.groupChatName.slice(0, 3)}</AvatarFallback>
+                        <AvatarImage src={chat.avatar || chat.name} />
+                        <AvatarFallback>{chat.name.slice(0, 3)}</AvatarFallback>
                       </Avatar>
 
                       <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white'></div>
@@ -526,16 +516,12 @@ export default function ChatMyMessagesSystem() {
 
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center justify-between'>
-                        <h3 className='font-semibold text-gray-900 truncate'>{chat.groupChatName}</h3>
-                        {chat.lastMessage && (
-                          <span className='text-xs text-gray-500'>{formatTime(new Date(chat.lastMessage.sentAt))}</span>
-                        )}
+                        <h3 className='font-semibold text-gray-900 truncate'>{chat.name}</h3>
+                        <span className='text-xs text-gray-500'>{formatTime(new Date(chat.createdAt))}</span>
                       </div>
-                      {chat.lastMessage && (
-                        <p className='text-sm text-gray-600 truncate mt-1'>
-                          {chat.lastMessage.senderName}: {chat.lastMessage.content}
-                        </p>
-                      )}
+                      <p className='text-sm text-gray-600 truncate mt-1'>
+                        {chat.members.length} thành viên
+                      </p>
                     </div>
                   </div>
                 </button>
@@ -553,10 +539,10 @@ export default function ChatMyMessagesSystem() {
             <div className='bg-white border-b border-gray-200 p-4 shadow-sm'>
               <div className='flex items-center space-x-3'>
                 <Avatar className='w-10 h-10 rounded-full object-cover'>
-                  <AvatarImage src={selectedChat.avatarGroupUrl || selectedChat.groupChatName} />
-                  <AvatarFallback>{selectedChat.groupChatName.slice(0, 3)}</AvatarFallback>
+                  <AvatarImage src={selectedChat.avatar || selectedChat.name} />
+                  <AvatarFallback>{selectedChat.name.slice(0, 3)}</AvatarFallback>
                 </Avatar>
-                <div className='font-semibold'>{selectedChat.groupChatName}</div>
+                <div className='font-semibold'>{selectedChat.name}</div>
               </div>
             </div>
 
