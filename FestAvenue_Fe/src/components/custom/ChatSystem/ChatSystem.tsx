@@ -16,13 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import userApi from '@/apis/user.api'
 import chatApi from '@/apis/chat.api'
 import { formatTime } from '@/utils/utils'
-import type {
-  NewMessageReceived,
-  MessageUpdated,
-  MessageDeleted,
-  MessageError,
-  bodyGetMessagesFilterPaging
-} from '@/types/ChatMessage.types'
+import type { NewMessageReceived, MessageUpdated, MessageDeleted, MessageError } from '@/types/ChatMessage.types'
 
 interface Message {
   id: string
@@ -73,8 +67,6 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
     }
   })
 
-
-
   const handleDeleteGroupChat = () => {
     deletedGroupChatMutation.mutateAsync(groupChatId, {
       onSuccess: () => {
@@ -90,12 +82,16 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
 
   // Initialize SignalR connection to ChatMessageHub
   useEffect(() => {
+    console.log('ChatSystem useEffect - isVisible:', isVisible, 'groupChatId:', groupChatId)
     if (!isVisible || !groupChatId) return
 
     const initConnection = async () => {
       try {
+        console.log('ChatSystem - Starting SignalR connection...')
         setIsLoading(true)
         const token = getAccessTokenFromLS()
+
+        console.log('ChatSystem - Token for SignalR:', token ? `${token.substring(0, 20)}...` : 'null')
 
         if (!token) {
           toast.error('Vui lòng đăng nhập để sử dụng chat')
@@ -104,7 +100,10 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
 
         const newConnection = new signalR.HubConnectionBuilder()
           .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
-            accessTokenFactory: () => token
+            accessTokenFactory: () => {
+              console.log('ChatSystem - AccessTokenFactory called')
+              return token
+            }
           })
           .configureLogging(signalR.LogLevel.Information)
           .withAutomaticReconnect()
@@ -134,9 +133,8 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
         })
 
         newConnection.on('MessageSentResult', (data: any) => {
-          if (data.success) {
-            console.log('Message sent successfully:', data.messageId)
-          } else {
+          console.log('MessageSentResult:', data)
+          if (data.success === false) {
             toast.error(data.error || 'Gửi tin nhắn thất bại')
           }
         })
@@ -162,9 +160,7 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
           if (data.groupChatId === groupChatId) {
             setMessages((prev) =>
               prev.map((msg) =>
-                msg.id === data.messageId
-                  ? { ...msg, message: data.newMessage, sentAt: new Date(data.updatedAt) }
-                  : msg
+                msg.id === data.messageId ? { ...msg, message: data.newMessage, sentAt: new Date(data.updatedAt) } : msg
               )
             )
             toast.success('Tin nhắn đã được cập nhật')
@@ -191,6 +187,10 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
           console.error('Message error:', data)
         })
 
+        newConnection.on('UserJoinedGroup', (data: any) => {
+          console.log('User joined group:', data)
+        })
+
         // Handle connection events
         newConnection.onclose(() => {
           setIsConnected(false)
@@ -210,20 +210,26 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
         })
 
         // Start connection
+        console.log('ChatSystem - Starting connection...')
         await newConnection.start()
+        console.log('ChatSystem - Connection started successfully! ConnectionId:', newConnection.connectionId)
         setIsConnected(true)
         setConnection(newConnection)
 
         // Join chat group
+        console.log('ChatSystem - Joining chat group:', groupChatId)
         await newConnection.invoke('JoinChatGroup', groupChatId)
+        console.log('ChatSystem - Joined chat group successfully')
 
         // Load messages
-        const input: bodyGetMessagesFilterPaging = {
-          groupChatId,
-          page: 1,
-          pageSize: 50
+        const input = {
+          GroupChatId: groupChatId,
+          Page: 1,
+          PageSize: 50
         }
+        console.log('ChatSystem - Loading messages...')
         await newConnection.invoke('GetMessages', input)
+        console.log('ChatSystem - Messages load requested')
 
         toast.success('Kết nối chat thành công')
       } catch (error) {
@@ -246,6 +252,7 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
         connection.off('MessagesMarkedAsRead')
         connection.off('MessageReadByUser')
         connection.off('MessageError')
+        connection.off('UserJoinedGroup')
         connection.stop()
       }
     }
@@ -282,24 +289,27 @@ export default function ChatSystem({ groupChatId, isVisible, onClose }: ChatSyst
       if (selectedImage) {
         setIsUploadingImage(true)
         const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
-        messageContent = (uploadResult.data || uploadResult) as string
+        messageContent = (uploadResult.data || uploadResult) as any
         isUrl = true
       }
 
       const messageData = {
-        groupChatId: groupChatId,
-        message: messageContent,
-        isUrl: isUrl
+        GroupChatId: groupChatId,
+        Message: messageContent,
+        IsUrl: isUrl
       }
 
+      console.log('Sending message with data:', messageData)
       await connection.invoke('SendMessage', messageData)
       setMessageInput('')
       setSelectedImage(null)
       setImagePreview(null)
       setIsUploadingImage(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error)
-      toast.error('Gửi tin nhắn thất bại')
+      console.error('Error message:', error?.message)
+      console.error('Error toString:', error?.toString())
+      toast.error(`Gửi tin nhắn thất bại: ${error?.message || error?.toString() || 'Unknown error'}`)
       setIsUploadingImage(false)
     }
   }

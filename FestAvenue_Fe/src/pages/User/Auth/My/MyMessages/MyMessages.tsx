@@ -14,7 +14,6 @@ import type {
   MessageUpdated,
   MessageDeleted,
   MessageError,
-  bodyGetMessagesFilterPaging,
   EventGroup
 } from '@/types/ChatMessage.types'
 import { EmojiPicker } from '@/utils/helper'
@@ -70,7 +69,6 @@ export default function ChatMyMessagesSystem() {
     }
   })
 
-
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
@@ -101,16 +99,37 @@ export default function ChatMyMessagesSystem() {
     const initConnection = async () => {
       try {
         const token = getAccessTokenFromLS()
+
+        console.log('Token for SignalR:', token ? `${token.substring(0, 20)}...` : 'null')
+
+        // Decode JWT to check expiry
+        if (token) {
+          try {
+            const tokenParts = token.split('.')
+            if (tokenParts.length === 3) {
+              const payload = JSON.parse(atob(tokenParts[1]))
+              console.log('Token payload:', payload)
+              console.log('Token expires at:', new Date(payload.exp * 1000).toLocaleString())
+              console.log('Current time:', new Date().toLocaleString())
+              console.log('Token expired?', Date.now() > payload.exp * 1000)
+            }
+          } catch (e) {
+            console.error('Failed to decode token:', e)
+          }
+        }
+
         if (!token) {
           console.error('No access token found')
           return
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
-            accessTokenFactory: () => token
+          .withUrl(`https://hoalacrent.io.vn/chatmessagehub?access_token=${token}`, {
+            accessTokenFactory() {
+              console.log('token')
+              return token
+            }
           })
-          .configureLogging(signalR.LogLevel.Information)
           .withAutomaticReconnect()
           .build()
 
@@ -139,6 +158,7 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageSentResult', (data: any) => {
+          console.log('MessageSentResult:', data)
           if (data.success) {
             console.log('Message sent successfully:', data.messageId)
           } else {
@@ -188,6 +208,10 @@ export default function ChatMyMessagesSystem() {
           console.error('Message error:', data)
         })
 
+        newConnection.on('UserJoinedGroup', (data: any) => {
+          console.log('User joined group:', data)
+        })
+
         newConnection.onclose(() => {
           setIsConnected(false)
         })
@@ -225,6 +249,7 @@ export default function ChatMyMessagesSystem() {
         connection.off('MessagesMarkedAsRead')
         connection.off('MessageReadByUser')
         connection.off('MessageError')
+        connection.off('UserJoinedGroup')
         connection.stop()
       }
     }
@@ -260,10 +285,10 @@ export default function ChatMyMessagesSystem() {
     const loadMessages = async () => {
       try {
         setIsLoadingMessages(true)
-        const input: bodyGetMessagesFilterPaging = {
-          groupChatId: selectedChatId,
-          page: 1,
-          pageSize: 50
+        const input = {
+          GroupChatId: selectedChatId,
+          Page: 1,
+          PageSize: 50
         }
         await connection.invoke('GetMessages', input)
       } catch (error) {
@@ -329,25 +354,28 @@ export default function ChatMyMessagesSystem() {
       if (selectedImage) {
         setIsUploadingImage(true)
         const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
-        messageContent = (uploadResult.data || uploadResult) as string
+        messageContent = (uploadResult.data || uploadResult) as any
         isUrl = true
       }
 
       const messageData = {
-        groupChatId: selectedChatId,
-        message: messageContent,
-        isUrl: isUrl
+        GroupChatId: selectedChatId,
+        Message: messageContent,
+        IsUrl: isUrl
       }
 
+      console.log('Sending message with data:', messageData)
       await connection.invoke('SendMessage', messageData)
       setMessageInput('')
       setSelectedImage(null)
       setImagePreview(null)
       setIsUploadingImage(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error handling message send:', error)
+      console.error('Error message:', error?.message)
+      console.error('Error toString:', error?.toString())
       setIsUploadingImage(false)
-      toast.error('Gửi tin nhắn thất bại')
+      toast.error(`Gửi tin nhắn thất bại: ${error?.message || error?.toString() || 'Unknown error'}`)
     }
   }
 
@@ -516,9 +544,7 @@ export default function ChatMyMessagesSystem() {
                         <h3 className='font-semibold text-gray-900 truncate'>{chat.name}</h3>
                         <span className='text-xs text-gray-500'>{formatTime(new Date(chat.createdAt))}</span>
                       </div>
-                      <p className='text-sm text-gray-600 truncate mt-1'>
-                        {chat.members.length} thành viên
-                      </p>
+                      <p className='text-sm text-gray-600 truncate mt-1'>{chat.members.length} thành viên</p>
                     </div>
                   </div>
                 </button>
@@ -673,7 +699,11 @@ export default function ChatMyMessagesSystem() {
                     onChange={(e) => setMessageInput(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder={
-                      imagePreview ? 'Thêm mô tả cho ảnh (tùy chọn)...' : isConnected ? 'Nhập tin nhắn...' : 'Connecting...'
+                      imagePreview
+                        ? 'Thêm mô tả cho ảnh (tùy chọn)...'
+                        : isConnected
+                        ? 'Nhập tin nhắn...'
+                        : 'Connecting...'
                     }
                     disabled={!isConnected || isUploadingImage}
                     className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all'
@@ -690,7 +720,10 @@ export default function ChatMyMessagesSystem() {
                       className='hidden'
                       id='image-upload'
                     />
-                    <label htmlFor='image-upload' className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'>
+                    <label
+                      htmlFor='image-upload'
+                      className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'
+                    >
                       <ImagePlus className='w-5 h-5' />
                     </label>
                   </div>
