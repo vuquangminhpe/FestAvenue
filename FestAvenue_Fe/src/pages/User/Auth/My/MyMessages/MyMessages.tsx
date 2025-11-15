@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
+import { Grid } from '@giphy/react-components'
+import { GiphyFetch } from '@giphy/js-fetch-api'
 import {
   Send,
   MessageCircle,
@@ -17,7 +19,8 @@ import {
   UserMinus,
   Loader2,
   Users,
-  MoreHorizontal
+  MoreHorizontal,
+  Clapperboard
 } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
@@ -33,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogHeader } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -69,18 +73,31 @@ interface Message {
   isCurrentUser?: boolean
   isUrl?: boolean
 }
-
 interface MessageReadEntry {
   userId: string
   userName: string
   readAt: string
 }
 
+type GifsResult = Awaited<ReturnType<GiphyFetch['trending']>>
+
+const buildEmptyGifResult = (offset = 0): GifsResult =>
+  ({
+    data: [],
+    pagination: { count: 0, offset, total_count: 0 },
+    meta: { status: 200, msg: 'missing giphy api key', response_id: 'local' }
+  } as GifsResult)
+
 const MESSAGE_PAGE_SIZE = 20
 const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i
 const INITIAL_MEMBER_ROW: MemberAddGroup = { name: '', email: '', phone: '' }
 
-const isImageUrl = (value: string) => value?.startsWith('http') && IMAGE_REGEX.test(value)
+const isImageUrl = (value: string) => {
+  if (!value?.startsWith('http')) return false
+  // Loại bỏ query parameters trước khi kiểm tra extension
+  const urlWithoutParams = value.split('?')[0]
+  return IMAGE_REGEX.test(urlWithoutParams)
+}
 
 const parseMessageDate = (value?: string | Date | null) => {
   if (!value) return new Date()
@@ -116,6 +133,9 @@ export default function ChatMyMessagesSystem() {
   const [searchTerm, setSearchTerm] = useState('')
   const [messageInput, setMessageInput] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isGifPickerOpen, setIsGifPickerOpen] = useState(false)
+  const [gifSearchTerm, setGifSearchTerm] = useState('')
+  const [gifGridWidth, setGifGridWidth] = useState(600)
   const [isMobile, setIsMobile] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -136,6 +156,11 @@ export default function ChatMyMessagesSystem() {
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
   const [isDeletingMessage, setIsDeletingMessage] = useState(false)
   const [deletedMessageIds, setDeletedMessageIds] = useState<Record<string, boolean>>({})
+  const giphyApiKey = import.meta.env.VITE_GIPHY_API_KEY as string | undefined
+  const giphyClient = useMemo(() => {
+    if (!giphyApiKey) return null
+    return new GiphyFetch(giphyApiKey)
+  }, [giphyApiKey])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -162,6 +187,19 @@ export default function ChatMyMessagesSystem() {
       setManagerTab('management')
     }
   }, [isGroupPanelOpen])
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (typeof window === 'undefined') return
+      const base = window.innerWidth || 1024
+      setGifGridWidth(Math.max(320, Math.min(base - 120, 1400)))
+    }
+
+    updateWidth()
+    if (typeof window === 'undefined') return
+    window.addEventListener('resize', updateWidth)
+    return () => window.removeEventListener('resize', updateWidth)
+  }, [])
 
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
@@ -235,6 +273,61 @@ export default function ChatMyMessagesSystem() {
     if (!targetId) return
     hub.invoke('MarkMessagesAsRead', targetId).catch((error) => console.error('MarkMessagesAsRead error:', error))
   }, [])
+
+  const fetchGifs = useCallback(
+    (offset: number) => {
+      if (!giphyClient) {
+        return Promise.resolve(buildEmptyGifResult(offset))
+      }
+
+      const query = gifSearchTerm.trim()
+      const baseOptions = { offset, limit: 21, rating: 'pg-13' as const }
+      return query ? giphyClient.search(query, { ...baseOptions, sort: 'relevant' }) : giphyClient.trending(baseOptions)
+    },
+    [giphyClient, gifSearchTerm]
+  )
+
+  const sendGifMessage = useCallback(
+    async (url: string) => {
+      if (!url || !selectedChatId || !userProfile || !connection || !isConnected) {
+        toast.error('Không thể gửi GIF ngay bây giờ')
+        return
+      }
+
+      try {
+        await connection.invoke('SendMessage', {
+          GroupChatId: selectedChatId,
+          Message: url,
+          IsUrl: true
+        })
+        shouldForceScrollRef.current = true
+        setIsGifPickerOpen(false)
+      } catch (error) {
+        console.error('Error sending GIF:', error)
+        toast.error('Gửi GIF thất bại')
+      }
+    },
+    [connection, isConnected, selectedChatId, userProfile]
+  )
+
+  const handleGifClick = useCallback(
+    (gif: any, e: React.SyntheticEvent) => {
+      e.preventDefault()
+      const gifUrl =
+        gif?.images?.original?.url ||
+        gif?.images?.downsized_large?.url ||
+        gif?.images?.downsized?.url ||
+        gif?.images?.preview_gif?.url
+
+      if (!gifUrl) {
+        toast.warning('GIF này không khả dụng để gửi')
+        return
+      }
+
+      sendGifMessage(gifUrl)
+    },
+    [sendGifMessage]
+  )
 
   useEffect(() => {
     if (!userProfile?.id) return
@@ -526,6 +619,9 @@ export default function ChatMyMessagesSystem() {
       .filter((message) => !deletedMessageIds[message.id])
   }, [mediaMessages, userProfile?.id, deletedMessageIds])
 
+  const effectiveGifWidth = Math.min(gifGridWidth, 400)
+  const gifGridColumns = effectiveGifWidth < 520 ? 2 : effectiveGifWidth < 800 ? 3 : effectiveGifWidth < 1100 ? 4 : 5
+
   const combinedMessages = useMemo(() => {
     if (!selectedChatId) return []
     const relevantRealtime = realtimeMessages.filter((msg) => msg.groupChatId === selectedChatId)
@@ -566,6 +662,12 @@ export default function ChatMyMessagesSystem() {
     requestMarkMessagesAsRead(selectedChatId)
     setDeletedMessageIds({})
   }, [requestMarkMessagesAsRead, selectedChatId])
+
+  useEffect(() => {
+    if (!isGifPickerOpen) {
+      setGifSearchTerm('')
+    }
+  }, [isGifPickerOpen])
 
   useEffect(() => {
     if (!chatContainerRef.current || !selectedChatId) return
@@ -1195,6 +1297,17 @@ export default function ChatMyMessagesSystem() {
                     </label>
                   </div>
 
+                  <button
+                    type='button'
+                    onClick={() => setIsGifPickerOpen(true)}
+                    className='p-2 text-gray-400 hover:text-gray-600 transition-colors'
+                    title={
+                      giphyApiKey ? 'Chèn GIF từ GIPHY' : 'Thêm biến môi trường VITE_GIPHY_API_KEY để bật thư viện GIF'
+                    }
+                  >
+                    <Clapperboard className='w-5 h-5' />
+                  </button>
+
                   <div className='relative'>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -1227,6 +1340,43 @@ export default function ChatMyMessagesSystem() {
                 </div>
               </div>
             </div>
+
+            <Dialog open={isGifPickerOpen} onOpenChange={setIsGifPickerOpen}>
+              <DialogContent className='max-w-5xl w-full'>
+                <DialogHeader>
+                  <DialogDescription>
+                    Tìm kiếm hoặc chọn nhanh các ảnh động từ thư viện GIPHY để gửi cho nhóm.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {giphyApiKey ? (
+                  <div className='space-y-4'>
+                    <Input
+                      value={gifSearchTerm}
+                      onChange={(e) => setGifSearchTerm(e.target.value)}
+                      placeholder='Nhập từ khóa (ví dụ: smile, happy, congrats, ... )'
+                    />
+                    <div className='rounded-lg border border-slate-200 bg-slate-50/70 p-4 max-h-[70vh] overflow-y-auto'>
+                      <div className='flex justify-center w-full'>
+                        <Grid
+                          key={gifSearchTerm || 'trending'}
+                          width={effectiveGifWidth}
+                          columns={gifGridColumns}
+                          gutter={8}
+                          fetchGifs={fetchGifs}
+                          onGifClick={handleGifClick}
+                        />
+                      </div>
+                    </div>
+                    <p className='text-[11px] text-gray-400 text-center'>Powered by GIPHY</p>
+                  </div>
+                ) : (
+                  <div className='rounded-lg border border-dashed border-yellow-300 bg-yellow-50/70 p-4 text-sm text-yellow-900'>
+                    <p>Có lỗi khi tải Gif </p>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
 
             <Sheet open={isGroupPanelOpen} onOpenChange={setIsGroupPanelOpen}>
               <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto p-6'>
