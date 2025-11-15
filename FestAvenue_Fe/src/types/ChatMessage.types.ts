@@ -74,7 +74,7 @@ export interface NewMessageReceived {
   senderName: string
   message: string
   avatar?: string
-  sentAt: string
+  createdAt: string
   isUrl: boolean
 }
 
@@ -112,4 +112,22 @@ export interface MessageReadByUser {
 export interface MessageError {
   error: string
   details?: string
+}
+export interface resChatMessage {
+  message: string
+  senderId: string
+  senderName: string
+  avatar: string
+  groupChatId: string
+  isUrl: boolean
+  deliveredTo: string[] //userId của người đó
+  id: string
+  createdAt: string
+  updatedAt: string
+}
+export interface resChatPaging {
+  chatMessages: resChatMessage[]
+  currentPage: number
+  totalPages: number
+  pageSize: number
 }

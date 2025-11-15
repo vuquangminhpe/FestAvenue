@@ -1,6 +1,23 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Send, MessageCircle, Smile, Search, Wifi, WifiOff, ImagePlus, X, Edit2, Trash2, Check } from 'lucide-react'
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery, type InfiniteData } from '@tanstack/react-query'
+import {
+  Send,
+  MessageCircle,
+  Smile,
+  Search,
+  Wifi,
+  WifiOff,
+  ImagePlus,
+  X,
+  Edit2,
+  Trash2,
+  Check,
+  Settings,
+  UserPlus,
+  UserMinus,
+  Loader2,
+  Users
+} from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
 import { useUsersStore } from '@/contexts/app.context'
@@ -9,15 +26,32 @@ import userApi from '@/apis/user.api'
 import chatApi from '@/apis/chat.api'
 import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from '@/components/ui/alert-dialog'
 import type {
   NewMessageReceived,
   MessageUpdated,
   MessageDeleted,
   MessageError,
   EventGroup,
-  GetChatMessagesInput,
-  UpdateChatMessageInput
+  MessagesMarkedAsRead,
+  MessageReadByUser,
+  resChatMessage,
+  resChatPaging
 } from '@/types/ChatMessage.types'
+import type { MemberAddGroup } from '@/types/GroupChat.types'
 import { EmojiPicker } from '@/utils/helper'
 import { toast } from 'sonner'
 
@@ -28,9 +62,45 @@ interface Message {
   message: string
   senderName: string
   avatar?: string
-  sentAt: Date
+  createdAt: Date
   isCurrentUser?: boolean
   isUrl?: boolean
+}
+
+interface MessageReadEntry {
+  userId: string
+  userName: string
+  readAt: string
+}
+
+const MESSAGE_PAGE_SIZE = 20
+const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i
+const INITIAL_MEMBER_ROW: MemberAddGroup = { name: '', email: '', phone: '' }
+
+const isImageUrl = (value: string) => value.startsWith('http') && IMAGE_REGEX.test(value)
+
+const parseMessageDate = (value?: string | Date | null) => {
+  if (!value) return new Date()
+  const parsed = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+const buildHistoryMessage = (message: resChatMessage, currentUserId?: string): Message => ({
+  id: message.id,
+  groupChatId: message.groupChatId,
+  senderId: message.senderId,
+  senderName: message.senderName,
+  message: message.message,
+  avatar: message.avatar || undefined,
+  createdAt: parseMessageDate(message.createdAt),
+  isCurrentUser: message.senderId === currentUserId,
+  isUrl: isImageUrl(message.message)
+})
+
+const buildMessageSignature = (message: Message) => {
+  const timestamp =
+    message.createdAt instanceof Date ? message.createdAt.getTime() : new Date(message.createdAt).getTime()
+  return `${message.groupChatId}::${message.senderId}::${timestamp}::${message.message}`
 }
 
 export default function ChatMyMessagesSystem() {
@@ -39,8 +109,6 @@ export default function ChatMyMessagesSystem() {
 
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([])
-
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [messageInput, setMessageInput] = useState('')
@@ -52,18 +120,47 @@ export default function ChatMyMessagesSystem() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingMessageContent, setEditingMessageContent] = useState('')
+  const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([])
+  const [unreadCounters, setUnreadCounters] = useState<Record<string, number>>({})
+  const [messageReadReceipts, setMessageReadReceipts] = useState<Record<string, MessageReadEntry[]>>({})
+  const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [membersToRemove, setMembersToRemove] = useState<Set<string>>(new Set())
+  const [newMembers, setNewMembers] = useState<MemberAddGroup[]>([INITIAL_MEMBER_ROW])
+  const [isNearBottom, setIsNearBottom] = useState(true)
+  const [managerTab, setManagerTab] = useState<'management' | 'media'>('management')
+  const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const chatButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const loadOlderRef = useRef<HTMLDivElement>(null)
+  const selectedChatIdRef = useRef<string | null>(null)
+  const connectionRef = useRef<signalR.HubConnection | null>(null)
+  const isConnectedRef = useRef(false)
+  const selectedChatMembersRef = useRef<EventGroup['members']>([])
+  const selectedChatMessagesRef = useRef<Message[]>([])
+  const shouldForceScrollRef = useRef(false)
+
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChatId
+    if (selectedChatId) {
+      shouldForceScrollRef.current = true
+    }
+  }, [selectedChatId])
+
+  useEffect(() => {
+    if (!isGroupPanelOpen) {
+      setManagerTab('management')
+    }
+  }, [isGroupPanelOpen])
 
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
-    onSuccess: (data) => {
-      return data
-    },
+    onSuccess: (data) => data,
     onError: (error) => {
       console.error('Upload error:', error)
       toast.error('Upload ảnh thất bại')
@@ -87,39 +184,61 @@ export default function ChatMyMessagesSystem() {
   }, [selectedChatId])
 
   useEffect(() => {
-    if (sidebarRef.current) {
-      if (sidebarVisible) {
-        gsap.fromTo(sidebarRef.current, { x: isMobile ? -320 : 0 }, { x: 0, duration: 0.3, ease: 'power2.out' })
-      }
+    if (sidebarRef.current && sidebarVisible) {
+      gsap.fromTo(sidebarRef.current, { x: isMobile ? -320 : 0 }, { x: 0, duration: 0.3, ease: 'power2.out' })
     }
   }, [sidebarVisible, isMobile])
 
-  // Initialize SignalR connection to ChatMessageHub
+  useEffect(() => {
+    isConnectedRef.current = isConnected
+  }, [isConnected])
+
+  const resolveMemberName = useCallback((userId: string) => {
+    const member = selectedChatMembersRef.current.find((m) => m.userId === userId)
+    return member?.fullName || member?.email || 'Thành viên'
+  }, [])
+
+  const appendReadReceipt = useCallback((messageId: string, entry: MessageReadEntry) => {
+    if (!messageId) return
+    setMessageReadReceipts((prev) => {
+      const existing = prev[messageId] || []
+      if (existing.some((item) => item.userId === entry.userId)) return prev
+      return {
+        ...prev,
+        [messageId]: [...existing, entry]
+      }
+    })
+  }, [])
+
+  const applyMarkedAsRead = useCallback(
+    (userId: string, timestamp: string) => {
+      const lastMessageId = selectedChatMessagesRef.current.at(-1)?.id
+      if (!lastMessageId) return
+      appendReadReceipt(lastMessageId, {
+        userId,
+        userName: resolveMemberName(userId),
+        readAt: timestamp
+      })
+    },
+    [appendReadReceipt, resolveMemberName]
+  )
+
+  const requestMarkMessagesAsRead = useCallback((groupChatId?: string) => {
+    const hub = connectionRef.current
+    if (!hub || !isConnectedRef.current) return
+    const targetId = groupChatId || selectedChatIdRef.current
+    if (!targetId) return
+    hub.invoke('MarkMessagesAsRead', targetId).catch((error) => console.error('MarkMessagesAsRead error:', error))
+  }, [])
+
   useEffect(() => {
     if (!userProfile?.id) return
+
+    let activeConnection: signalR.HubConnection | null = null
 
     const initConnection = async () => {
       try {
         const token = getAccessTokenFromLS()
-
-        console.log('Token for SignalR:', token ? `${token.substring(0, 20)}...` : 'null')
-
-        // Decode JWT to check expiry
-        if (token) {
-          try {
-            const tokenParts = token.split('.')
-            if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]))
-              console.log('Token payload:', payload)
-              console.log('Token expires at:', new Date(payload.exp * 1000).toLocaleString())
-              console.log('Current time:', new Date().toLocaleString())
-              console.log('Token expired?', Date.now() > payload.exp * 1000)
-            }
-          } catch (e) {
-            console.error('Failed to decode token:', e)
-          }
-        }
-
         if (!token) {
           console.error('No access token found')
           return
@@ -129,90 +248,117 @@ export default function ChatMyMessagesSystem() {
           .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
             accessTokenFactory: () => {
               const currentToken = getAccessTokenFromLS()
-              console.log('Providing access token for SignalR')
               return currentToken || ''
             }
           })
           .withAutomaticReconnect()
           .build()
-
-        // Register SignalR event handlers
         newConnection.on('NewMessageReceived', (data: NewMessageReceived) => {
-          const newMessage: Message = {
-            id: data.id,
+          const derivedId = data.id || `${data.groupChatId}-${Date.now()}`
+          const normalized: Message = {
+            id: derivedId,
             groupChatId: data.groupChatId,
             senderId: data.senderId,
             message: data.message,
             senderName: data.senderName,
-            avatar: data.avatar,
-            sentAt: new Date(data.sentAt),
+            avatar: data.avatar || undefined,
+            createdAt: parseMessageDate(data.createdAt),
             isCurrentUser: data.senderId === userProfile?.id,
             isUrl: data.isUrl
           }
 
-          setMessages((prev) => {
-            const exists = prev.some((msg) => msg.id === newMessage.id)
-            if (exists) return prev
-            return [...prev, newMessage]
+          setRealtimeMessages((prev) => {
+            const signature = buildMessageSignature(normalized)
+            let replaced = false
+            const updated = prev.map((msg) => {
+              if (buildMessageSignature(msg) === signature) {
+                replaced = true
+                if (!msg.id && normalized.id) return normalized
+                if (normalized.createdAt.getTime() >= msg.createdAt.getTime()) return normalized
+              }
+              return msg
+            })
+
+            if (replaced) {
+              return updated
+            }
+
+            return [...updated, normalized]
           })
 
-          // Invalidate group chats to update last message
-          queryClient.invalidateQueries({ queryKey: ['group-chats'] })
-        })
-
-        newConnection.on('MessageSentResult', (data: any) => {
-          console.log('MessageSentResult:', data)
-          if (data.success) {
-            console.log('Message sent successfully:', data.messageId)
+          if (selectedChatIdRef.current === data.groupChatId) {
+            requestMarkMessagesAsRead(data.groupChatId)
+            setUnreadCounters((prev) => ({ ...prev, [data.groupChatId]: 0 }))
           } else {
-            toast.error(data.error || 'Gửi tin nhắn thất bại')
+            setUnreadCounters((prev) => ({ ...prev, [data.groupChatId]: (prev[data.groupChatId] || 0) + 1 }))
           }
+
+          queryClient.invalidateQueries({ queryKey: ['chat-messages', data.groupChatId] })
         })
 
-        newConnection.on('ChatMessagesLoaded', (data: any) => {
-          if (data && data.chatMessages) {
-            const formattedMessages: Message[] = data.chatMessages.map((msg: any) => ({
-              id: msg.id,
-              groupChatId: msg.groupChatId,
-              senderId: msg.senderId,
-              message: msg.message,
-              senderName: msg.senderName,
-              avatar: msg.avatar || undefined,
-              sentAt: new Date(msg.createdAt),
-              isCurrentUser: msg.senderId === userProfile?.id,
-              isUrl: msg.isUrl
-            }))
-            setMessages(formattedMessages)
+        newConnection.on('MessageSentResult', (result: { success: boolean; error?: string }) => {
+          if (!result) {
+            toast.error('Gửi tin nhắn thất bại')
           }
         })
 
         newConnection.on('MessageUpdated', (data: MessageUpdated) => {
-          setMessages((prev) =>
+          queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
+            if (!cached) return cached
+            return {
+              ...cached,
+              pages: cached.pages.map((page) => ({
+                ...page,
+                chatMessages: page.chatMessages.map((msg) =>
+                  msg.id === data.messageId ? { ...msg, message: data.newMessage, updatedAt: data.updatedAt } : msg
+                )
+              }))
+            }
+          })
+
+          setRealtimeMessages((prev) =>
             prev.map((msg) =>
-              msg.id === data.messageId ? { ...msg, message: data.newMessage, sentAt: new Date(data.updatedAt) } : msg
+              msg.id === data.messageId
+                ? { ...msg, message: data.newMessage, createdAt: parseMessageDate(data.updatedAt || msg.createdAt) }
+                : msg
             )
           )
         })
 
         newConnection.on('MessageDeleted', (data: MessageDeleted) => {
-          setMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
+          queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
+            if (!cached) return cached
+            return {
+              ...cached,
+              pages: cached.pages.map((page) => ({
+                ...page,
+                chatMessages: page.chatMessages.filter((msg) => msg.id !== data.messageId)
+              }))
+            }
+          })
+
+          setRealtimeMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
         })
 
-        newConnection.on('MessagesMarkedAsRead', (data: any) => {
-          console.log('Messages marked as read:', data)
+        newConnection.on('MessagesMarkedAsRead', (data: MessagesMarkedAsRead) => {
+          setUnreadCounters((prev) => ({ ...prev, [data.groupChatId]: 0 }))
+          if (data.groupChatId === selectedChatIdRef.current && data.userId !== userProfile?.id) {
+            applyMarkedAsRead(data.userId, data.markedAt)
+          }
         })
 
-        newConnection.on('MessageReadByUser', (data: any) => {
-          console.log('Message read by user:', data)
+        newConnection.on('MessageReadByUser', (data: MessageReadByUser) => {
+          if (data.userId === userProfile?.id) return
+          appendReadReceipt(data.messageId, {
+            userId: data.userId,
+            userName: data.userName || resolveMemberName(data.userId),
+            readAt: data.readAt
+          })
         })
 
         newConnection.on('MessageError', (data: MessageError) => {
           toast.error(data.error)
           console.error('Message error:', data)
-        })
-
-        newConnection.on('UserJoinedGroup', (data: any) => {
-          console.log('User joined group:', data)
         })
 
         newConnection.onclose(() => {
@@ -225,16 +371,17 @@ export default function ChatMyMessagesSystem() {
 
         newConnection.onreconnected(() => {
           setIsConnected(true)
-          // Rejoin current group if exists
-          if (selectedChatId) {
-            newConnection.invoke('JoinChatGroup', selectedChatId)
+          if (selectedChatIdRef.current) {
+            newConnection.invoke('JoinChatGroup', selectedChatIdRef.current).catch((error) => console.error(error))
+            requestMarkMessagesAsRead(selectedChatIdRef.current)
           }
         })
 
-        // Start connection
         await newConnection.start()
-        setIsConnected(true)
+        activeConnection = newConnection
+        connectionRef.current = newConnection
         setConnection(newConnection)
+        setIsConnected(true)
       } catch (error) {
         console.error('SignalR connection error:', error)
       }
@@ -243,20 +390,21 @@ export default function ChatMyMessagesSystem() {
     initConnection()
 
     return () => {
-      if (connection) {
-        connection.off('NewMessageReceived')
-        connection.off('MessageSentResult')
-        connection.off('ChatMessagesLoaded')
-        connection.off('MessageUpdated')
-        connection.off('MessageDeleted')
-        connection.off('MessagesMarkedAsRead')
-        connection.off('MessageReadByUser')
-        connection.off('MessageError')
-        connection.off('UserJoinedGroup')
-        connection.stop()
+      if (activeConnection) {
+        activeConnection.off('NewMessageReceived')
+        activeConnection.off('MessageSentResult')
+        activeConnection.off('MessageUpdated')
+        activeConnection.off('MessageDeleted')
+        activeConnection.off('MessagesMarkedAsRead')
+        activeConnection.off('MessageReadByUser')
+        activeConnection.off('MessageError')
+        activeConnection.stop()
+        if (connectionRef.current === activeConnection) {
+          connectionRef.current = null
+        }
       }
     }
-  }, [userProfile?.id])
+  }, [queryClient, userProfile?.id])
 
   const { data: groupChatsData, isLoading: isLoadingChats } = useQuery({
     queryKey: ['group-chats'],
@@ -269,63 +417,197 @@ export default function ChatMyMessagesSystem() {
   })
 
   const filteredChats = useMemo(() => {
-    if (!groupChatsData?.data || !searchTerm) return (groupChatsData?.data || []) as EventGroup[]
-    return (groupChatsData.data as EventGroup[]).filter((chat) =>
-      chat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const chats = (groupChatsData as EventGroup[] | undefined) ?? []
+    if (!searchTerm.trim()) return chats
+    return chats.filter((chat) => chat.name.toLowerCase().includes(searchTerm.toLowerCase()))
   }, [groupChatsData, searchTerm])
 
   const selectedChat = useMemo(() => {
-    return filteredChats.find((chat) => chat.id === selectedChatId)
+    return filteredChats?.find((chat) => chat.id === selectedChatId)
   }, [filteredChats, selectedChatId])
 
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-
-  // Load messages when chat is selected
   useEffect(() => {
-    if (!selectedChatId || !connection || !isConnected) return
+    selectedChatMembersRef.current = selectedChat?.members || []
+  }, [selectedChat?.members])
 
-    const loadMessages = async () => {
-      try {
-        setIsLoadingMessages(true)
-        const input: GetChatMessagesInput = {
-          GroupChatId: selectedChatId,
-          Page: 1,
-          PageSize: 50
+  const {
+    data: pagedMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingMessages
+  } = useInfiniteQuery<resChatPaging>({
+    queryKey: ['chat-messages', selectedChatId],
+    queryFn: async ({ pageParam }) => {
+      if (!selectedChatId) throw new Error('Missing group chat id')
+      const currentPage = typeof pageParam === 'number' ? pageParam : 1
+      const response = await chatApi.ChatMessage.getMessagesWithPagging({
+        groupChatId: selectedChatId,
+        page: currentPage,
+        pageSize: MESSAGE_PAGE_SIZE
+      })
+      if (!response) {
+        return {
+          chatMessages: [],
+          currentPage,
+          totalPages: currentPage,
+          pageSize: MESSAGE_PAGE_SIZE
         }
-        await connection.invoke('GetMessages', input)
-      } catch (error) {
-        console.error('Error loading messages:', error)
-        toast.error('Không thể tải tin nhắn')
-      } finally {
-        setIsLoadingMessages(false)
+      }
+      return response
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
+    },
+    enabled: !!selectedChatId,
+    initialPageParam: 1,
+    staleTime: 60 * 1000
+  })
+
+  const historyMessages = pagedMessages?.pages.flatMap((page: resChatPaging) => page.chatMessages ?? []) ?? []
+
+  const {
+    data: mediaPages,
+    fetchNextPage: fetchNextMediaPage,
+    hasNextPage: hasMoreMedia,
+    isFetchingNextPage: isFetchingMoreMedia,
+    isLoading: isLoadingMedia
+  } = useInfiniteQuery<resChatPaging>({
+    queryKey: ['chat-messages', selectedChatId, 'media-gallery'],
+    queryFn: async ({ pageParam }) => {
+      if (!selectedChatId) throw new Error('Missing group chat id')
+      const currentPage = typeof pageParam === 'number' ? pageParam : 1
+      const response = await chatApi.ChatMessage.getMessagesWithPagging({
+        groupChatId: selectedChatId,
+        page: currentPage,
+        pageSize: MESSAGE_PAGE_SIZE,
+        isUrl: true
+      })
+      if (!response) {
+        return {
+          chatMessages: [],
+          currentPage,
+          totalPages: currentPage,
+          pageSize: MESSAGE_PAGE_SIZE
+        }
+      }
+      return response
+    },
+    getNextPageParam: (lastPage) => {
+      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
+    },
+    enabled: !!selectedChatId,
+    initialPageParam: 1,
+    staleTime: 60 * 1000
+  })
+
+  const mediaMessages = mediaPages?.pages.flatMap((page: resChatPaging) => page.chatMessages ?? []) ?? []
+
+  const normalizedHistory = useMemo(() => {
+    return historyMessages.map((message) => buildHistoryMessage(message, userProfile?.id))
+  }, [historyMessages, userProfile?.id])
+
+  const mediaGallery = useMemo(() => {
+    return mediaMessages.map((message) => buildHistoryMessage(message, userProfile?.id))
+  }, [mediaMessages, userProfile?.id])
+
+  const combinedMessages = useMemo(() => {
+    if (!selectedChatId) return []
+    const relevantRealtime = realtimeMessages.filter((msg) => msg.groupChatId === selectedChatId)
+    const merged = [...normalizedHistory, ...relevantRealtime]
+    const dedup = new Map<string, Message>()
+
+    merged.forEach((msg) => {
+      const key = buildMessageSignature(msg)
+      const existing = dedup.get(key)
+      if (!existing) {
+        dedup.set(key, msg)
+        return
+      }
+
+      if (!existing.id && msg.id) {
+        dedup.set(key, msg)
+        return
+      }
+
+      if (msg.createdAt.getTime() > existing.createdAt.getTime()) {
+        dedup.set(key, msg)
+      }
+    })
+
+    return Array.from(dedup.values()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }, [normalizedHistory, realtimeMessages, selectedChatId])
+
+  useEffect(() => {
+    if (!selectedChatId) return
+    setRealtimeMessages([])
+    setMessageReadReceipts({})
+    setMembersToRemove(new Set())
+    setNewMembers([INITIAL_MEMBER_ROW])
+    setMemberSearch('')
+    setUnreadCounters((prev) => ({ ...prev, [selectedChatId]: 0 }))
+    requestMarkMessagesAsRead(selectedChatId)
+  }, [requestMarkMessagesAsRead, selectedChatId])
+
+  useEffect(() => {
+    if (!chatContainerRef.current || !selectedChatId) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          const container = chatContainerRef.current
+          const previousHeight = container?.scrollHeight || 0
+          fetchNextPage().then(() => {
+            requestAnimationFrame(() => {
+              if (container) {
+                const newHeight = container.scrollHeight
+                container.scrollTop = newHeight - previousHeight + container.scrollTop
+              }
+            })
+          })
+        }
+      },
+      {
+        root: chatContainerRef.current,
+        threshold: 0.1
+      }
+    )
+
+    if (loadOlderRef.current) {
+      observer.observe(loadOlderRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, selectedChatId])
+
+  useEffect(() => {
+    const container = chatContainerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120
+      setIsNearBottom(nearBottom)
+      if (nearBottom && selectedChatId) {
+        requestMarkMessagesAsRead(selectedChatId)
       }
     }
 
-    // Clear messages when switching chat
-    setMessages([])
-    loadMessages()
-  }, [selectedChatId, connection, isConnected])
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [requestMarkMessagesAsRead, selectedChatId])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (selectedChatId && connection && isConnected) {
+      connection.invoke('JoinChatGroup', selectedChatId).catch((error) => console.error(error))
+    }
+  }, [connection, isConnected, selectedChatId])
 
-  const handleChatSelect = async (chat: EventGroup) => {
+  const handleChatSelect = (chat: EventGroup) => {
     setSelectedChatId(chat.id)
     generateNameId({ name: chat.name, id: chat.id })
-
     if (isMobile) {
       setSidebarVisible(false)
-    }
-
-    // Join the chat group via SignalR
-    if (connection && isConnected) {
-      try {
-        await connection.invoke('JoinChatGroup', chat.id)
-      } catch (error) {
-        console.error('Error joining chat group:', error)
-      }
     }
   }
 
@@ -367,16 +649,14 @@ export default function ChatMyMessagesSystem() {
         IsUrl: isUrl
       }
 
-      console.log('Sending message with data:', messageData)
       await connection.invoke('SendMessage', messageData)
+      shouldForceScrollRef.current = true
       setMessageInput('')
       setSelectedImage(null)
       setImagePreview(null)
       setIsUploadingImage(false)
     } catch (error: any) {
       console.error('Error handling message send:', error)
-      console.error('Error message:', error?.message)
-      console.error('Error toString:', error?.toString())
       setIsUploadingImage(false)
       toast.error(`Gửi tin nhắn thất bại: ${error?.message || error?.toString() || 'Unknown error'}`)
     }
@@ -391,11 +671,7 @@ export default function ChatMyMessagesSystem() {
     if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
 
     try {
-      const updateInput: UpdateChatMessageInput = {
-        MessageId: editingMessageId,
-        NewContent: editingMessageContent.trim()
-      }
-      await connection.invoke('UpdateMessage', updateInput)
+      await connection.invoke('UpdateMessage', editingMessageId, editingMessageContent.trim())
       setEditingMessageId(null)
       setEditingMessageContent('')
     } catch (error) {
@@ -409,16 +685,21 @@ export default function ChatMyMessagesSystem() {
     setEditingMessageContent('')
   }
 
-  const handleDeleteMessage = async (messageId: string) => {
-    if (!connection || !isConnected) return
+  const handleDeleteMessage = (message: Message) => {
+    setDeleteTarget(message)
+  }
 
-    if (window.confirm('Bạn có chắc muốn xóa tin nhắn này?')) {
-      try {
-        await connection.invoke('DeleteMessage', messageId)
-      } catch (error) {
-        console.error('Error deleting message:', error)
-        toast.error('Xóa tin nhắn thất bại')
-      }
+  const confirmDeleteMessage = async () => {
+    if (!deleteTarget || !connection || !isConnected) return
+    try {
+      setIsDeletingMessage(true)
+      await connection.invoke('DeleteMessage', deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      toast.error('Xóa tin nhắn thất bại')
+    } finally {
+      setIsDeletingMessage(false)
     }
   }
 
@@ -448,6 +729,155 @@ export default function ChatMyMessagesSystem() {
     setSidebarVisible(!sidebarVisible)
   }
 
+  const handleMemberCheckbox = (memberId: string) => {
+    setMembersToRemove((prev) => {
+      const updated = new Set(prev)
+      if (updated.has(memberId)) {
+        updated.delete(memberId)
+      } else {
+        updated.add(memberId)
+      }
+      return updated
+    })
+  }
+
+  const handleAddMemberRow = () => {
+    setNewMembers((prev) => [...prev, { ...INITIAL_MEMBER_ROW }])
+  }
+
+  const handleRemoveMemberRow = (index: number) => {
+    setNewMembers((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== index)))
+  }
+
+  const handleNewMemberChange = (index: number, field: keyof MemberAddGroup, value: string) => {
+    setNewMembers((prev) => prev.map((member, idx) => (idx === index ? { ...member, [field]: value } : member)))
+  }
+
+  const addMembersMutation = useMutation({
+    mutationFn: (body: { groupChatId: string; informationNewMembers: MemberAddGroup[] }) =>
+      chatApi.GroupChat.addMemberInGroup(body),
+    onSuccess: () => {
+      toast.success('Đã thêm thành viên mới')
+      setNewMembers([INITIAL_MEMBER_ROW])
+      queryClient.invalidateQueries({ queryKey: ['group-chats'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.data?.message || 'Không thể thêm thành viên')
+    }
+  })
+
+  const removeMembersMutation = useMutation({
+    mutationFn: (body: { groupChatId: string; memberIds: string[] }) => chatApi.GroupChat.removeMemberInGroup(body),
+    onSuccess: () => {
+      toast.success('Đã cập nhật thành viên nhóm')
+      setMembersToRemove(new Set())
+      queryClient.invalidateQueries({ queryKey: ['group-chats'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.data?.message || 'Không thể cập nhật thành viên')
+    }
+  })
+
+  const handleSubmitNewMembers = () => {
+    if (!selectedChatId) return
+    const sanitized = newMembers.filter((member) => member.email && member.name)
+    if (!sanitized.length) {
+      toast.warning('Vui lòng nhập đầy đủ thông tin thành viên mới')
+      return
+    }
+    addMembersMutation.mutate({ groupChatId: selectedChatId, informationNewMembers: sanitized })
+  }
+
+  const handleRemoveMembers = () => {
+    if (!selectedChatId || membersToRemove.size === 0) return
+    removeMembersMutation.mutate({ groupChatId: selectedChatId, memberIds: Array.from(membersToRemove) })
+  }
+
+  const handleLeaveGroup = () => {
+    if (!selectedChatId || !userProfile?.id) return
+    removeMembersMutation.mutate({ groupChatId: selectedChatId, memberIds: [userProfile.id] })
+    setSelectedChatId(null)
+  }
+
+  const filteredMembers = useMemo(() => {
+    const members = selectedChat?.members || []
+    if (!memberSearch.trim()) return members
+    const keyword = memberSearch.toLowerCase()
+    return members.filter(
+      (member) =>
+        member.fullName?.toLowerCase().includes(keyword) ||
+        member.email?.toLowerCase().includes(keyword) ||
+        member.userId.toLowerCase().includes(keyword)
+    )
+  }, [memberSearch, selectedChat?.members])
+
+  const selectedChatMessages = combinedMessages.filter((msg) => msg.groupChatId === selectedChatId)
+
+  useEffect(() => {
+    selectedChatMessagesRef.current = selectedChatMessages
+  }, [selectedChatMessages])
+
+  useEffect(() => {
+    if (!selectedChatId || !selectedChatMessages.length) return
+    const container = chatContainerRef.current
+    if (!container) return
+
+    if (isNearBottom || shouldForceScrollRef.current) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: shouldForceScrollRef.current || selectedChatMessages.length < 5 ? 'auto' : 'smooth'
+      })
+      shouldForceScrollRef.current = false
+    }
+  }, [selectedChatId, selectedChatMessages, isNearBottom])
+
+  const renderMessageContent = (message: Message) => {
+    if (editingMessageId === message.id) {
+      return (
+        <div className='flex items-center space-x-2'>
+          <input
+            type='text'
+            value={editingMessageContent}
+            onChange={(e) => setEditingMessageContent(e.target.value)}
+            onKeyPress={handleKeyPress as any}
+            className='text-sm px-2 py-1 rounded text-gray-900'
+          />
+          <button onClick={handleSaveEdit}>
+            <Check className='w-4 h-4' />
+          </button>
+          <button onClick={handleCancelEdit}>
+            <X className='w-4 h-4' />
+          </button>
+        </div>
+      )
+    }
+
+    if (message.isUrl || isImageUrl(message.message)) {
+      return (
+        <img
+          src={message.message}
+          alt='Shared content'
+          className='max-w-full h-auto rounded-lg'
+          style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+        />
+      )
+    }
+
+    return <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
+  }
+
+  const renderReadReceipt = (message: Message) => {
+    if (!message.isCurrentUser) return null
+    const readers = (messageReadReceipts[message.id] || []).filter((reader) => reader.userId !== userProfile?.id)
+    if (!readers.length) return <span className='text-[10px] text-gray-400'>Đã gửi</span>
+    return (
+      <div className='flex items-center justify-end text-[10px] text-gray-500 gap-1'>
+        <Check className='w-3 h-3' />
+        <span>{`Đã đọc bởi ${readers.map((reader) => reader.userName).join(', ')}`}</span>
+      </div>
+    )
+  }
+
   return (
     <div className='flex h-[800px] rounded-md bg-gray-50 w-full'>
       {isMobile && (
@@ -474,17 +904,13 @@ export default function ChatMyMessagesSystem() {
         </button>
       )}
 
-      {/* Chat List Sidebar */}
       {sidebarVisible && (
         <div
           ref={sidebarRef}
           className='w-80 min-w-80 bg-white border-r border-gray-200 flex flex-col absolute md:relative z-20 h-full'
         >
-          {/* Header */}
           <div className='p-6 border-b border-gray-200 bg-gradient-to-r from-cyan-400 to-blue-300'>
             <h1 className='text-xl font-bold text-white mb-4'>Nhóm tin nhắn của tôi</h1>
-
-            {/* Search */}
             <div className='relative'>
               <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
               <input
@@ -497,7 +923,6 @@ export default function ChatMyMessagesSystem() {
             </div>
           </div>
 
-          {/* Connection status */}
           <div className='px-6 py-2 bg-gray-50 border-b border-gray-200'>
             <div className='flex items-center space-x-2'>
               {isConnected ? (
@@ -514,167 +939,149 @@ export default function ChatMyMessagesSystem() {
             </div>
           </div>
 
-          {/* Chat List */}
           <div className='flex-1 overflow-y-auto'>
             {isLoadingChats ? (
               <div className='flex items-center justify-center h-32'>
                 <div className='animate-spin w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full'></div>
               </div>
             ) : (
-              filteredChats.map((chat) => (
-                <button
-                  key={chat.id}
-                  ref={(el) => {
-                    if (el) {
-                      chatButtonRefs.current.set(chat.id, el)
-                    }
-                  }}
-                  onClick={() => handleChatSelect(chat)}
-                  className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
-                    selectedChatId === chat.id
-                      ? 'bg-gradient-to-r from-cyan-50 to-blue-50 border-l-4 border-cyan-400'
-                      : ''
-                  }`}
-                >
-                  <div className='flex items-center space-x-3'>
-                    <div className='relative'>
-                      <Avatar className='w-12 h-12 rounded-full object-cover'>
-                        <AvatarImage src={chat.avatar || chat.name} />
-                        <AvatarFallback>{chat.name.slice(0, 3)}</AvatarFallback>
-                      </Avatar>
-
-                      <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white'></div>
-                    </div>
-
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center justify-between'>
-                        <h3 className='font-semibold text-gray-900 truncate'>{chat.name}</h3>
-                        <span className='text-xs text-gray-500'>{formatTime(new Date(chat.createdAt))}</span>
+              filteredChats.map((chat) => {
+                const unread = unreadCounters[chat.id] || 0
+                return (
+                  <button
+                    key={chat.id}
+                    ref={(el) => {
+                      if (el) {
+                        chatButtonRefs.current.set(chat.id, el)
+                      }
+                    }}
+                    onClick={() => handleChatSelect(chat)}
+                    className={`w-full p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors text-left ${
+                      selectedChatId === chat.id
+                        ? 'bg-gradient-to-r from-cyan-50 to-blue-50 border-l-4 border-cyan-400'
+                        : ''
+                    }`}
+                  >
+                    <div className='flex items-center space-x-3'>
+                      <div className='relative'>
+                        <Avatar className='w-12 h-12 rounded-full object-cover'>
+                          <AvatarImage src={chat.avatar || chat.name} />
+                          <AvatarFallback>{chat.name.slice(0, 3)}</AvatarFallback>
+                        </Avatar>
+                        <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white'></div>
                       </div>
-                      <p className='text-sm text-gray-600 truncate mt-1'>{chat.members.length} thành viên</p>
+
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center justify-between'>
+                          <h3 className='font-semibold text-gray-900 truncate'>{chat.name}</h3>
+                          <span className='text-xs text-gray-500'>{formatTime(new Date(chat.createdAt))}</span>
+                        </div>
+                        <div className='flex items-center justify-between mt-1'>
+                          <p className='text-sm text-gray-600 truncate'>{chat.members.length} thành viên</p>
+                          {unread > 0 && (
+                            <span className='text-xs bg-red-500 text-white rounded-full px-2 py-0.5'>{unread}</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))
+                  </button>
+                )
+              })
             )}
           </div>
         </div>
       )}
 
-      {/* Chat Messages Area */}
       <div className='flex-1 flex flex-col h-full'>
         {selectedChat ? (
           <>
-            {/* Chat Header */}
-            <div className='bg-white border-b border-gray-200 p-4 shadow-sm'>
+            <div className='bg-white border-b border-gray-200 p-4 shadow-sm flex items-center justify-between'>
               <div className='flex items-center space-x-3'>
                 <Avatar className='w-10 h-10 rounded-full object-cover'>
                   <AvatarImage src={selectedChat.avatar || selectedChat.name} />
                   <AvatarFallback>{selectedChat.name.slice(0, 3)}</AvatarFallback>
                 </Avatar>
-                <div className='font-semibold'>{selectedChat.name}</div>
+                <div>
+                  <div className='font-semibold'>{selectedChat.name}</div>
+                  <p className='text-xs text-gray-500'>{selectedChat.members.length} thành viên</p>
+                </div>
               </div>
+              <Button variant='ghost' size='icon' onClick={() => setIsGroupPanelOpen(true)}>
+                <Settings className='w-5 h-5' />
+              </Button>
             </div>
 
-            {/* Messages Container */}
             <div ref={chatContainerRef} className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50'>
+              <div ref={loadOlderRef} className='h-1'></div>
+              {isFetchingNextPage && hasNextPage && (
+                <div className='flex justify-center py-2 text-xs text-gray-400'>Đang tải tin nhắn cũ...</div>
+              )}
+
               {isLoadingMessages ? (
                 <div className='flex items-center justify-center h-32'>
                   <div className='animate-spin w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full'></div>
                 </div>
               ) : (
-                messages
-                  .filter((msg) => msg.groupChatId === selectedChatId)
-                  .map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex items-start space-x-3 group ${
-                        message.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
-                      }`}
-                    >
-                      <img
-                        src={
-                          message.avatar ||
-                          `https://ui-avatars.com/api/?name=${message.senderName}&background=06b6d4&color=fff`
-                        }
-                        alt={message.senderName}
-                        className='w-8 h-8 rounded-full object-cover'
-                      />
+                selectedChatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex items-start space-x-3 group ${
+                      message.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
+                    }`}
+                  >
+                    <img
+                      src={
+                        message.avatar ||
+                        `https://ui-avatars.com/api/?name=${message.senderName}&background=06b6d4&color=fff`
+                      }
+                      alt={message.senderName}
+                      className='w-8 h-8 rounded-full object-cover'
+                    />
 
-                      <div className={`max-w-[70%] ${message.isCurrentUser ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[70%] ${message.isCurrentUser ? 'items-end' : 'items-start'}`}>
+                      <div
+                        className={`flex items-center space-x-2 mb-1 ${
+                          message.isCurrentUser ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        <span className='text-sm font-medium text-gray-700'>{message.senderName}</span>
+                        <span className='text-xs text-gray-500'>{formatTime(message.createdAt)}</span>
+                      </div>
+
+                      <div className='relative'>
                         <div
-                          className={`flex items-center space-x-2 mb-1 ${
-                            message.isCurrentUser ? 'justify-end' : 'justify-start'
+                          className={`px-4 py-2 rounded-lg max-w-full break-words ${
+                            message.isCurrentUser
+                              ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-sm'
+                              : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
                           }`}
                         >
-                          <span className='text-sm font-medium text-gray-700'>{message.senderName}</span>
-                          <span className='text-xs text-gray-500'>{formatTime(message.sentAt)}</span>
+                          {renderMessageContent(message)}
                         </div>
 
-                        <div className='relative'>
-                          <div
-                            className={`px-4 py-2 rounded-lg max-w-full break-words ${
-                              message.isCurrentUser
-                                ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white rounded-br-sm'
-                                : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
-                            }`}
-                          >
-                            {editingMessageId === message.id ? (
-                              <div className='flex items-center space-x-2'>
-                                <input
-                                  type='text'
-                                  value={editingMessageContent}
-                                  onChange={(e) => setEditingMessageContent(e.target.value)}
-                                  onKeyPress={handleKeyPress as any}
-                                  className='text-sm px-2 py-1 rounded text-gray-900'
-                                />
-                                <button onClick={handleSaveEdit}>
-                                  <Check className='w-4 h-4' />
-                                </button>
-                                <button onClick={handleCancelEdit}>
-                                  <X className='w-4 h-4' />
-                                </button>
-                              </div>
-                            ) : message.isUrl ? (
-                              <img
-                                src={message.message}
-                                alt='Shared image'
-                                className='max-w-full h-auto rounded-lg'
-                                style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
-                              />
-                            ) : (
-                              <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
-                            )}
-                          </div>
-
-                          {/* Message actions */}
-                          {message.isCurrentUser && editingMessageId !== message.id && (
-                            <div className='absolute right-0 top-0 -mt-6 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1'>
-                              {!message.isUrl && (
-                                <button className='text-xs p-1' onClick={() => handleEditMessage(message)}>
-                                  <Edit2 className='w-3 h-3' />
-                                </button>
-                              )}
-                              <button
-                                className='text-xs p-1 text-red-600'
-                                onClick={() => handleDeleteMessage(message.id)}
-                              >
-                                <Trash2 className='w-3 h-3' />
+                        {message.isCurrentUser && editingMessageId !== message.id && (
+                          <div className='absolute right-0 top-0 -mt-6 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1'>
+                            {!message.isUrl && (
+                              <button className='text-xs p-1' onClick={() => handleEditMessage(message)}>
+                                <Edit2 className='w-3 h-3' />
                               </button>
-                            </div>
-                          )}
-                        </div>
+                            )}
+                            <button className='text-xs p-1 text-red-600' onClick={() => handleDeleteMessage(message)}>
+                              <Trash2 className='w-3 h-3' />
+                            </button>
+                          </div>
+                        )}
                       </div>
+                      <div className='mt-1'>{renderReadReceipt(message)}</div>
                     </div>
-                  ))
+                  </div>
+                ))
               )}
 
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
             <div className='bg-white border-t border-gray-200 p-4'>
-              {/* Image Preview */}
               {imagePreview && (
                 <div className='mb-4 relative inline-block'>
                   <img
@@ -718,7 +1125,6 @@ export default function ChatMyMessagesSystem() {
                 </div>
 
                 <div className='flex items-center space-x-2'>
-                  {/* Image Upload */}
                   <div className='relative'>
                     <input
                       type='file'
@@ -735,7 +1141,6 @@ export default function ChatMyMessagesSystem() {
                     </label>
                   </div>
 
-                  {/* Emoji Picker */}
                   <div className='relative'>
                     <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -753,7 +1158,6 @@ export default function ChatMyMessagesSystem() {
                     )}
                   </div>
 
-                  {/* Send Button */}
                   <button
                     onClick={handleSendMessage}
                     disabled={(!messageInput.trim() && !selectedImage) || !isConnected || isUploadingImage}
@@ -769,9 +1173,173 @@ export default function ChatMyMessagesSystem() {
                 </div>
               </div>
             </div>
+
+            <Sheet open={isGroupPanelOpen} onOpenChange={setIsGroupPanelOpen}>
+              <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
+                <SheetHeader>
+                  <SheetTitle>Quản lý nhóm</SheetTitle>
+                  <SheetDescription>Thêm thành viên, rời nhóm hoặc xem nhanh hình ảnh đã chia sẻ.</SheetDescription>
+                </SheetHeader>
+
+                <Tabs
+                  value={managerTab}
+                  onValueChange={(value) => setManagerTab(value as 'management' | 'media')}
+                  className='mt-4'
+                >
+                  <TabsList className='grid grid-cols-2 w-full'>
+                    <TabsTrigger value='management'>Quản lý</TabsTrigger>
+                    <TabsTrigger value='media'>Hình ảnh</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value='management' className='focus-visible:outline-none'>
+                    <div className='pt-4 space-y-6'>
+                      <div>
+                        <h3 className='font-semibold mb-2 flex items-center gap-2'>
+                          <Users className='w-4 h-4' /> Thành viên hiện tại
+                        </h3>
+                        <Input
+                          value={memberSearch}
+                          onChange={(e) => setMemberSearch(e.target.value)}
+                          placeholder='Tìm theo tên hoặc email'
+                          className='mb-3'
+                        />
+                        <div className='max-h-60 overflow-y-auto space-y-2'>
+                          {filteredMembers.map((member) => (
+                            <label
+                              key={member.userId}
+                              className='flex items-center justify-between bg-gray-50 border rounded-lg px-3 py-2 cursor-pointer'
+                            >
+                              <div>
+                                <p className='text-sm font-medium'>{member.fullName || member.email}</p>
+                                <p className='text-xs text-gray-500'>{member.email}</p>
+                              </div>
+                              <input
+                                type='checkbox'
+                                checked={membersToRemove.has(member.userId)}
+                                onChange={() => handleMemberCheckbox(member.userId)}
+                              />
+                            </label>
+                          ))}
+                          {!filteredMembers.length && (
+                            <p className='text-xs text-gray-400'>Không có thành viên phù hợp</p>
+                          )}
+                        </div>
+                        <div className='flex gap-2 mt-3'>
+                          <Button
+                            size='sm'
+                            variant='outline'
+                            onClick={handleRemoveMembers}
+                            disabled={!membersToRemove.size || removeMembersMutation.isPending}
+                          >
+                            {removeMembersMutation.isPending ? (
+                              <Loader2 className='w-4 h-4 animate-spin' />
+                            ) : (
+                              <UserMinus className='w-4 h-4 mr-2' />
+                            )}
+                            Gỡ thành viên
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant='destructive'
+                            onClick={handleLeaveGroup}
+                            disabled={removeMembersMutation.isPending}
+                          >
+                            Rời nhóm
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className='font-semibold mb-2 flex items-center gap-2'>
+                          <UserPlus className='w-4 h-4' /> Thêm thành viên mới
+                        </h3>
+                        <div className='space-y-3'>
+                          {newMembers.map((member, index) => (
+                            <div key={`member-${index}`} className='grid grid-cols-1 gap-2 border p-3 rounded-lg'>
+                              <Input
+                                value={member.name}
+                                onChange={(e) => handleNewMemberChange(index, 'name', e.target.value)}
+                                placeholder='Họ và tên'
+                              />
+                              <Input
+                                value={member.email}
+                                onChange={(e) => handleNewMemberChange(index, 'email', e.target.value)}
+                                placeholder='Email'
+                                type='email'
+                              />
+                              <Input
+                                value={member.phone}
+                                onChange={(e) => handleNewMemberChange(index, 'phone', e.target.value)}
+                                placeholder='Số điện thoại (tuỳ chọn)'
+                              />
+                              {newMembers.length > 1 && (
+                                <Button variant='ghost' size='sm' onClick={() => handleRemoveMemberRow(index)}>
+                                  Xoá dòng này
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className='flex gap-2 mt-3'>
+                          <Button variant='secondary' size='sm' onClick={handleAddMemberRow}>
+                            Thêm dòng
+                          </Button>
+                          <Button size='sm' onClick={handleSubmitNewMembers} disabled={addMembersMutation.isPending}>
+                            {addMembersMutation.isPending ? (
+                              <Loader2 className='w-4 h-4 animate-spin' />
+                            ) : (
+                              'Thêm thành viên'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value='media' className='focus-visible:outline-none'>
+                    <div className='pt-4 space-y-4'>
+                      {isLoadingMedia ? (
+                        <div className='flex items-center justify-center py-10'>
+                          <div className='w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin' />
+                        </div>
+                      ) : mediaGallery.length ? (
+                        <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
+                          {mediaGallery.map((media) => (
+                            <div key={media.id} className='border rounded-lg overflow-hidden bg-white shadow-sm'>
+                              <img
+                                src={media.message}
+                                alt={media.senderName}
+                                className='w-full h-32 object-cover'
+                                loading='lazy'
+                              />
+                              <div className='p-2 text-[11px] text-gray-600 flex items-center justify-between gap-2'>
+                                <span className='truncate font-medium'>{media.senderName}</span>
+                                <span>{formatTime(media.createdAt)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className='text-sm text-gray-500 text-center py-8'>Chưa có hình ảnh nào trong nhóm.</p>
+                      )}
+
+                      {hasMoreMedia && (
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          onClick={() => fetchNextMediaPage()}
+                          disabled={isFetchingMoreMedia}
+                        >
+                          {isFetchingMoreMedia ? <Loader2 className='w-4 h-4 animate-spin' /> : 'Tải thêm ảnh'}
+                        </Button>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </SheetContent>
+            </Sheet>
           </>
         ) : (
-          /* No Chat Selected */
           <div className='flex-1 flex items-center justify-center bg-gray-50'>
             <div className='text-center'>
               <MessageCircle className='w-16 h-16 text-gray-300 mx-auto mb-4' />
@@ -781,6 +1349,36 @@ export default function ChatMyMessagesSystem() {
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xoá tin nhắn?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.message ? (
+                <span>
+                  Bạn có chắc chắn muốn xoá tin nhắn "{deleteTarget.message}"? Thao tác này không thể hoàn tác.
+                </span>
+              ) : (
+                'Bạn có chắc chắn muốn xoá tin nhắn này? Thao tác này không thể hoàn tác.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)} disabled={isDeletingMessage}>
+              Huỷ
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteMessage} disabled={isDeletingMessage}>
+              {isDeletingMessage ? 'Đang xoá...' : 'Xoá'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

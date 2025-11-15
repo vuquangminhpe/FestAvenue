@@ -1,5 +1,5 @@
 import type { APIResponse } from '@/types/API.types'
-import type { EventGroup } from '@/types/ChatMessage.types'
+import type { bodyGetMessagesFilterPaging, EventGroup, resChatPaging } from '@/types/ChatMessage.types'
 import type {
   bodyAddMemberInGroup,
   bodyCreateEventCode,
@@ -8,9 +8,12 @@ import type {
 } from '@/types/GroupChat.types'
 import http from '@/utils/http'
 
-// Note: All message operations (send, get, update, delete, mark as read)
-// are handled via SignalR ChatMessageHub, not REST API
-const ChatApis = {}
+const ChatMessage = {
+  getMessagesWithPagging: async (body: bodyGetMessagesFilterPaging) => {
+    const data = await http.post<APIResponse<resChatPaging>>('/chat/messages/get-message-filter-paging', body)
+    return data?.data?.data
+  }
+}
 
 const GroupChat = {
   createGroupChat: async (body: bodyCreateEventCode) => {
@@ -36,7 +39,7 @@ const GroupChat = {
   // Lấy danh sách group chat mà user đang là thành viên
   getGroupChatByUserId: async (userId: string) => {
     const data = await http.get<APIResponse<EventGroup[]>>(`/group-chat/user/${userId}`)
-    return data?.data
+    return data?.data?.data
   },
   // Cập nhật thông tin group
   updateGroupChat: async (body: bodyUpdateGroupChat) => {
@@ -45,4 +48,4 @@ const GroupChat = {
   }
 }
 
-export default { ChatApis, GroupChat }
+export default { ChatMessage, GroupChat }
