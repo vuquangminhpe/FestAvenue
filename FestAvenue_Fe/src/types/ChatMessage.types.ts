@@ -8,11 +8,24 @@ export interface bodyGetMessagesFilterPaging {
   isUrl?: boolean
 }
 
-// SignalR ChatMessageHub input types
+// SignalR ChatMessageHub input types (matching C# hub exactly)
 export interface CreateChatMessageInput {
-  groupChatId: string
-  message?: string
-  isUrl?: boolean
+  GroupChatId: string
+  Message?: string
+  IsUrl?: boolean
+}
+
+export interface GetChatMessagesInput {
+  GroupChatId: string
+  Page: number
+  PageSize: number
+  Keyword?: string
+  IsUrl?: boolean
+}
+
+export interface UpdateChatMessageInput {
+  MessageId: string
+  NewContent: string
 }
 
 export interface Member {

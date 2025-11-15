@@ -215,15 +215,19 @@ export default function StaffEventManagement() {
                         {/* Event Name */}
                         <TableCell>
                           <div>
-                            <p className='font-semibold text-slate-800'>{eventVersion.eventName}</p>
-                            <p className='text-sm text-slate-500 line-clamp-1'>{eventVersion.shortDescription}</p>
+                            <p className='font-semibold text-slate-800'>
+                              {eventVersion.eventName.slice(0, 30) + '...'}
+                            </p>
+                            <p className='text-sm text-slate-500 line-clamp-1'>
+                              {eventVersion.shortDescription.slice(0, 20) + '...'}
+                            </p>
                           </div>
                         </TableCell>
 
                         {/* Organization */}
                         <TableCell>
                           <p className='text-sm text-slate-700'>
-                            {eventVersion.organization?.name || 'Chưa có thông tin'}
+                            {eventVersion.organization?.name.slice(0, 20) + '...' || 'Chưa có thông tin'}
                           </p>
                         </TableCell>
 

@@ -11,6 +11,7 @@ import { getIdFromNameId } from '@/utils/utils'
 import eventApis from '@/apis/event.api'
 import AIApis from '@/apis/AI.api'
 import type { resModerateContent } from '@/types/API.types'
+import categoryApis from '@/apis/categories.api'
 
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
@@ -45,6 +46,7 @@ function CreateEvent() {
   const [currentStep, setCurrentStep] = useState(1)
   const [showModerateDialog, setShowModerateDialog] = useState(false)
   const [moderateResult, setModerateResult] = useState<resModerateContent | null>(null)
+  const [categoryId, setCategoryId] = useState<string | null>()
   const stepRefs = useRef<(HTMLDivElement | null)[]>([])
   const cardRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -69,69 +71,70 @@ function CreateEvent() {
     enabled: !!eventId
   })
 
-  useEffect(() => {
-    if (eventData?.data) {
-      const event = eventData.data
-
-      const formData: EventFormData = {
-        ...defaultFormValues,
-        name: event.eventName ?? '',
-        description: event.description ?? '',
-        shortDescription: event.shortDescription ?? '',
-        categoryId: event.categoryId ?? '',
-        visibility: event.visibility ?? defaultFormValues.visibility,
-        capacity: event.capacity ?? defaultFormValues.capacity,
-        startEventLifecycleTime: event.startEventLifecycleTime ?? '',
-        endEventLifecycleTime: event.endEventLifecycleTime ?? '',
-        startTicketSaleTime: event.startTicketSaleTime ?? event.startEventLifecycleTime ?? '',
-        endTicketSaleTime: event.endTicketSaleTime ?? event.endEventLifecycleTime ?? '',
-        startTimeEventTime: event.startTimeEventTime ?? '',
-        endTimeEventTime: event.endTimeEventTime ?? '',
-        logoUrl: event.logoUrl ?? '',
-        bannerUrl: event.bannerUrl ?? '',
-        trailerUrl: event.trailerUrl ?? '',
-        website: event.website ?? '',
-        publicContactEmail: event.publicContactEmail ?? '',
-        publicContactPhone: event.publicContactPhone ?? '',
-        location: {
-          ...defaultFormValues.location,
-          ...event.location,
-          address: {
-            ...defaultFormValues.location.address,
-            ...(event.location?.address ?? {})
-          },
-          coordinates: {
-            ...defaultFormValues.location.coordinates,
-            ...(event.location?.coordinates ?? {})
-          }
-        },
-        hashtags: event.hashtags?.length ? event.hashtags : undefined,
-        organization: {
-          ...defaultFormValues.organization,
-          ...event.organization,
-          contact: {
-            ...defaultFormValues.organization.contact,
-            ...(event.organization?.contact ?? {})
-          }
-        }
-      }
-
-      form.reset(formData)
-    }
-  }, [eventData, form])
-
-  const { onSubmit, createEventMutation, uploadFileMutation, organizationData } = useCreateEvent()
-
   // Fetch categories for moderate content API
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, isLoading: isLoadingCategories } = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => {
-      const categoryApis = await import('@/apis/categories.api')
-      return categoryApis.default.getCategoryActive()
-    }
+    queryFn: () => categoryApis.getCategoryActive(),
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
   })
 
   const categories = categoriesData?.data || []
+
+  useEffect(() => {
+    if (!eventData?.data) return
+
+    // In update mode, wait for categories to load before filling form
+    if (isUpdateMode && isLoadingCategories) return
+
+    const event = eventData.data
+    setCategoryId(event.categoryId)
+    const formData: EventFormData = {
+      ...defaultFormValues,
+      name: event.eventName ?? '',
+      description: event.description ?? '',
+      shortDescription: event.shortDescription ?? '',
+      categoryId: event.categoryId ?? '',
+      visibility: event.visibility ?? defaultFormValues.visibility,
+      capacity: event.capacity ?? defaultFormValues.capacity,
+      startEventLifecycleTime: event.startEventLifecycleTime ?? '',
+      endEventLifecycleTime: event.endEventLifecycleTime ?? '',
+      startTicketSaleTime: event.startTicketSaleTime ?? event.startEventLifecycleTime ?? '',
+      endTicketSaleTime: event.endTicketSaleTime ?? event.endEventLifecycleTime ?? '',
+      startTimeEventTime: event.startTimeEventTime ?? '',
+      endTimeEventTime: event.endTimeEventTime ?? '',
+      logoUrl: event.logoUrl ?? '',
+      bannerUrl: event.bannerUrl ?? '',
+      trailerUrl: event.trailerUrl ?? '',
+      website: event.website ?? '',
+      publicContactEmail: event.publicContactEmail ?? '',
+      publicContactPhone: event.publicContactPhone ?? '',
+      location: {
+        ...defaultFormValues.location,
+        ...event.location,
+        address: {
+          ...defaultFormValues.location.address,
+          ...(event.location?.address ?? {})
+        },
+        coordinates: {
+          ...defaultFormValues.location.coordinates,
+          ...(event.location?.coordinates ?? {})
+        }
+      },
+      hashtags: event.hashtags?.length ? event.hashtags : undefined,
+      organization: {
+        ...defaultFormValues.organization,
+        ...event.organization,
+        contact: {
+          ...defaultFormValues.organization.contact,
+          ...(event.organization?.contact ?? {})
+        }
+      }
+    }
+
+    form.reset(formData)
+  }, [eventData, form, isUpdateMode, isLoadingCategories])
+
+  const { onSubmit, createEventMutation, uploadFileMutation, organizationData } = useCreateEvent()
 
   const {
     logoDetection,
@@ -249,8 +252,8 @@ function CreateEvent() {
     })
   }
 
-  // Show loading state while fetching event data
-  if (isLoadingEvent && eventId) {
+  // Show loading state while fetching event data or categories (in update mode)
+  if ((isLoadingEvent || isLoadingCategories) && eventId) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 py-8 flex items-center justify-center'>
         <div className='text-center'>
@@ -309,7 +312,7 @@ function CreateEvent() {
                       stepRefs.current[0] = el
                     }}
                   >
-                    <BasicInfo form={form} />
+                    <BasicInfo form={form} categoryId={categoryId as string} />
                   </div>
                 )}
 

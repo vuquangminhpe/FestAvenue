@@ -14,7 +14,9 @@ import type {
   MessageUpdated,
   MessageDeleted,
   MessageError,
-  EventGroup
+  EventGroup,
+  GetChatMessagesInput,
+  UpdateChatMessageInput
 } from '@/types/ChatMessage.types'
 import { EmojiPicker } from '@/utils/helper'
 import { toast } from 'sonner'
@@ -124,10 +126,11 @@ export default function ChatMyMessagesSystem() {
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl(`https://hoalacrent.io.vn/chatmessagehub?access_token=${token}`, {
-            accessTokenFactory() {
-              console.log('token')
-              return token
+          .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
+            accessTokenFactory: () => {
+              const currentToken = getAccessTokenFromLS()
+              console.log('Providing access token for SignalR')
+              return currentToken || ''
             }
           })
           .withAutomaticReconnect()
@@ -285,7 +288,7 @@ export default function ChatMyMessagesSystem() {
     const loadMessages = async () => {
       try {
         setIsLoadingMessages(true)
-        const input = {
+        const input: GetChatMessagesInput = {
           GroupChatId: selectedChatId,
           Page: 1,
           PageSize: 50
@@ -388,7 +391,11 @@ export default function ChatMyMessagesSystem() {
     if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
 
     try {
-      await connection.invoke('UpdateMessage', editingMessageId, editingMessageContent.trim())
+      const updateInput: UpdateChatMessageInput = {
+        MessageId: editingMessageId,
+        NewContent: editingMessageContent.trim()
+      }
+      await connection.invoke('UpdateMessage', updateInput)
       setEditingMessageId(null)
       setEditingMessageContent('')
     } catch (error) {

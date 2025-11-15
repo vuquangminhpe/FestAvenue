@@ -386,13 +386,16 @@ export function EventDetails({ form }: EventDetailsProps) {
                       }
                     }}
                     placeholder='Chọn ngày và giờ bắt đầu sự kiện'
-                    minDate={ticketSaleStart ? new Date(ticketSaleStart) : undefined}
+                    minDate={ticketSaleEnd ? new Date(ticketSaleEnd) : undefined}
                     maxDate={lifecycleEnd ? new Date(lifecycleEnd) : undefined}
                     disabled={!isTicketSaleComplete}
                     variant='start'
                   />
                 </FormControl>
-                <FormDescription className='text-xs'>Phải sau thời điểm bắt đầu bán vé</FormDescription>
+                <FormDescription className='text-xs'>
+                  Phải sau thời điểm kết thúc bán vé (
+                  {ticketSaleEnd ? new Date(ticketSaleEnd).toLocaleString('vi-VN') : '...'})
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

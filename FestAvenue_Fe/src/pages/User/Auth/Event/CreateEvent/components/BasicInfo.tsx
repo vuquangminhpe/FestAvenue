@@ -9,15 +9,21 @@ import categoryApis from '@/apis/categories.api'
 
 interface BasicInfoProps {
   form: UseFormReturn<EventFormData>
+  categoryId?: string
 }
 
-export function BasicInfo({ form }: BasicInfoProps) {
+export function BasicInfo({ form, categoryId }: BasicInfoProps) {
   const { data: categoriesData } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoryApis.getCategoryActive()
   })
 
   const categories = categoriesData?.data || []
+  const categoryNameDefault = categories?.filter((cat) => {
+    if (cat?.id === categoryId) {
+      return cat?.name
+    }
+  })
 
   return (
     <div className='space-y-6'>
@@ -50,14 +56,19 @@ export function BasicInfo({ form }: BasicInfoProps) {
             <FormLabel className='text-base font-semibold text-slate-700'>
               Danh mục <span className='text-red-500'>*</span>
             </FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
+            <Select
+              key={categoryNameDefault[0]?.name || ''}
+              onValueChange={field.onChange}
+              value={field.value || undefined}
+              defaultValue={field.value || undefined}
+            >
               <FormControl>
                 <SelectTrigger className='bg-white border-slate-200'>
                   <SelectValue placeholder='Chọn danh mục sự kiện' />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {categories.map((category: any) => (
+                {categories?.map((category: any) => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
                   </SelectItem>
