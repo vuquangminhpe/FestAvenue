@@ -3,8 +3,8 @@ import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessa
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Hash, X, Plus, Sparkles, Loader2, Target, Tag, Users } from 'lucide-react'
-import type { UseFormReturn } from 'react-hook-form'
+import { Hash, X, Plus, Sparkles, Loader2, Tag } from 'lucide-react'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
 import { toast } from 'sonner'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -21,7 +21,7 @@ export function HashtagsInput({ form }: HashtagsInputProps) {
   const [inputValue, setInputValue] = useState('')
   const [generatedData, setGeneratedData] = useState<resGenerateTags | null>(null)
   const [showGenerated, setShowGenerated] = useState(false)
-  const hashtags = form.watch('hashtags') || []
+  const hashtags = useWatch({ control: form.control, name: 'hashtags' }) || []
 
   // Fetch categories to map categoryId to category name
   const { data: categoriesData } = useQuery({
@@ -350,39 +350,10 @@ export function HashtagsInput({ form }: HashtagsInputProps) {
                 </div>
               </Card>
             )}
-
-            {/* Target Audience Section */}
-            {generatedData.target_audience && generatedData.target_audience.length > 0 && (
-              <Card className='bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-sm hover:shadow-md transition-shadow'>
-                <div className='p-4 space-y-3'>
-                  <div className='flex items-center gap-2'>
-                    <Users className='w-4 h-4 text-green-600' />
-                    <h5 className='font-semibold text-green-900'>Target Audience</h5>
-                    <Badge variant='outline' className='bg-green-100 text-green-700 border-green-300 text-xs'>
-                      {generatedData.target_audience.length}
-                    </Badge>
-                  </div>
-                  <div className='flex flex-wrap gap-2'>
-                    {generatedData.target_audience.map((tag, index) => (
-                      <Badge
-                        key={`audience-${index}`}
-                        onClick={(e) => addGeneratedTag(tag, e)}
-                        className='bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 cursor-pointer px-3 py-1.5 transition-all hover:scale-105 active:scale-95 select-none'
-                        role='button'
-                        tabIndex={0}
-                      >
-                        <Target className='w-3 h-3 mr-1' />
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </Card>
-            )}
           </div>
 
           <div className='text-center'>
-            <p className='text-sm text-slate-500 italic'>💡 Click vào các tag để thêm vào danh sách hashtags của bạn</p>
+            <p className='text-sm text-slate-500 italic'>Click vào các tag để thêm vào danh sách hashtags của bạn</p>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, useParams } from 'react-router'
@@ -44,6 +44,7 @@ import {
 
 function CreateEvent() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [stepCompletion, setStepCompletion] = useState<Record<number, boolean>>({})
   const [showModerateDialog, setShowModerateDialog] = useState(false)
   const [moderateResult, setModerateResult] = useState<resModerateContent | null>(null)
   const [categoryId, setCategoryId] = useState<string | null>()
@@ -63,6 +64,7 @@ function CreateEvent() {
     defaultValues: defaultFormValues,
     mode: 'onChange'
   })
+  const { errors } = form.formState
 
   // Fetch event data if in update mode
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
@@ -132,6 +134,7 @@ function CreateEvent() {
     }
 
     form.reset(formData)
+    setStepCompletion({})
   }, [eventData, form, isUpdateMode, isLoadingCategories])
 
   const { onSubmit, createEventMutation, uploadFileMutation, organizationData } = useCreateEvent()
@@ -216,6 +219,10 @@ function CreateEvent() {
     }
 
     if (isValid) {
+      setStepCompletion((prev) => ({
+        ...prev,
+        [currentStep]: true
+      }))
       setCurrentStep((prev) => Math.min(prev + 1, 8))
     }
   }
@@ -227,6 +234,21 @@ function CreateEvent() {
   const goToStep = (stepId: number) => {
     setCurrentStep(stepId)
   }
+
+  const stepStates = useMemo(
+    () =>
+      steps.map((step) => {
+        const fields = getFieldsForStep(step.id)
+        const hasError = fields.some((field) => Boolean(errors[field]))
+
+        return {
+          id: step.id,
+          hasError,
+          isCompleted: Boolean(stepCompletion[step.id]) && !hasError
+        }
+      }),
+    [errors, stepCompletion]
+  )
 
   const handleSubmit = (data: EventFormData) => {
     if (isDetecting()) {
@@ -293,7 +315,7 @@ function CreateEvent() {
         </div>
 
         {/* Progress Steps */}
-        <ProgressSteps currentStep={currentStep} onStepClick={goToStep} />
+        <ProgressSteps currentStep={currentStep} onStepClick={goToStep} stepStates={stepStates} />
 
         {/* Main Form Card */}
         <Card ref={cardRef} className='bg-white/80 backdrop-blur-sm shadow-xl border-0'>

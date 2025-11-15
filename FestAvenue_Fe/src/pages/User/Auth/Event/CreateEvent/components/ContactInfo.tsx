@@ -15,12 +15,15 @@ export function ContactInfo({ form }: ContactInfoProps) {
         name='website'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-base font-semibold text-slate-700'>Website</FormLabel>
+            <FormLabel className='text-base font-semibold text-slate-700'>
+              Website <span className='text-red-500 ml-1'>*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 type='url'
                 placeholder='https://example.com'
                 {...field}
+                required
                 className='bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500'
               />
             </FormControl>
@@ -35,12 +38,15 @@ export function ContactInfo({ form }: ContactInfoProps) {
         name='publicContactEmail'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-base font-semibold text-slate-700'>Email liên hệ công khai</FormLabel>
+            <FormLabel className='text-base font-semibold text-slate-700'>
+              Email liên hệ công khai <span className='text-red-500 ml-1'>*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 type='email'
                 placeholder='contact@example.com'
                 {...field}
+                required
                 className='bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500'
               />
             </FormControl>
@@ -55,12 +61,15 @@ export function ContactInfo({ form }: ContactInfoProps) {
         name='publicContactPhone'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-base font-semibold text-slate-700'>Số điện thoại liên hệ</FormLabel>
+            <FormLabel className='text-base font-semibold text-slate-700'>
+              Số điện thoại liên hệ <span className='text-red-500 ml-1'>*</span>
+            </FormLabel>
             <FormControl>
               <Input
                 type='tel'
                 placeholder='+84 123 456 789'
                 {...field}
+                required
                 className='bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-500'
               />
             </FormControl>

@@ -1,10 +1,10 @@
-import { useState, useRef, Suspense, lazy } from 'react'
+import { useState, useRef, Suspense, lazy, useEffect } from 'react'
 import { FormControl, FormDescription, FormItem, FormLabel } from '@/components/ui/form'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { X, Loader2, CheckCircle2, AlertTriangle, Image as ImageIcon, Video, ShieldCheck, Info } from 'lucide-react'
-import type { UseFormReturn } from 'react-hook-form'
+import { useWatch, type UseFormReturn } from 'react-hook-form'
 import type { EventFormData } from '../types'
 import type { MediaDetectionResult } from '../hooks/useAIDetection'
 import userApi from '@/apis/user.api'
@@ -57,6 +57,25 @@ export function MediaUpload({
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [bannerFile, setBannerFile] = useState<File | null>(null)
   const [trailerFile, setTrailerFile] = useState<File | null>(null)
+
+  const logoUrlValue = useWatch({ control: form.control, name: 'logoUrl' })
+  const bannerUrlValue = useWatch({ control: form.control, name: 'bannerUrl' })
+  const trailerUrlValue = useWatch({ control: form.control, name: 'trailerUrl' })
+
+  useEffect(() => {
+    if (logoFile) return
+    setLogoPreview(logoUrlValue || '')
+  }, [logoUrlValue, logoFile])
+
+  useEffect(() => {
+    if (bannerFile) return
+    setBannerPreview(bannerUrlValue || '')
+  }, [bannerUrlValue, bannerFile])
+
+  useEffect(() => {
+    if (trailerFile) return
+    setTrailerPreview(trailerUrlValue || '')
+  }, [trailerUrlValue, trailerFile])
 
   // Handle file selection (just preview, no upload)
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,7 +332,9 @@ export function MediaUpload({
     <div className='space-y-6'>
       {/* Logo Upload */}
       <FormItem>
-        <FormLabel className='text-base font-semibold text-slate-700'>Logo sự kiện</FormLabel>
+        <FormLabel className='text-base font-semibold text-slate-700'>
+          Logo sự kiện <span className='text-red-500 ml-1'>*</span>
+        </FormLabel>
         <FormControl>
           <Card className='p-6 border-2 border-dashed border-slate-200 hover:border-blue-400 transition-colors'>
             <input
@@ -376,7 +397,9 @@ export function MediaUpload({
 
       {/* Banner Upload */}
       <FormItem>
-        <FormLabel className='text-base font-semibold text-slate-700'>Banner sự kiện</FormLabel>
+        <FormLabel className='text-base font-semibold text-slate-700'>
+          Banner sự kiện <span className='text-red-500 ml-1'>*</span>
+        </FormLabel>
         <FormControl>
           <Card className='p-6 border-2 border-dashed border-slate-200 hover:border-blue-400 transition-colors'>
             <input
