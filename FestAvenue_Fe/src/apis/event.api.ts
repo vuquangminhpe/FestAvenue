@@ -34,7 +34,7 @@ const eventApis = {
     return data?.data
   },
   updateEvent: async (body: updateEventWithOrg) => {
-    const data = await http.post<APIResponse<{ messages: string }>>('/event/update-event', body)
+    const data = await http.put<APIResponse<{ messages: string }>>('/event/update-event', body)
     return data?.data
   },
   createEvent: async (body: createEvent) => {
