@@ -87,7 +87,7 @@ export interface MessageSentResult {
 export interface MessageUpdated {
   messageId: string
   groupChatId: string
-  newMessage: string
+  newContent: string
   updatedAt: string
 }
 

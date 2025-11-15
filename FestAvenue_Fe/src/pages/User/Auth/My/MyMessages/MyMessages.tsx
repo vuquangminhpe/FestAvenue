@@ -16,7 +16,8 @@ import {
   UserPlus,
   UserMinus,
   Loader2,
-  Users
+  Users,
+  MoreHorizontal
 } from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
@@ -26,8 +27,10 @@ import userApi from '@/apis/user.api'
 import chatApi from '@/apis/chat.api'
 import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -77,7 +80,7 @@ const MESSAGE_PAGE_SIZE = 20
 const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i
 const INITIAL_MEMBER_ROW: MemberAddGroup = { name: '', email: '', phone: '' }
 
-const isImageUrl = (value: string) => value.startsWith('http') && IMAGE_REGEX.test(value)
+const isImageUrl = (value: string) => value?.startsWith('http') && IMAGE_REGEX.test(value)
 
 const parseMessageDate = (value?: string | Date | null) => {
   if (!value) return new Date()
@@ -120,6 +123,7 @@ export default function ChatMyMessagesSystem() {
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editingMessageContent, setEditingMessageContent] = useState('')
+  const [messageActionOpenId, setMessageActionOpenId] = useState<string | null>(null)
   const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([])
   const [unreadCounters, setUnreadCounters] = useState<Record<string, number>>({})
   const [messageReadReceipts, setMessageReadReceipts] = useState<Record<string, MessageReadEntry[]>>({})
@@ -131,6 +135,7 @@ export default function ChatMyMessagesSystem() {
   const [managerTab, setManagerTab] = useState<'management' | 'media'>('management')
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
   const [isDeletingMessage, setIsDeletingMessage] = useState(false)
+  const [deletedMessageIds, setDeletedMessageIds] = useState<Record<string, boolean>>({})
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -303,6 +308,8 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageUpdated', (data: MessageUpdated) => {
+          console.log(data)
+
           queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
             if (!cached) return cached
             return {
@@ -310,7 +317,7 @@ export default function ChatMyMessagesSystem() {
               pages: cached.pages.map((page) => ({
                 ...page,
                 chatMessages: page.chatMessages.map((msg) =>
-                  msg.id === data.messageId ? { ...msg, message: data.newMessage, updatedAt: data.updatedAt } : msg
+                  msg.id === data.messageId ? { ...msg, message: data.newContent, updatedAt: data.updatedAt } : msg
                 )
               }))
             }
@@ -319,13 +326,15 @@ export default function ChatMyMessagesSystem() {
           setRealtimeMessages((prev) =>
             prev.map((msg) =>
               msg.id === data.messageId
-                ? { ...msg, message: data.newMessage, createdAt: parseMessageDate(data.updatedAt || msg.createdAt) }
+                ? { ...msg, message: data.newContent, createdAt: parseMessageDate(data.updatedAt || msg.createdAt) }
                 : msg
             )
           )
         })
 
         newConnection.on('MessageDeleted', (data: MessageDeleted) => {
+          console.log(data)
+
           queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
             if (!cached) return cached
             return {
@@ -336,11 +345,13 @@ export default function ChatMyMessagesSystem() {
               }))
             }
           })
-
+          setDeletedMessageIds((prev) => ({ ...prev, [data.messageId]: true }))
           setRealtimeMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
         })
 
         newConnection.on('MessagesMarkedAsRead', (data: MessagesMarkedAsRead) => {
+          console.log(data)
+
           setUnreadCounters((prev) => ({ ...prev, [data.groupChatId]: 0 }))
           if (data.groupChatId === selectedChatIdRef.current && data.userId !== userProfile?.id) {
             applyMarkedAsRead(data.userId, data.markedAt)
@@ -348,6 +359,8 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageReadByUser', (data: MessageReadByUser) => {
+          console.log(data)
+
           if (data.userId === userProfile?.id) return
           appendReadReceipt(data.messageId, {
             userId: data.userId,
@@ -508,8 +521,10 @@ export default function ChatMyMessagesSystem() {
   }, [historyMessages, userProfile?.id])
 
   const mediaGallery = useMemo(() => {
-    return mediaMessages.map((message) => buildHistoryMessage(message, userProfile?.id))
-  }, [mediaMessages, userProfile?.id])
+    return mediaMessages
+      .map((message) => buildHistoryMessage(message, userProfile?.id))
+      .filter((message) => !deletedMessageIds[message.id])
+  }, [mediaMessages, userProfile?.id, deletedMessageIds])
 
   const combinedMessages = useMemo(() => {
     if (!selectedChatId) return []
@@ -535,8 +550,10 @@ export default function ChatMyMessagesSystem() {
       }
     })
 
-    return Array.from(dedup.values()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
-  }, [normalizedHistory, realtimeMessages, selectedChatId])
+    return Array.from(dedup.values())
+      .filter((message) => !deletedMessageIds[message.id])
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }, [normalizedHistory, realtimeMessages, selectedChatId, deletedMessageIds])
 
   useEffect(() => {
     if (!selectedChatId) return
@@ -547,6 +564,7 @@ export default function ChatMyMessagesSystem() {
     setMemberSearch('')
     setUnreadCounters((prev) => ({ ...prev, [selectedChatId]: 0 }))
     requestMarkMessagesAsRead(selectedChatId)
+    setDeletedMessageIds({})
   }, [requestMarkMessagesAsRead, selectedChatId])
 
   useEffect(() => {
@@ -671,7 +689,10 @@ export default function ChatMyMessagesSystem() {
     if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
 
     try {
-      await connection.invoke('UpdateMessage', editingMessageId, editingMessageContent.trim())
+      await connection.invoke('UpdateMessage', {
+        messageId: editingMessageId,
+        newContent: editingMessageContent
+      })
       setEditingMessageId(null)
       setEditingMessageContent('')
     } catch (error) {
@@ -873,7 +894,7 @@ export default function ChatMyMessagesSystem() {
     return (
       <div className='flex items-center justify-end text-[10px] text-gray-500 gap-1'>
         <Check className='w-3 h-3' />
-        <span>{`Đã đọc bởi ${readers.map((reader) => reader.userName).join(', ')}`}</span>
+        <span>{`Các thành viên khác đã đọc`}</span>
       </div>
     )
   }
@@ -1048,7 +1069,53 @@ export default function ChatMyMessagesSystem() {
                         <span className='text-xs text-gray-500'>{formatTime(message.createdAt)}</span>
                       </div>
 
-                      <div className='relative'>
+                      <div
+                        className={`relative flex items-start gap-2 ${
+                          message.isCurrentUser ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        {message.isCurrentUser && editingMessageId !== message.id && (
+                          <Popover
+                            open={messageActionOpenId === message.id}
+                            onOpenChange={(open) => setMessageActionOpenId(open ? message.id : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <button
+                                type='button'
+                                className='p-1 rounded-full text-gray-500 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200 shadow-sm bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400'
+                              >
+                                <MoreHorizontal className='w-4 h-4' />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align='end' className='w-40 p-2 space-y-1 text-sm'>
+                              {!message.isUrl && (
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    handleEditMessage(message)
+                                    setMessageActionOpenId(null)
+                                  }}
+                                  className='flex w-full items-center gap-2 px-2 py-1 rounded hover:bg-slate-100 text-left'
+                                >
+                                  <Edit2 className='w-3.5 h-3.5' />
+                                  Chỉnh sửa
+                                </button>
+                              )}
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  handleDeleteMessage(message)
+                                  setMessageActionOpenId(null)
+                                }}
+                                className='flex w-full items-center gap-2 px-2 py-1 rounded text-red-600 hover:bg-red-50 text-left'
+                              >
+                                <Trash2 className='w-3.5 h-3.5' />
+                                Xóa
+                              </button>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+
                         <div
                           className={`px-4 py-2 rounded-lg max-w-full break-words ${
                             message.isCurrentUser
@@ -1058,19 +1125,6 @@ export default function ChatMyMessagesSystem() {
                         >
                           {renderMessageContent(message)}
                         </div>
-
-                        {message.isCurrentUser && editingMessageId !== message.id && (
-                          <div className='absolute right-0 top-0 -mt-6 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1'>
-                            {!message.isUrl && (
-                              <button className='text-xs p-1' onClick={() => handleEditMessage(message)}>
-                                <Edit2 className='w-3 h-3' />
-                              </button>
-                            )}
-                            <button className='text-xs p-1 text-red-600' onClick={() => handleDeleteMessage(message)}>
-                              <Trash2 className='w-3 h-3' />
-                            </button>
-                          </div>
-                        )}
                       </div>
                       <div className='mt-1'>{renderReadReceipt(message)}</div>
                     </div>
@@ -1175,116 +1229,186 @@ export default function ChatMyMessagesSystem() {
             </div>
 
             <Sheet open={isGroupPanelOpen} onOpenChange={setIsGroupPanelOpen}>
-              <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto'>
+              <SheetContent side='right' className='w-full sm:max-w-lg overflow-y-auto p-6'>
                 <SheetHeader>
                   <SheetTitle>Quản lý nhóm</SheetTitle>
-                  <SheetDescription>Thêm thành viên, rời nhóm hoặc xem nhanh hình ảnh đã chia sẻ.</SheetDescription>
+                  <SheetDescription>
+                    Thêm thành viên, rời nhóm hoặc xem nhanh hình ảnh đã chia sẻ. Giữ mọi thứ gọn gàng và rõ ràng hơn.
+                  </SheetDescription>
                 </SheetHeader>
+
+                <div className='mt-4 rounded-2xl border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-blue-50 p-4 shadow-sm'>
+                  <p className='text-sm text-gray-600 mb-3'>
+                    Một vài số liệu nhanh để bạn kiểm soát nhóm trò chuyện tốt hơn.
+                  </p>
+                  <div className='grid gap-3 sm:grid-cols-3 text-sm'>
+                    <div className='rounded-xl bg-white/90 border border-white/60 p-3 shadow-sm'>
+                      <span className='text-[11px] uppercase tracking-wide text-gray-500'>Tổng thành viên</span>
+                      <p className='text-2xl font-semibold text-gray-900 mt-1'>{selectedChat?.members.length ?? 0}</p>
+                    </div>
+                    <div className='rounded-xl bg-white/90 border border-white/60 p-3 shadow-sm'>
+                      <span className='text-[11px] uppercase tracking-wide text-gray-500'>Đang chọn gỡ</span>
+                      <p className='text-2xl font-semibold text-gray-900 mt-1'>{membersToRemove.size}</p>
+                    </div>
+                    <div className='rounded-xl bg-white/90 border border-white/60 p-3 shadow-sm'>
+                      <span className='text-[11px] uppercase tracking-wide text-gray-500'>Dòng thêm mới</span>
+                      <p className='text-2xl font-semibold text-gray-900 mt-1'>{newMembers.length}</p>
+                    </div>
+                  </div>
+                </div>
 
                 <Tabs
                   value={managerTab}
                   onValueChange={(value) => setManagerTab(value as 'management' | 'media')}
-                  className='mt-4'
+                  className='mt-6'
                 >
-                  <TabsList className='grid grid-cols-2 w-full'>
-                    <TabsTrigger value='management'>Quản lý</TabsTrigger>
-                    <TabsTrigger value='media'>Hình ảnh</TabsTrigger>
+                  <TabsList className='grid grid-cols-2 w-full rounded-xl bg-slate-100 p-1'>
+                    <TabsTrigger
+                      value='management'
+                      className='data-[state=active]:bg-white data-[state=active]:shadow-sm'
+                    >
+                      Quản lý
+                    </TabsTrigger>
+                    <TabsTrigger value='media' className='data-[state=active]:bg-white data-[state=active]:shadow-sm'>
+                      Hình ảnh
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value='management' className='focus-visible:outline-none'>
-                    <div className='pt-4 space-y-6'>
-                      <div>
-                        <h3 className='font-semibold mb-2 flex items-center gap-2'>
-                          <Users className='w-4 h-4' /> Thành viên hiện tại
-                        </h3>
+                    <div className='pt-6 space-y-6'>
+                      <div className='rounded-2xl border border-slate-200 bg-white shadow-sm p-4'>
+                        <div className='flex items-center justify-between mb-2'>
+                          <h3 className='font-semibold flex items-center gap-2 text-slate-900'>
+                            <Users className='w-4 h-4 text-cyan-500' /> Thành viên hiện tại
+                          </h3>
+                          <Badge variant='secondary' className='text-xs px-3 py-1 rounded-full'>
+                            {filteredMembers.length} thành viên phù hợp
+                          </Badge>
+                        </div>
+                        <p className='text-xs text-gray-500 mb-4'>
+                          Chọn thành viên cần gỡ bằng cách nhấn vào checkbox bên phải.
+                        </p>
                         <Input
                           value={memberSearch}
                           onChange={(e) => setMemberSearch(e.target.value)}
-                          placeholder='Tìm theo tên hoặc email'
-                          className='mb-3'
+                          placeholder='Tìm theo tên, email hoặc ID'
+                          className='mb-3 focus-visible:ring-cyan-400'
                         />
-                        <div className='max-h-60 overflow-y-auto space-y-2'>
+                        <div className='max-h-64 overflow-y-auto space-y-2 pr-1'>
                           {filteredMembers.map((member) => (
                             <label
                               key={member.userId}
-                              className='flex items-center justify-between bg-gray-50 border rounded-lg px-3 py-2 cursor-pointer'
+                              className='flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 transition hover:border-cyan-200 cursor-pointer'
                             >
                               <div>
-                                <p className='text-sm font-medium'>{member.fullName || member.email}</p>
+                                <p className='text-sm font-medium text-slate-900'>{member.fullName || member.email}</p>
                                 <p className='text-xs text-gray-500'>{member.email}</p>
                               </div>
                               <input
                                 type='checkbox'
                                 checked={membersToRemove.has(member.userId)}
                                 onChange={() => handleMemberCheckbox(member.userId)}
+                                className='h-4 w-4 rounded border-gray-300 text-cyan-500 focus:ring-cyan-400'
                               />
                             </label>
                           ))}
                           {!filteredMembers.length && (
-                            <p className='text-xs text-gray-400'>Không có thành viên phù hợp</p>
+                            <p className='text-xs text-gray-400 text-center py-6'>Không có thành viên phù hợp</p>
                           )}
                         </div>
-                        <div className='flex gap-2 mt-3'>
+                        <div className='flex flex-wrap gap-2 mt-4'>
                           <Button
                             size='sm'
                             variant='outline'
                             onClick={handleRemoveMembers}
                             disabled={!membersToRemove.size || removeMembersMutation.isPending}
+                            className='flex-1 min-w-[140px]'
                           >
                             {removeMembersMutation.isPending ? (
                               <Loader2 className='w-4 h-4 animate-spin' />
                             ) : (
-                              <UserMinus className='w-4 h-4 mr-2' />
+                              <>
+                                <UserMinus className='w-4 h-4 mr-2' /> Gỡ thành viên
+                              </>
                             )}
-                            Gỡ thành viên
                           </Button>
                           <Button
                             size='sm'
                             variant='destructive'
                             onClick={handleLeaveGroup}
                             disabled={removeMembersMutation.isPending}
+                            className='flex-1 min-w-[120px]'
                           >
                             Rời nhóm
                           </Button>
                         </div>
                       </div>
 
-                      <div>
-                        <h3 className='font-semibold mb-2 flex items-center gap-2'>
-                          <UserPlus className='w-4 h-4' /> Thêm thành viên mới
-                        </h3>
+                      <div className='rounded-2xl border border-slate-200 bg-white shadow-sm p-4'>
+                        <div className='flex items-center justify-between mb-2'>
+                          <h3 className='font-semibold flex items-center gap-2 text-slate-900'>
+                            <UserPlus className='w-4 h-4 text-cyan-500' /> Thêm thành viên mới
+                          </h3>
+                          <Badge variant='outline' className='text-xs px-3 py-1 rounded-full'>
+                            {newMembers.length} dòng đang nhập
+                          </Badge>
+                        </div>
+                        <p className='text-xs text-gray-500 mb-4'>
+                          Điền thông tin cơ bản cho từng thành viên bạn muốn mời.
+                        </p>
                         <div className='space-y-3'>
                           {newMembers.map((member, index) => (
-                            <div key={`member-${index}`} className='grid grid-cols-1 gap-2 border p-3 rounded-lg'>
+                            <div
+                              key={`member-${index}`}
+                              className='grid grid-cols-1 gap-2 border border-dashed border-cyan-200 p-3 rounded-2xl bg-cyan-50/40'
+                            >
                               <Input
                                 value={member.name}
                                 onChange={(e) => handleNewMemberChange(index, 'name', e.target.value)}
                                 placeholder='Họ và tên'
+                                className='bg-white'
                               />
                               <Input
                                 value={member.email}
                                 onChange={(e) => handleNewMemberChange(index, 'email', e.target.value)}
                                 placeholder='Email'
                                 type='email'
+                                className='bg-white'
                               />
                               <Input
                                 value={member.phone}
                                 onChange={(e) => handleNewMemberChange(index, 'phone', e.target.value)}
                                 placeholder='Số điện thoại (tuỳ chọn)'
+                                className='bg-white'
                               />
                               {newMembers.length > 1 && (
-                                <Button variant='ghost' size='sm' onClick={() => handleRemoveMemberRow(index)}>
+                                <Button
+                                  variant='ghost'
+                                  size='sm'
+                                  className='justify-start text-red-500'
+                                  onClick={() => handleRemoveMemberRow(index)}
+                                >
                                   Xoá dòng này
                                 </Button>
                               )}
                             </div>
                           ))}
                         </div>
-                        <div className='flex gap-2 mt-3'>
-                          <Button variant='secondary' size='sm' onClick={handleAddMemberRow}>
+                        <div className='flex flex-wrap gap-2 mt-4'>
+                          <Button
+                            variant='secondary'
+                            size='sm'
+                            onClick={handleAddMemberRow}
+                            className='flex-1 min-w-[130px]'
+                          >
                             Thêm dòng
                           </Button>
-                          <Button size='sm' onClick={handleSubmitNewMembers} disabled={addMembersMutation.isPending}>
+                          <Button
+                            size='sm'
+                            onClick={handleSubmitNewMembers}
+                            disabled={addMembersMutation.isPending}
+                            className='flex-1 min-w-[130px]'
+                          >
                             {addMembersMutation.isPending ? (
                               <Loader2 className='w-4 h-4 animate-spin' />
                             ) : (
@@ -1297,7 +1421,13 @@ export default function ChatMyMessagesSystem() {
                   </TabsContent>
 
                   <TabsContent value='media' className='focus-visible:outline-none'>
-                    <div className='pt-4 space-y-4'>
+                    <div className='pt-6 space-y-4'>
+                      <div className='rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'>
+                        <h3 className='font-semibold text-slate-900 mb-1'>Thư viện hình ảnh</h3>
+                        <p className='text-xs text-gray-500'>
+                          Những hình ảnh đã chia sẻ gần đây trong nhóm sẽ hiển thị tại đây.
+                        </p>
+                      </div>
                       {isLoadingMedia ? (
                         <div className='flex items-center justify-center py-10'>
                           <div className='w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin' />
@@ -1305,7 +1435,10 @@ export default function ChatMyMessagesSystem() {
                       ) : mediaGallery.length ? (
                         <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
                           {mediaGallery.map((media) => (
-                            <div key={media.id} className='border rounded-lg overflow-hidden bg-white shadow-sm'>
+                            <div
+                              key={media.id}
+                              className='border rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition'
+                            >
                               <img
                                 src={media.message}
                                 alt={media.senderName}
@@ -1320,7 +1453,9 @@ export default function ChatMyMessagesSystem() {
                           ))}
                         </div>
                       ) : (
-                        <p className='text-sm text-gray-500 text-center py-8'>Chưa có hình ảnh nào trong nhóm.</p>
+                        <div className='text-sm text-gray-500 text-center py-12 border border-dashed border-slate-200 rounded-2xl bg-slate-50'>
+                          Chưa có hình ảnh nào trong nhóm.
+                        </div>
                       )}
 
                       {hasMoreMedia && (
