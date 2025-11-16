@@ -760,170 +760,65 @@ export default function SeatMapViewerPage() {
 
       {/* Premium Luxury Ticket Section */}
       {!isLoadingTickets && ticketsData?.data && (
-        <div className='relative py-16 px-4 overflow-hidden' style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%)' }}>
+        <div
+          className='relative py-16 px-4 overflow-hidden'
+          style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%)' }}
+        >
           {/* Subtle background pattern */}
-          <div className='absolute inset-0 opacity-5' style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #D4AF37 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+          <div
+            className='absolute inset-0 opacity-5'
+            style={{
+              backgroundImage: 'radial-gradient(circle at 2px 2px, #D4AF37 1px, transparent 0)',
+              backgroundSize: '40px 40px'
+            }}
+          ></div>
 
           <div className='max-w-6xl mx-auto relative'>
-            {/* Premium Header */}
-            <div className='text-center mb-12'>
-              <div className='inline-block'>
-                <div className='h-px w-16 bg-gradient-to-r from-transparent via-amber-400 to-transparent mb-6 mx-auto'></div>
-                <h2 className='text-4xl font-serif font-bold mb-3 bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent'>
-                  Premium Ticket Collection
-                </h2>
-                <p className='text-sm tracking-widest text-amber-100/60 uppercase font-light'>Exclusive Event Access</p>
-                <div className='h-px w-24 bg-gradient-to-r from-transparent via-amber-400 to-transparent mt-6 mx-auto'></div>
-              </div>
-            </div>
-
             {/* Premium Tickets Grid */}
-            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
-              Array.isArray(ticketsData.data)
-                ? ticketsData.data.length === 1
-                  ? 'lg:grid-cols-1'
-                  : ticketsData.data.length === 2
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+                Array.isArray(ticketsData.data)
+                  ? ticketsData.data.length === 1
+                    ? 'lg:grid-cols-1'
+                    : ticketsData.data.length === 2
                     ? 'lg:grid-cols-2'
                     : ticketsData.data.length === 3
-                      ? 'lg:grid-cols-3'
-                      : ticketsData.data.length === 4
-                        ? 'lg:grid-cols-4'
-                        : 'lg:grid-cols-3'
-                : 'lg:grid-cols-1'
-            }`}>
-              {Array.isArray(ticketsData.data) ? (
-                ticketsData.data.map((ticket: TicketType, index: number) => (
-                  <div
-                    key={ticket.id}
-                    className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl'
-                    style={{
-                      boxShadow: '0 8px 32px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(212, 175, 55, 0.2)'
-                    }}
-                  >
-                    {/* Gold gradient border on hover */}
-                    <div className='absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500'
-                         style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.3) 0%, rgba(255,215,0,0.2) 50%, rgba(212,175,55,0.3) 100%)',
-                                  padding: '1px',
-                                  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                                  WebkitMaskComposite: 'xor',
-                                  maskComposite: 'exclude' }}>
-                    </div>
-
-                    {/* Top gold accent line */}
-                    <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
-
-                    <div className='p-6'>
-                      {/* Ticket Header */}
-                      <div className='mb-4'>
-                        <div className='flex items-center gap-2 mb-3'>
-                          <div className='w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
-                          <h3 className='text-xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
-                            {ticket.name}
-                          </h3>
-                        </div>
-
-                        <div className='flex flex-wrap gap-2 mb-3'>
-                          {ticket.isFree && (
-                            <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
-                                  style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
-                              COMPLIMENTARY
-                            </span>
-                          )}
-                          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
-                                style={{
-                                  background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                                  borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
-                                  color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
-                                }}>
-                            {ticket.isPublic ? 'PUBLIC' : 'EXCLUSIVE'}
-                          </span>
-                        </div>
-
-                        {ticket.description && (
-                          <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
-                            {ticket.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Premium Price Display */}
-                      <div className='text-center py-4 mb-4 rounded-xl' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                        <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-1 font-light'>Investment</div>
-                        <div className='text-3xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
-                          {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
-                        </div>
-                        <div className='mt-1 text-xs text-amber-400/50'>per ticket</div>
-                      </div>
-
-                      {/* Compact Details */}
-                      <div className='space-y-2 mb-4'>
-                        <div className='flex items-center justify-between text-xs'>
-                          <span className='text-amber-300/60 tracking-wider uppercase'>Available</span>
-                          <span className='font-bold text-amber-100'>{ticket.quantity} seats</span>
-                        </div>
-                        <div className='flex items-center justify-between text-xs'>
-                          <span className='text-amber-300/60 tracking-wider uppercase'>Sale Period</span>
-                          <span className='font-semibold text-amber-100'>
-                            {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })} - {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Luxury Benefits Section */}
-                      {ticket.benefits && ticket.benefits.length > 0 && (
-                        <div className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
-                             style={{
-                               background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
-                               border: '1px solid rgba(212, 175, 55, 0.2)'
-                             }}>
-                          <div className='flex items-center gap-2 mb-3'>
-                            <Gift className='w-4 h-4 text-amber-400' />
-                            <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>Benefits</span>
-                          </div>
-
-                          <div className='space-y-2'>
-                            {ticket.benefits.map((benefit: string, idx: number) => (
-                              <div key={idx} className='flex items-start gap-2 group/benefit'>
-                                <CheckCircle2 className='w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5' />
-                                <span className='text-xs text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
-                                  {benefit}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Bottom gold accent line */}
-                    <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
-                  </div>
-                ))
-              ) : (
-                // Handle single ticket
-                (() => {
-                  const ticket = ticketsData.data as unknown as TicketType
-                  return (
+                    ? 'lg:grid-cols-3'
+                    : ticketsData.data.length === 4
+                    ? 'lg:grid-cols-4'
+                    : 'lg:grid-cols-3'
+                  : 'lg:grid-cols-1'
+              }`}
+            >
+              {Array.isArray(ticketsData.data)
+                ? ticketsData.data.map((ticket: TicketType) => (
                     <div
+                      key={ticket.id}
                       className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl'
                       style={{
                         boxShadow: '0 8px 32px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                         border: '1px solid rgba(212, 175, 55, 0.2)'
                       }}
                     >
-                      <div className='absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500'
-                           style={{ background: 'linear-gradient(135deg, rgba(212,175,55,0.3) 0%, rgba(255,215,0,0.2) 50%, rgba(212,175,55,0.3) 100%)',
-                                    padding: '1px',
-                                    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                                    WebkitMaskComposite: 'xor',
-                                    maskComposite: 'exclude' }}>
-                      </div>
+                      {/* Gold gradient border on hover */}
+                      <div
+                        className='absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500'
+                        style={{
+                          background:
+                            'linear-gradient(135deg, rgba(212,175,55,0.3) 0%, rgba(255,215,0,0.2) 50%, rgba(212,175,55,0.3) 100%)',
+                          padding: '1px',
+                          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                          WebkitMaskComposite: 'xor',
+                          maskComposite: 'exclude'
+                        }}
+                      ></div>
 
+                      {/* Top gold accent line */}
                       <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
 
-                      <div className='p-6'>
-                        <div className='mb-4'>
+                      <div className='p-6 w-full'>
+                        {/* Ticket Header */}
+                        <div className='mb-4 flex w-full justify-between'>
                           <div className='flex items-center gap-2 mb-3'>
                             <div className='w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
                             <h3 className='text-xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
@@ -933,58 +828,85 @@ export default function SeatMapViewerPage() {
 
                           <div className='flex flex-wrap gap-2 mb-3'>
                             {ticket.isFree && (
-                              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
-                                    style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
-                                COMPLIMENTARY
+                              <span
+                                className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                style={{
+                                  background: 'rgba(16, 185, 129, 0.1)',
+                                  borderColor: 'rgba(16, 185, 129, 0.3)',
+                                  color: '#34D399'
+                                }}
+                              >
+                                MIỄN PHÍ
                               </span>
                             )}
-                            <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
-                                  style={{
-                                    background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                                    borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
-                                    color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
-                                  }}>
-                              {ticket.isPublic ? 'PUBLIC' : 'EXCLUSIVE'}
+                            <span
+                              className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                              style={{
+                                background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
+                                borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
+                                color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
+                              }}
+                            >
+                              {ticket.isPublic ? 'Đang mở bán' : 'Không mở bán'}
                             </span>
                           </div>
-
-                          {ticket.description && (
-                            <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
-                              {ticket.description}
-                            </p>
-                          )}
                         </div>
-
-                        <div className='text-center py-4 mb-4 rounded-xl' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                          <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-1 font-light'>Investment</div>
+                        {ticket.description && (
+                          <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
+                            {ticket.description}
+                          </p>
+                        )}
+                        {/* Premium Price Display */}
+                        <div
+                          className='text-center py-4 mb-4 rounded-xl'
+                          style={{
+                            background: 'rgba(212, 175, 55, 0.05)',
+                            border: '1px solid rgba(212, 175, 55, 0.15)'
+                          }}
+                        >
                           <div className='text-3xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
                             {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
                           </div>
-                          <div className='mt-1 text-xs text-amber-400/50'>per ticket</div>
+                          <div className='mt-1 text-xs text-amber-400/50'>1 ghế</div>
                         </div>
 
+                        {/* Compact Details */}
                         <div className='space-y-2 mb-4'>
                           <div className='flex items-center justify-between text-xs'>
-                            <span className='text-amber-300/60 tracking-wider uppercase'>Available</span>
-                            <span className='font-bold text-amber-100'>{ticket.quantity} seats</span>
+                            <span className='text-amber-300/60 tracking-wider uppercase'>Số lượng</span>
+                            <span className='font-bold text-amber-100'>{ticket.quantity} ghế</span>
                           </div>
                           <div className='flex items-center justify-between text-xs'>
-                            <span className='text-amber-300/60 tracking-wider uppercase'>Sale Period</span>
+                            <span className='text-amber-300/60 tracking-wider uppercase'>Ngày mở bán</span>
                             <span className='font-semibold text-amber-100'>
-                              {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })} - {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
+                              {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: 'short'
+                              })}{' '}
+                              -{' '}
+                              {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: 'short'
+                              })}
                             </span>
                           </div>
                         </div>
 
+                        {/* Luxury Benefits Section */}
                         {ticket.benefits && ticket.benefits.length > 0 && (
-                          <div className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
-                               style={{
-                                 background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
-                                 border: '1px solid rgba(212, 175, 55, 0.2)'
-                               }}>
+                          <div
+                            className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
+                            style={{
+                              background:
+                                'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
+                              border: '1px solid rgba(212, 175, 55, 0.2)'
+                            }}
+                          >
                             <div className='flex items-center gap-2 mb-3'>
                               <Gift className='w-4 h-4 text-amber-400' />
-                              <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>Benefits</span>
+                              <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>
+                                Tiện ích của ghế
+                              </span>
                             </div>
 
                             <div className='space-y-2'>
@@ -1001,11 +923,147 @@ export default function SeatMapViewerPage() {
                         )}
                       </div>
 
+                      {/* Bottom gold accent line */}
                       <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
                     </div>
-                  )
-                })()
-              )}
+                  ))
+                : // Handle single ticket
+                  (() => {
+                    const ticket = ticketsData.data as unknown as TicketType
+                    return (
+                      <div
+                        className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl'
+                        style={{
+                          boxShadow: '0 8px 32px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                          border: '1px solid rgba(212, 175, 55, 0.2)'
+                        }}
+                      >
+                        <div
+                          className='absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500'
+                          style={{
+                            background:
+                              'linear-gradient(135deg, rgba(212,175,55,0.3) 0%, rgba(255,215,0,0.2) 50%, rgba(212,175,55,0.3) 100%)',
+                            padding: '1px',
+                            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                            WebkitMaskComposite: 'xor',
+                            maskComposite: 'exclude'
+                          }}
+                        ></div>
+
+                        <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
+
+                        <div className='p-6'>
+                          <div className='mb-4'>
+                            <div className='flex items-center gap-2 mb-3'>
+                              <div className='w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
+                              <h3 className='text-xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
+                                {ticket.name}
+                              </h3>
+                            </div>
+
+                            <div className='flex flex-wrap gap-2 mb-3'>
+                              {ticket.isFree && (
+                                <span
+                                  className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                  style={{
+                                    background: 'rgba(16, 185, 129, 0.1)',
+                                    borderColor: 'rgba(16, 185, 129, 0.3)',
+                                    color: '#34D399'
+                                  }}
+                                >
+                                  COMPLIMENTARY
+                                </span>
+                              )}
+                              <span
+                                className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                style={{
+                                  background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
+                                  borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
+                                  color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
+                                }}
+                              >
+                                {ticket.isPublic ? 'PUBLIC' : 'EXCLUSIVE'}
+                              </span>
+                            </div>
+
+                            {ticket.description && (
+                              <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
+                                {ticket.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div
+                            className='text-center py-4 mb-4 rounded-xl'
+                            style={{
+                              background: 'rgba(212, 175, 55, 0.05)',
+                              border: '1px solid rgba(212, 175, 55, 0.15)'
+                            }}
+                          >
+                            <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-1 font-light'>
+                              Investment
+                            </div>
+                            <div className='text-3xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
+                              {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
+                            </div>
+                            <div className='mt-1 text-xs text-amber-400/50'>per ticket</div>
+                          </div>
+
+                          <div className='space-y-2 mb-4'>
+                            <div className='flex items-center justify-between text-xs'>
+                              <span className='text-amber-300/60 tracking-wider uppercase'>Available</span>
+                              <span className='font-bold text-amber-100'>{ticket.quantity} seats</span>
+                            </div>
+                            <div className='flex items-center justify-between text-xs'>
+                              <span className='text-amber-300/60 tracking-wider uppercase'>Sale Period</span>
+                              <span className='font-semibold text-amber-100'>
+                                {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
+                                  day: '2-digit',
+                                  month: 'short'
+                                })}{' '}
+                                -{' '}
+                                {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
+                                  day: '2-digit',
+                                  month: 'short'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+
+                          {ticket.benefits && ticket.benefits.length > 0 && (
+                            <div
+                              className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
+                              style={{
+                                background:
+                                  'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
+                                border: '1px solid rgba(212, 175, 55, 0.2)'
+                              }}
+                            >
+                              <div className='flex items-center gap-2 mb-3'>
+                                <Gift className='w-4 h-4 text-amber-400' />
+                                <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>
+                                  Tiện ích của ghế
+                                </span>
+                              </div>
+
+                              <div className='space-y-2'>
+                                {ticket.benefits.map((benefit: string, idx: number) => (
+                                  <div key={idx} className='flex items-start gap-2 group/benefit'>
+                                    <CheckCircle2 className='w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5' />
+                                    <span className='text-xs text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
+                                      {benefit}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
+                      </div>
+                    )
+                  })()}
             </div>
           </div>
         </div>
