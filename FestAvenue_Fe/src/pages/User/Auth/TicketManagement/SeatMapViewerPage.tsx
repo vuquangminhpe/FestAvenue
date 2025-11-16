@@ -762,237 +762,224 @@ export default function SeatMapViewerPage() {
       {!isLoadingTickets && ticketsData?.data && (
         <div className='max-w-7xl mx-auto px-4 py-6'>
           <div className='mb-6'>
-            <h2 className='text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2'>
-              Thông tin vé sự kiện
-            </h2>
-            <p className='text-gray-600'>Chọn loại vé phù hợp với bạn</p>
+            <h2 className='text-2xl font-bold text-gray-900 mb-1'>Thông tin vé sự kiện</h2>
+            <p className='text-sm text-gray-500'>Xem chi tiết các loại vé và tiện ích đi kèm</p>
           </div>
 
-          {/* Tickets Grid */}
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {Array.isArray(ticketsData.data)
-              ? ticketsData.data.map((ticket: TicketType, index: number) => (
-                  <Card
-                    key={ticket.id}
-                    className='group hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-300 overflow-hidden'
-                  >
-                    {/* Card Header with Gradient */}
-                    <div
-                      className={`h-2 bg-gradient-to-r ${
-                        index % 3 === 0
-                          ? 'from-purple-500 to-pink-500'
-                          : index % 3 === 1
-                            ? 'from-cyan-500 to-blue-500'
-                            : 'from-green-500 to-emerald-500'
-                      }`}
-                    />
-
-                    <CardHeader
-                      className={`bg-gradient-to-br ${
-                        index % 3 === 0
-                          ? 'from-purple-50 to-pink-50'
-                          : index % 3 === 1
-                            ? 'from-cyan-50 to-blue-50'
-                            : 'from-green-50 to-emerald-50'
-                      }`}
-                    >
-                      <div className='flex items-start justify-between'>
-                        <div className='flex items-center gap-3'>
-                          <div
-                            className={`p-3 rounded-xl ${
-                              index % 3 === 0
-                                ? 'bg-purple-100'
-                                : index % 3 === 1
-                                  ? 'bg-cyan-100'
-                                  : 'bg-green-100'
+          {/* Tickets Table/List */}
+          <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
+            {Array.isArray(ticketsData.data) ? (
+              ticketsData.data.map((ticket: TicketType, index: number) => (
+                <div
+                  key={ticket.id}
+                  className={`p-6 ${index !== ticketsData.data.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50 transition-colors`}
+                >
+                  {/* Ticket Header */}
+                  <div className='flex items-start justify-between mb-4'>
+                    <div className='flex-1'>
+                      <div className='flex items-center gap-3 mb-2'>
+                        <h3 className='text-lg font-semibold text-gray-900'>{ticket.name}</h3>
+                        <div className='flex gap-2'>
+                          {ticket.isFree && (
+                            <span className='inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'>
+                              Miễn phí
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
+                              ticket.isPublic
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-gray-50 text-gray-700 border border-gray-200'
                             }`}
                           >
-                            <Ticket
-                              className={`w-6 h-6 ${
-                                index % 3 === 0
-                                  ? 'text-purple-600'
-                                  : index % 3 === 1
-                                    ? 'text-cyan-600'
-                                    : 'text-green-600'
-                              }`}
-                            />
+                            {ticket.isPublic ? 'Công khai' : 'Riêng tư'}
+                          </span>
+                        </div>
+                      </div>
+                      {ticket.description && <p className='text-sm text-gray-600 leading-relaxed'>{ticket.description}</p>}
+                    </div>
+                    <div className='ml-6 text-right'>
+                      <div className='text-sm text-gray-500 mb-1'>Giá vé</div>
+                      <div className='text-2xl font-bold text-gray-900'>
+                        {ticket.isFree ? '0đ' : formatCurrency(ticket.price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ticket Details Grid */}
+                  <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                    {/* Quantity */}
+                    <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                      <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                        <Ticket className='w-5 h-5' />
+                      </div>
+                      <div>
+                        <div className='text-xs text-gray-500'>Số lượng</div>
+                        <div className='text-sm font-semibold text-gray-900'>{ticket.quantity} vé</div>
+                      </div>
+                    </div>
+
+                    {/* Start Date */}
+                    <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                      <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                        <Clock className='w-5 h-5' />
+                      </div>
+                      <div>
+                        <div className='text-xs text-gray-500'>Bắt đầu bán</div>
+                        <div className='text-sm font-semibold text-gray-900'>
+                          {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* End Date */}
+                    <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                      <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                        <Clock className='w-5 h-5' />
+                      </div>
+                      <div>
+                        <div className='text-xs text-gray-500'>Kết thúc bán</div>
+                        <div className='text-sm font-semibold text-gray-900'>
+                          {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Benefits */}
+                  {ticket.benefits && ticket.benefits.length > 0 && (
+                    <div className='mt-4 p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg border border-gray-100'>
+                      <div className='flex items-center gap-2 mb-3'>
+                        <Gift className='w-4 h-4 text-gray-700' />
+                        <span className='text-sm font-semibold text-gray-900'>Tiện ích đi kèm</span>
+                      </div>
+                      <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                        {ticket.benefits.map((benefit: string, idx: number) => (
+                          <div key={idx} className='flex items-start gap-2'>
+                            <CheckCircle2 className='w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5' />
+                            <span className='text-sm text-gray-700'>{benefit}</span>
                           </div>
-                          <div>
-                            <CardTitle className='text-xl mb-1'>{ticket.name}</CardTitle>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              // Handle single ticket object
+              (() => {
+                const ticket = ticketsData.data as unknown as TicketType
+                return (
+                  <div className='p-6 hover:bg-gray-50 transition-colors'>
+                    {/* Ticket Header */}
+                    <div className='flex items-start justify-between mb-4'>
+                      <div className='flex-1'>
+                        <div className='flex items-center gap-3 mb-2'>
+                          <h3 className='text-lg font-semibold text-gray-900'>{ticket.name}</h3>
+                          <div className='flex gap-2'>
                             {ticket.isFree && (
-                              <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'>
+                              <span className='inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200'>
                                 Miễn phí
                               </span>
                             )}
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className='pt-6 space-y-4'>
-                      {/* Description */}
-                      {ticket.description && (
-                        <div className='flex gap-2'>
-                          <Info className='w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5' />
-                          <p className='text-sm text-gray-600'>{ticket.description}</p>
-                        </div>
-                      )}
-
-                      {/* Price */}
-                      <div className='flex items-center justify-between py-3 px-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg'>
-                        <span className='text-sm font-medium text-gray-700'>Giá vé</span>
-                        <span
-                          className={`text-2xl font-bold ${
-                            ticket.isFree ? 'text-green-600' : 'text-purple-600'
-                          }`}
-                        >
-                          {ticket.isFree ? 'Miễn phí' : formatCurrency(ticket.price)}
-                        </span>
-                      </div>
-
-                      {/* Quantity */}
-                      <div className='flex items-center justify-between py-2 px-4 bg-blue-50 rounded-lg'>
-                        <span className='text-sm font-medium text-blue-700'>Số lượng còn lại</span>
-                        <span className='text-lg font-bold text-blue-600'>{ticket.quantity} vé</span>
-                      </div>
-
-                      {/* Sale Dates */}
-                      <div className='space-y-2 p-4 bg-amber-50 rounded-lg'>
-                        <div className='flex items-center gap-2 text-sm'>
-                          <Clock className='w-4 h-4 text-amber-600' />
-                          <span className='font-medium text-amber-900'>Thời gian bán</span>
-                        </div>
-                        <div className='text-xs text-amber-800 space-y-1 ml-6'>
-                          <p>Từ: {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN')}</p>
-                          <p>Đến: {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN')}</p>
-                        </div>
-                      </div>
-
-                      {/* Benefits */}
-                      {ticket.benefits && ticket.benefits.length > 0 && (
-                        <div className='space-y-3'>
-                          <div className='flex items-center gap-2'>
-                            <Gift className='w-5 h-5 text-pink-500' />
-                            <span className='font-semibold text-gray-800'>Tiện ích đi kèm</span>
-                          </div>
-                          <div className='space-y-2 ml-7'>
-                            {ticket.benefits.map((benefit: string, idx: number) => (
-                              <div key={idx} className='flex items-start gap-2 group'>
-                                <div className='w-1.5 h-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mt-1.5 flex-shrink-0' />
-                                <span className='text-sm text-gray-700 leading-relaxed'>{benefit}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Status Badge */}
-                      <div className='pt-3 border-t'>
-                        <div className='flex items-center justify-between'>
-                          <span
-                            className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
-                              ticket.isPublic
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {ticket.isPublic ? '✓ Công khai' : '🔒 Riêng tư'}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              : // Handle single ticket object
-                (() => {
-                  const ticket = ticketsData.data as unknown as TicketType
-                  return (
-                    <Card className='group hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-300 overflow-hidden'>
-                      <div className='h-2 bg-gradient-to-r from-purple-500 to-pink-500' />
-
-                      <CardHeader className='bg-gradient-to-br from-purple-50 to-pink-50'>
-                        <div className='flex items-start justify-between'>
-                          <div className='flex items-center gap-3'>
-                            <div className='p-3 rounded-xl bg-purple-100'>
-                              <Ticket className='w-6 h-6 text-purple-600' />
-                            </div>
-                            <div>
-                              <CardTitle className='text-xl mb-1'>{ticket.name}</CardTitle>
-                              {ticket.isFree && (
-                                <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700'>
-                                  Miễn phí
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className='pt-6 space-y-4'>
-                        {ticket.description && (
-                          <div className='flex gap-2'>
-                            <Info className='w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5' />
-                            <p className='text-sm text-gray-600'>{ticket.description}</p>
-                          </div>
-                        )}
-
-                        <div className='flex items-center justify-between py-3 px-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg'>
-                          <span className='text-sm font-medium text-gray-700'>Giá vé</span>
-                          <span
-                            className={`text-2xl font-bold ${ticket.isFree ? 'text-green-600' : 'text-purple-600'}`}
-                          >
-                            {ticket.isFree ? 'Miễn phí' : formatCurrency(ticket.price)}
-                          </span>
-                        </div>
-
-                        <div className='flex items-center justify-between py-2 px-4 bg-blue-50 rounded-lg'>
-                          <span className='text-sm font-medium text-blue-700'>Số lượng còn lại</span>
-                          <span className='text-lg font-bold text-blue-600'>{ticket.quantity} vé</span>
-                        </div>
-
-                        <div className='space-y-2 p-4 bg-amber-50 rounded-lg'>
-                          <div className='flex items-center gap-2 text-sm'>
-                            <Clock className='w-4 h-4 text-amber-600' />
-                            <span className='font-medium text-amber-900'>Thời gian bán</span>
-                          </div>
-                          <div className='text-xs text-amber-800 space-y-1 ml-6'>
-                            <p>Từ: {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN')}</p>
-                            <p>Đến: {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN')}</p>
-                          </div>
-                        </div>
-
-                        {ticket.benefits && ticket.benefits.length > 0 && (
-                          <div className='space-y-3'>
-                            <div className='flex items-center gap-2'>
-                              <Gift className='w-5 h-5 text-pink-500' />
-                              <span className='font-semibold text-gray-800'>Tiện ích đi kèm</span>
-                            </div>
-                            <div className='space-y-2 ml-7'>
-                              {ticket.benefits.map((benefit: string, idx: number) => (
-                                <div key={idx} className='flex items-start gap-2 group'>
-                                  <div className='w-1.5 h-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mt-1.5 flex-shrink-0' />
-                                  <span className='text-sm text-gray-700 leading-relaxed'>{benefit}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className='pt-3 border-t'>
-                          <div className='flex items-center justify-between'>
                             <span
-                              className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold ${
-                                ticket.isPublic ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
+                                ticket.isPublic
+                                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  : 'bg-gray-50 text-gray-700 border border-gray-200'
                               }`}
                             >
-                              {ticket.isPublic ? '✓ Công khai' : '🔒 Riêng tư'}
+                              {ticket.isPublic ? 'Công khai' : 'Riêng tư'}
                             </span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })()}
+                        {ticket.description && <p className='text-sm text-gray-600 leading-relaxed'>{ticket.description}</p>}
+                      </div>
+                      <div className='ml-6 text-right'>
+                        <div className='text-sm text-gray-500 mb-1'>Giá vé</div>
+                        <div className='text-2xl font-bold text-gray-900'>
+                          {ticket.isFree ? '0đ' : formatCurrency(ticket.price)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ticket Details Grid */}
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-4'>
+                      {/* Quantity */}
+                      <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                        <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                          <Ticket className='w-5 h-5' />
+                        </div>
+                        <div>
+                          <div className='text-xs text-gray-500'>Số lượng</div>
+                          <div className='text-sm font-semibold text-gray-900'>{ticket.quantity} vé</div>
+                        </div>
+                      </div>
+
+                      {/* Start Date */}
+                      <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                        <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                          <Clock className='w-5 h-5' />
+                        </div>
+                        <div>
+                          <div className='text-xs text-gray-500'>Bắt đầu bán</div>
+                          <div className='text-sm font-semibold text-gray-900'>
+                            {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* End Date */}
+                      <div className='flex items-center gap-3 p-3 bg-gray-50 rounded-lg'>
+                        <div className='w-10 h-10 rounded-lg bg-white flex items-center justify-center text-gray-700'>
+                          <Clock className='w-5 h-5' />
+                        </div>
+                        <div>
+                          <div className='text-xs text-gray-500'>Kết thúc bán</div>
+                          <div className='text-sm font-semibold text-gray-900'>
+                            {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Benefits */}
+                    {ticket.benefits && ticket.benefits.length > 0 && (
+                      <div className='mt-4 p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-lg border border-gray-100'>
+                        <div className='flex items-center gap-2 mb-3'>
+                          <Gift className='w-4 h-4 text-gray-700' />
+                          <span className='text-sm font-semibold text-gray-900'>Tiện ích đi kèm</span>
+                        </div>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-2'>
+                          {ticket.benefits.map((benefit: string, idx: number) => (
+                            <div key={idx} className='flex items-start gap-2'>
+                              <CheckCircle2 className='w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5' />
+                              <span className='text-sm text-gray-700'>{benefit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()
+            )}
           </div>
         </div>
       )}
