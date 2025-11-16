@@ -45,6 +45,10 @@ const serviceTicketManagementApi = {
       `/seating-chart/delete-seating-char-by-event-code/${eventCode}`
     )
     return data?.data
+  },
+  getTicksByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<Ticket>>(`/tickets/get-tickets-by-event-code?eventCode=${eventCode}`)
+    return data?.data
   }
 }
 export default serviceTicketManagementApi

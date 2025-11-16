@@ -776,7 +776,7 @@ export default function TemplateEditor({
                   <div className='flex items-center justify-between'>
                     <div>
                       <CardTitle>Liên kết mạng xã hội</CardTitle>
-                      <CardDescription>Thêm các tài khoản mạng xã hội (Tối đa 10 liên kết)</CardDescription>
+                      <CardDescription>Thêm các tài khoản mạng xã hội</CardDescription>
                     </div>
                     <Button
                       type='button'
