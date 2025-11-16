@@ -777,13 +777,25 @@ export default function SeatMapViewerPage() {
               </div>
             </div>
 
-            {/* Premium Tickets List */}
-            <div className='space-y-6'>
+            {/* Premium Tickets Grid */}
+            <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+              Array.isArray(ticketsData.data)
+                ? ticketsData.data.length === 1
+                  ? 'lg:grid-cols-1'
+                  : ticketsData.data.length === 2
+                    ? 'lg:grid-cols-2'
+                    : ticketsData.data.length === 3
+                      ? 'lg:grid-cols-3'
+                      : ticketsData.data.length === 4
+                        ? 'lg:grid-cols-4'
+                        : 'lg:grid-cols-3'
+                : 'lg:grid-cols-1'
+            }`}>
               {Array.isArray(ticketsData.data) ? (
                 ticketsData.data.map((ticket: TicketType, index: number) => (
                   <div
                     key={ticket.id}
-                    className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl'
+                    className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl'
                     style={{
                       boxShadow: '0 8px 32px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                       border: '1px solid rgba(212, 175, 55, 0.2)'
@@ -801,112 +813,80 @@ export default function SeatMapViewerPage() {
                     {/* Top gold accent line */}
                     <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
 
-                    <div className='p-8'>
+                    <div className='p-6'>
                       {/* Ticket Header */}
-                      <div className='flex items-start justify-between mb-6'>
-                        <div className='flex-1 pr-6'>
-                          <div className='flex items-center gap-3 mb-3'>
-                            <div className='w-1 h-8 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
-                            <div>
-                              <h3 className='text-2xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
-                                {ticket.name}
-                              </h3>
-                              <div className='flex gap-2 mt-2'>
-                                {ticket.isFree && (
-                                  <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wider border'
-                                        style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
-                                    COMPLIMENTARY
-                                  </span>
-                                )}
-                                <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wider border'
-                                      style={{
-                                        background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                                        borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
-                                        color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
-                                      }}>
-                                  {ticket.isPublic ? 'PUBLIC ACCESS' : 'EXCLUSIVE'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          {ticket.description && (
-                            <p className='text-sm text-amber-50/70 leading-relaxed font-light italic border-l-2 border-amber-400/30 pl-4'>
-                              {ticket.description}
-                            </p>
-                          )}
+                      <div className='mb-4'>
+                        <div className='flex items-center gap-2 mb-3'>
+                          <div className='w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
+                          <h3 className='text-xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
+                            {ticket.name}
+                          </h3>
                         </div>
 
-                        {/* Premium Price Display */}
-                        <div className='text-right'>
-                          <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-2 font-light'>Investment</div>
-                          <div className='text-4xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
-                            {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
-                          </div>
-                          <div className='mt-2 text-xs text-amber-400/50'>per ticket</div>
+                        <div className='flex flex-wrap gap-2 mb-3'>
+                          {ticket.isFree && (
+                            <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                  style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
+                              COMPLIMENTARY
+                            </span>
+                          )}
+                          <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                style={{
+                                  background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
+                                  borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
+                                  color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
+                                }}>
+                            {ticket.isPublic ? 'PUBLIC' : 'EXCLUSIVE'}
+                          </span>
                         </div>
+
+                        {ticket.description && (
+                          <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
+                            {ticket.description}
+                          </p>
+                        )}
                       </div>
 
-                      {/* Elegant Details Grid */}
-                      <div className='grid grid-cols-3 gap-4 mb-6'>
-                        <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                          <div className='absolute top-2 right-2'>
-                            <Ticket className='w-5 h-5 text-amber-400/30' />
-                          </div>
-                          <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Available</div>
-                          <div className='text-xl font-bold text-amber-100'>{ticket.quantity}</div>
-                          <div className='text-xs text-amber-400/50 mt-1'>Seats</div>
+                      {/* Premium Price Display */}
+                      <div className='text-center py-4 mb-4 rounded-xl' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
+                        <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-1 font-light'>Investment</div>
+                        <div className='text-3xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
+                          {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
                         </div>
+                        <div className='mt-1 text-xs text-amber-400/50'>per ticket</div>
+                      </div>
 
-                        <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                          <div className='absolute top-2 right-2'>
-                            <Clock className='w-5 h-5 text-amber-400/30' />
-                          </div>
-                          <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Sale Begins</div>
-                          <div className='text-sm font-semibold text-amber-100'>
-                            {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
-                          </div>
-                          <div className='text-xs text-amber-400/50 mt-1'>
-                            {new Date(ticket.startSaleDate).getFullYear()}
-                          </div>
+                      {/* Compact Details */}
+                      <div className='space-y-2 mb-4'>
+                        <div className='flex items-center justify-between text-xs'>
+                          <span className='text-amber-300/60 tracking-wider uppercase'>Available</span>
+                          <span className='font-bold text-amber-100'>{ticket.quantity} seats</span>
                         </div>
-
-                        <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                          <div className='absolute top-2 right-2'>
-                            <Clock className='w-5 h-5 text-amber-400/30' />
-                          </div>
-                          <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Sale Ends</div>
-                          <div className='text-sm font-semibold text-amber-100'>
-                            {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
-                          </div>
-                          <div className='text-xs text-amber-400/50 mt-1'>
-                            {new Date(ticket.endSaleDate).getFullYear()}
-                          </div>
+                        <div className='flex items-center justify-between text-xs'>
+                          <span className='text-amber-300/60 tracking-wider uppercase'>Sale Period</span>
+                          <span className='font-semibold text-amber-100'>
+                            {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })} - {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
+                          </span>
                         </div>
                       </div>
 
                       {/* Luxury Benefits Section */}
                       {ticket.benefits && ticket.benefits.length > 0 && (
-                        <div className='relative p-6 rounded-xl backdrop-blur-sm overflow-hidden'
+                        <div className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
                              style={{
                                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
                                border: '1px solid rgba(212, 175, 55, 0.2)'
                              }}>
-                          {/* Decorative corner */}
-                          <div className='absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-400/10 to-transparent rounded-bl-full'></div>
-
-                          <div className='flex items-center gap-3 mb-4'>
-                            <Gift className='w-5 h-5 text-amber-400' />
-                            <span className='text-sm font-semibold tracking-wider uppercase text-amber-200'>Exclusive Benefits</span>
-                            <div className='flex-1 h-px bg-gradient-to-r from-amber-400/50 to-transparent'></div>
+                          <div className='flex items-center gap-2 mb-3'>
+                            <Gift className='w-4 h-4 text-amber-400' />
+                            <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>Benefits</span>
                           </div>
 
-                          <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                          <div className='space-y-2'>
                             {ticket.benefits.map((benefit: string, idx: number) => (
-                              <div key={idx} className='flex items-start gap-3 group/benefit'>
-                                <div className='mt-1'>
-                                  <div className='w-1.5 h-1.5 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600'></div>
-                                </div>
-                                <span className='text-sm text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
+                              <div key={idx} className='flex items-start gap-2 group/benefit'>
+                                <CheckCircle2 className='w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5' />
+                                <span className='text-xs text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
                                   {benefit}
                                 </span>
                               </div>
@@ -926,7 +906,7 @@ export default function SeatMapViewerPage() {
                   const ticket = ticketsData.data as unknown as TicketType
                   return (
                     <div
-                      className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl'
+                      className='group relative backdrop-blur-xl bg-gradient-to-br from-white/5 via-white/[0.02] to-transparent rounded-2xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl'
                       style={{
                         boxShadow: '0 8px 32px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                         border: '1px solid rgba(212, 175, 55, 0.2)'
@@ -942,107 +922,76 @@ export default function SeatMapViewerPage() {
 
                       <div className='h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent'></div>
 
-                      <div className='p-8'>
-                        <div className='flex items-start justify-between mb-6'>
-                          <div className='flex-1 pr-6'>
-                            <div className='flex items-center gap-3 mb-3'>
-                              <div className='w-1 h-8 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
-                              <div>
-                                <h3 className='text-2xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
-                                  {ticket.name}
-                                </h3>
-                                <div className='flex gap-2 mt-2'>
-                                  {ticket.isFree && (
-                                    <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wider border'
-                                          style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
-                                      COMPLIMENTARY
-                                    </span>
-                                  )}
-                                  <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium tracking-wider border'
-                                        style={{
-                                          background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
-                                          borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
-                                          color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
-                                        }}>
-                                    {ticket.isPublic ? 'PUBLIC ACCESS' : 'EXCLUSIVE'}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                            {ticket.description && (
-                              <p className='text-sm text-amber-50/70 leading-relaxed font-light italic border-l-2 border-amber-400/30 pl-4'>
-                                {ticket.description}
-                              </p>
-                            )}
+                      <div className='p-6'>
+                        <div className='mb-4'>
+                          <div className='flex items-center gap-2 mb-3'>
+                            <div className='w-1 h-6 bg-gradient-to-b from-amber-400 to-yellow-600 rounded-full'></div>
+                            <h3 className='text-xl font-serif font-bold text-transparent bg-gradient-to-r from-amber-200 to-yellow-300 bg-clip-text tracking-wide'>
+                              {ticket.name}
+                            </h3>
                           </div>
 
-                          <div className='text-right'>
-                            <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-2 font-light'>Investment</div>
-                            <div className='text-4xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
-                              {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
-                            </div>
-                            <div className='mt-2 text-xs text-amber-400/50'>per ticket</div>
+                          <div className='flex flex-wrap gap-2 mb-3'>
+                            {ticket.isFree && (
+                              <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                    style={{ background: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399' }}>
+                                COMPLIMENTARY
+                              </span>
+                            )}
+                            <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wider border'
+                                  style={{
+                                    background: ticket.isPublic ? 'rgba(212, 175, 55, 0.1)' : 'rgba(156, 163, 175, 0.1)',
+                                    borderColor: ticket.isPublic ? 'rgba(212, 175, 55, 0.3)' : 'rgba(156, 163, 175, 0.3)',
+                                    color: ticket.isPublic ? '#D4AF37' : '#9CA3AF'
+                                  }}>
+                              {ticket.isPublic ? 'PUBLIC' : 'EXCLUSIVE'}
+                            </span>
                           </div>
+
+                          {ticket.description && (
+                            <p className='text-xs text-amber-50/70 leading-relaxed font-light line-clamp-2'>
+                              {ticket.description}
+                            </p>
+                          )}
                         </div>
 
-                        <div className='grid grid-cols-3 gap-4 mb-6'>
-                          <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                            <div className='absolute top-2 right-2'>
-                              <Ticket className='w-5 h-5 text-amber-400/30' />
-                            </div>
-                            <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Available</div>
-                            <div className='text-xl font-bold text-amber-100'>{ticket.quantity}</div>
-                            <div className='text-xs text-amber-400/50 mt-1'>Seats</div>
+                        <div className='text-center py-4 mb-4 rounded-xl' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
+                          <div className='text-xs text-amber-300/60 tracking-widest uppercase mb-1 font-light'>Investment</div>
+                          <div className='text-3xl font-serif font-bold text-transparent bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-300 bg-clip-text'>
+                            {ticket.isFree ? 'Free' : formatCurrency(ticket.price)}
                           </div>
+                          <div className='mt-1 text-xs text-amber-400/50'>per ticket</div>
+                        </div>
 
-                          <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                            <div className='absolute top-2 right-2'>
-                              <Clock className='w-5 h-5 text-amber-400/30' />
-                            </div>
-                            <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Sale Begins</div>
-                            <div className='text-sm font-semibold text-amber-100'>
-                              {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
-                            </div>
-                            <div className='text-xs text-amber-400/50 mt-1'>
-                              {new Date(ticket.startSaleDate).getFullYear()}
-                            </div>
+                        <div className='space-y-2 mb-4'>
+                          <div className='flex items-center justify-between text-xs'>
+                            <span className='text-amber-300/60 tracking-wider uppercase'>Available</span>
+                            <span className='font-bold text-amber-100'>{ticket.quantity} seats</span>
                           </div>
-
-                          <div className='relative p-4 rounded-xl backdrop-blur-sm' style={{ background: 'rgba(212, 175, 55, 0.05)', border: '1px solid rgba(212, 175, 55, 0.15)' }}>
-                            <div className='absolute top-2 right-2'>
-                              <Clock className='w-5 h-5 text-amber-400/30' />
-                            </div>
-                            <div className='text-xs text-amber-300/60 tracking-wider uppercase mb-1'>Sale Ends</div>
-                            <div className='text-sm font-semibold text-amber-100'>
-                              {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
-                            </div>
-                            <div className='text-xs text-amber-400/50 mt-1'>
-                              {new Date(ticket.endSaleDate).getFullYear()}
-                            </div>
+                          <div className='flex items-center justify-between text-xs'>
+                            <span className='text-amber-300/60 tracking-wider uppercase'>Sale Period</span>
+                            <span className='font-semibold text-amber-100'>
+                              {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })} - {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })}
+                            </span>
                           </div>
                         </div>
 
                         {ticket.benefits && ticket.benefits.length > 0 && (
-                          <div className='relative p-6 rounded-xl backdrop-blur-sm overflow-hidden'
+                          <div className='relative p-4 rounded-xl backdrop-blur-sm overflow-hidden'
                                style={{
                                  background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(255, 215, 0, 0.05) 100%)',
                                  border: '1px solid rgba(212, 175, 55, 0.2)'
                                }}>
-                            <div className='absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-amber-400/10 to-transparent rounded-bl-full'></div>
-
-                            <div className='flex items-center gap-3 mb-4'>
-                              <Gift className='w-5 h-5 text-amber-400' />
-                              <span className='text-sm font-semibold tracking-wider uppercase text-amber-200'>Exclusive Benefits</span>
-                              <div className='flex-1 h-px bg-gradient-to-r from-amber-400/50 to-transparent'></div>
+                            <div className='flex items-center gap-2 mb-3'>
+                              <Gift className='w-4 h-4 text-amber-400' />
+                              <span className='text-xs font-semibold tracking-wider uppercase text-amber-200'>Benefits</span>
                             </div>
 
-                            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                            <div className='space-y-2'>
                               {ticket.benefits.map((benefit: string, idx: number) => (
-                                <div key={idx} className='flex items-start gap-3 group/benefit'>
-                                  <div className='mt-1'>
-                                    <div className='w-1.5 h-1.5 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600'></div>
-                                  </div>
-                                  <span className='text-sm text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
+                                <div key={idx} className='flex items-start gap-2 group/benefit'>
+                                  <CheckCircle2 className='w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5' />
+                                  <span className='text-xs text-amber-50/80 leading-relaxed group-hover/benefit:text-amber-200 transition-colors'>
                                     {benefit}
                                   </span>
                                 </div>
