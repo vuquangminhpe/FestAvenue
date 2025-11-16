@@ -107,6 +107,61 @@ export function DateTimePicker({
   // Generate minutes array (0-59)
   const minutesArray = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'))
 
+  // Helper to check if selected date is same day as minDate/maxDate
+  const isSameDayAsMin = selectedDate && minDate &&
+    selectedDate.getDate() === minDate.getDate() &&
+    selectedDate.getMonth() === minDate.getMonth() &&
+    selectedDate.getFullYear() === minDate.getFullYear()
+
+  const isSameDayAsMax = selectedDate && maxDate &&
+    selectedDate.getDate() === maxDate.getDate() &&
+    selectedDate.getMonth() === maxDate.getMonth() &&
+    selectedDate.getFullYear() === maxDate.getFullYear()
+
+  // Helper to check if hour/minute should be disabled
+  const isHourDisabled = (hour: string) => {
+    const hourNum = parseInt(hour)
+
+    if (isSameDayAsMin && minDate) {
+      const minHour = minDate.getHours()
+      if (hourNum < minHour) return true
+    }
+
+    if (isSameDayAsMax && maxDate) {
+      const maxHour = maxDate.getHours()
+      if (hourNum > maxHour) return true
+    }
+
+    return false
+  }
+
+  const isMinuteDisabled = (minute: string) => {
+    const minuteNum = parseInt(minute)
+    const currentHour = parseInt(hours)
+
+    if (isSameDayAsMin && minDate) {
+      const minHour = minDate.getHours()
+      const minMinute = minDate.getMinutes()
+
+      // If same hour as minDate, disable minutes <= minMinute
+      if (currentHour === minHour && minuteNum <= minMinute) {
+        return true
+      }
+    }
+
+    if (isSameDayAsMax && maxDate) {
+      const maxHour = maxDate.getHours()
+      const maxMinute = maxDate.getMinutes()
+
+      // If same hour as maxDate, disable minutes >= maxMinute
+      if (currentHour === maxHour && minuteNum >= maxMinute) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   const displayValue = selectedDate ? `${format(selectedDate, 'dd/MM/yyyy', { locale: vi })} ${hours}:${minutes}` : ''
 
   return (
@@ -166,8 +221,19 @@ export function DateTimePicker({
           selected={selectedDate}
           onSelect={handleDateSelect}
           disabled={(date) => {
-            if (minDate && date < minDate) return true
-            if (maxDate && date > maxDate) return true
+            // Compare only dates (ignore time) to allow same-day selection
+            const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+
+            if (minDate) {
+              const minDateOnly = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())
+              if (dateOnly < minDateOnly) return true
+            }
+
+            if (maxDate) {
+              const maxDateOnly = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate())
+              if (dateOnly > maxDateOnly) return true
+            }
+
             return false
           }}
           initialFocus
@@ -194,7 +260,8 @@ export function DateTimePicker({
                   <option
                     key={hour}
                     value={hour}
-                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold'
+                    disabled={isHourDisabled(hour)}
+                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold disabled:text-gray-300 disabled:cursor-not-allowed'
                   >
                     {hour}
                   </option>
@@ -221,7 +288,8 @@ export function DateTimePicker({
                   <option
                     key={minute}
                     value={minute}
-                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold'
+                    disabled={isMinuteDisabled(minute)}
+                    className='py-3 px-4 hover:bg-cyan-50 checked:bg-cyan-100 checked:font-bold disabled:text-gray-300 disabled:cursor-not-allowed'
                   >
                     {minute}
                   </option>

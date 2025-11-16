@@ -32,6 +32,7 @@ const urlValidator = (fieldName: string) =>
         message: `${fieldName} phải là URL hợp lệ (bắt đầu với http:// hoặc https://)`
       }),
       z.literal(''),
+      z.null(),
       z.undefined()
     ])
     .optional()
@@ -263,6 +264,7 @@ const baseEventObjectSchema = z.object({
     .min(1, 'Logo sự kiện là bắt buộc')
     .refine(
       (url) => {
+        if (!url) return false
         try {
           const parsed = new URL(url)
           return ['http:', 'https:'].includes(parsed.protocol)
@@ -278,6 +280,7 @@ const baseEventObjectSchema = z.object({
     .min(1, 'Banner sự kiện là bắt buộc')
     .refine(
       (url) => {
+        if (!url) return false
         try {
           const parsed = new URL(url)
           return ['http:', 'https:'].includes(parsed.protocol)
@@ -346,18 +349,7 @@ const baseEventObjectSchema = z.object({
 
   // ========== Hashtags ==========
   hashtags: z
-    .array(
-      z
-        .string()
-        .min(1, 'Hashtag không được để trống')
-        .max(50, 'Hashtag không được quá 50 ký tự')
-        .refine(
-          (tag) => /^[a-zA-Z0-9_àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]+$/.test(tag),
-          {
-            message: 'Hashtag chỉ được chứa chữ cái, số và dấu gạch dưới'
-          }
-        )
-    )
+    .array(z.string().min(1, 'Hashtag không được để trống').max(50, 'Hashtag không được quá 50 ký tự'))
     .optional(),
 
   // ========== Organization - Required for creating event ==========
@@ -451,9 +443,7 @@ const baseEventObjectSchema = z.object({
         }
       ),
 
-    logo: urlValidator('Logo tổ chức').refine((url) => url !== '' && url !== undefined, {
-      message: 'Logo tổ chức là bắt buộc'
-    }),
+    logo: z.string().nullish(),
 
     website: urlValidator('Website tổ chức'),
 
@@ -491,10 +481,10 @@ function applyCommonRefinements<T extends typeof baseEventObjectSchema>(schema: 
         (data) => {
           const start = new Date(data.startEventLifecycleTime)
           const end = new Date(data.endEventLifecycleTime)
-          return end >= start
+          return end > start
         },
         {
-          message: 'Thời gian kết thúc vòng đời phải sau hoặc bằng thời gian bắt đầu',
+          message: 'Thời gian kết thúc vòng đời phải sau thời gian bắt đầu (giờ phút phải khác nhau)',
           path: ['endEventLifecycleTime']
         }
       )
@@ -516,10 +506,10 @@ function applyCommonRefinements<T extends typeof baseEventObjectSchema>(schema: 
         (data) => {
           const saleStart = new Date(data.startTicketSaleTime)
           const saleEnd = new Date(data.endTicketSaleTime)
-          return saleEnd >= saleStart
+          return saleEnd > saleStart
         },
         {
-          message: 'Thời gian kết thúc bán vé phải sau hoặc bằng thời gian bắt đầu bán vé',
+          message: 'Thời gian kết thúc bán vé phải sau thời gian bắt đầu bán vé (giờ phút phải khác nhau)',
           path: ['endTicketSaleTime']
         }
       )
@@ -563,10 +553,10 @@ function applyCommonRefinements<T extends typeof baseEventObjectSchema>(schema: 
         (data) => {
           const eventStart = new Date(data.startTimeEventTime)
           const eventEnd = new Date(data.endTimeEventTime)
-          return eventEnd >= eventStart
+          return eventEnd > eventStart
         },
         {
-          message: 'Thời gian kết thúc sự kiện phải sau hoặc bằng thời gian bắt đầu',
+          message: 'Thời gian kết thúc sự kiện phải sau thời gian bắt đầu (giờ phút phải khác nhau)',
           path: ['endTimeEventTime']
         }
       )
@@ -643,7 +633,41 @@ export const createEventSchema = applyCommonRefinements(
 // UPDATE EVENT SCHEMA - WITHOUT PAST TIME CHECK
 // ============================================
 
-export const updateEventSchema = applyCommonRefinements(baseEventObjectSchema)
+// For update mode, logo and banner URLs are optional (can keep existing ones from API)
+// This allows users to update other fields without re-uploading media
+const updateEventObjectSchema = baseEventObjectSchema.omit({ logoUrl: true, bannerUrl: true }).extend({
+  logoUrl: z.string().refine(
+    (url) => {
+      // Empty string is valid in update mode (will keep existing URL from API)
+      if (!url || url === '') return true
+      // If has value, must be valid URL
+      try {
+        const parsed = new URL(url)
+        return ['http:', 'https:'].includes(parsed.protocol)
+      } catch {
+        return false
+      }
+    },
+    { message: 'Logo phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
+  ),
+
+  bannerUrl: z.string().refine(
+    (url) => {
+      // Empty string is valid in update mode (will keep existing URL from API)
+      if (!url || url === '') return true
+      // If has value, must be valid URL
+      try {
+        const parsed = new URL(url)
+        return ['http:', 'https:'].includes(parsed.protocol)
+      } catch {
+        return false
+      }
+    },
+    { message: 'Banner phải là URL hợp lệ (bắt đầu với http:// hoặc https://)' }
+  )
+})
+
+export const updateEventSchema = applyCommonRefinements(updateEventObjectSchema as any)
 
 // ============================================
 // TYPE EXPORTS

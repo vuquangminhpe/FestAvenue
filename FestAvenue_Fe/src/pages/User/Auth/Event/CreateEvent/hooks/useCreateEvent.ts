@@ -161,7 +161,7 @@ export const useCreateEvent = () => {
         endTimeEventTime: data.endTimeEventTime,
         logoUrl: uploadedUrls.logo || data.logoUrl,
         bannerUrl: uploadedUrls.banner || data.bannerUrl,
-        trailerUrl: uploadedUrls.trailer || data.trailerUrl,
+        trailerUrl: uploadedUrls.trailer || (data.trailerUrl as any),
         website: data.website,
         publicContactEmail: data.publicContactEmail,
         publicContactPhone: data.publicContactPhone,

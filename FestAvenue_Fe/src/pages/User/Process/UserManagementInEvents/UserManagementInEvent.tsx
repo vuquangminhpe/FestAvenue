@@ -19,6 +19,7 @@ import { useGetUsersInEvent, useGetInvitationsEvent } from './hooks/useUserManag
 import { getIdFromNameId } from '@/utils/utils'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import chatApi from '@/apis/chat.api'
+import { useGetEventByCode } from '../../Auth/Event/EventDetails/hooks'
 
 export default function UserManagementInEvents() {
   const [searchParams] = useSearchParams()
@@ -53,20 +54,7 @@ export default function UserManagementInEvents() {
     }
   })
 
-  const handleCreateGroupChat = () => {
-    const emails = users.map((user) => user.email)
-    if (emails.length === 0) {
-      toast.error('Không có thành viên nào để tạo nhóm chat')
-      return
-    }
-
-    createGroupChatMutation.mutate({
-      name: `Nhóm chat sự kiện ${eventId}`,
-      informationInvites: emails,
-      eventCode: eventId
-    })
-  }
-
+  const { data: detailEvent } = useGetEventByCode(eventId)
   const { data: usersData, isLoading } = useGetUsersInEvent(
     {
       eventCode: eventId,
@@ -110,7 +98,19 @@ export default function UserManagementInEvents() {
       })
     }
   }, [])
+  const handleCreateGroupChat = () => {
+    const emails = users.map((user) => user.email)
+    if (emails.length === 0) {
+      toast.error('Không có thành viên nào để tạo nhóm chat')
+      return
+    }
 
+    createGroupChatMutation.mutate({
+      name: `Nhóm chat sự kiện ${detailEvent?.eventName}`,
+      informationInvites: emails,
+      eventCode: eventId
+    })
+  }
   // Pagination
   const totalPages = Math.ceil(totalUsers / usersPerPage)
   const totalInvitationPages = Math.ceil(totalInvitations / usersPerPage)

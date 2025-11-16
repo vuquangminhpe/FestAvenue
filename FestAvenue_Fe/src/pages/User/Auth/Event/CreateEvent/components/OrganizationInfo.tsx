@@ -140,9 +140,7 @@ export function OrganizationInfo({ form }: OrganizationInfoProps) {
         name='organization.logo'
         render={({ field }) => (
           <FormItem>
-            <FormLabel className='text-slate-700'>
-              Logo tổ chức <span className='text-red-500'>*</span>
-            </FormLabel>
+            <FormLabel className='text-slate-700'>Logo tổ chức</FormLabel>
             <Tabs defaultValue='url' className='w-full'>
               <TabsList className='grid w-full grid-cols-2'>
                 <TabsTrigger value='url'>Nhập URL</TabsTrigger>
@@ -156,13 +154,13 @@ export function OrganizationInfo({ form }: OrganizationInfoProps) {
                     <Globe className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400' />
                     <Input
                       {...field}
+                      value={field.value ?? ''}
                       type='url'
-                      placeholder='https://example.com/logo.png'
+                      placeholder='https://example.com'
                       className='border-slate-300 focus:border-blue-500 pl-10'
                     />
                   </div>
                 </FormControl>
-                <FormDescription>URL của logo tổ chức (phải là đường dẫn hợp lệ)</FormDescription>
               </TabsContent>
 
               {/* Upload Tab */}
@@ -195,7 +193,7 @@ export function OrganizationInfo({ form }: OrganizationInfoProps) {
                     {(logoPreview || currentLogoUrl) && (
                       <div className='relative'>
                         <img
-                          src={logoPreview || currentLogoUrl}
+                          src={logoPreview || (currentLogoUrl as string)}
                           alt='Logo preview'
                           className='w-full max-h-48 object-contain rounded-lg border border-slate-200'
                         />
@@ -270,6 +268,7 @@ export function OrganizationInfo({ form }: OrganizationInfoProps) {
                 <Globe className='absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400' />
                 <Input
                   {...field}
+                  value={field.value ?? ''}
                   type='url'
                   placeholder='https://example.com'
                   className='border-slate-300 focus:border-blue-500 pl-10'
