@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import VietQRBanking from '@/components/custom/QR/QRSection'
-import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Ticket, Gift, Info } from 'lucide-react'
+import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Gift } from 'lucide-react'
 import path from '@/constants/path'
 import type { Ticket as TicketType } from '@/types/serviceTicketManagement.types'
 
