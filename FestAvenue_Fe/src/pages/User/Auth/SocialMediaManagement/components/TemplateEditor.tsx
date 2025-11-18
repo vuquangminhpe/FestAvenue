@@ -103,7 +103,6 @@ export default function TemplateEditor({
     control: form.control,
     name: 'images'
   })
-  console.log(imageFields)
 
   const {
     fields: socialLinkFields,

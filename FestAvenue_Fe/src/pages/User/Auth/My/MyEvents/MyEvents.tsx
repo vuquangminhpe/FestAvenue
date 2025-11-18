@@ -105,8 +105,8 @@ export default function MyEvents() {
               )}
             </div>
             <div className='min-w-0'>
-              <p className='font-semibold text-slate-800 truncate'>{eventVersion.eventName}</p>
-              <p className='text-sm text-slate-600 truncate'>{eventVersion.shortDescription}</p>
+              <p className='font-semibold text-slate-800 truncate'>{eventVersion.eventName.slice(0, 30) + '...'}</p>
+              <p className='text-sm text-slate-600 truncate'>{eventVersion.shortDescription.slice(0, 30) + '...'}</p>
             </div>
           </div>
         </TableCell>

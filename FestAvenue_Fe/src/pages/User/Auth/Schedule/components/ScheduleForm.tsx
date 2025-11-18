@@ -213,7 +213,6 @@ ScheduleFormProps) {
 
     // Validate form
     if (!validateForm()) {
-      console.log('❌ Validation failed with errors:', errors)
       // Scroll to first error
       const firstError = Object.keys(errors)[0]
       const element = document.getElementById(firstError)

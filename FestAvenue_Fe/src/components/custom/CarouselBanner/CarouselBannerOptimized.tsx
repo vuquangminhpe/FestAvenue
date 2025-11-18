@@ -3,60 +3,71 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '../../ui/button'
 import OptimizedImage from '../OptimizedImage'
-
-interface CarouselItem {
-  id: number
-  image: string
-  author: string
-  title: string
-  topic: string
-  description: string
-}
+import { useQuery } from '@tanstack/react-query'
+import { eventApis } from '@/apis/event.api'
+import type { ReqFilterOwnerEvent, bodySearchEvent } from '@/types/event.types'
+import { useUsersStore } from '@/contexts/app.context'
 
 interface CarouselBannerProps {
-  items?: CarouselItem[]
+  searchQuery?: string
 }
 
-const defaultItems: CarouselItem[] = [
-  {
-    id: 1,
-    image: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?w=1920&q=80',
-    author: 'EVENT CONNECT',
-    title: 'MOVIE SLIDER',
-    topic: 'CINEMA',
-    description:
-      'Experience the magic of cinema with our curated collection of the latest blockbusters and timeless classics. Immerse yourself in stories that captivate, inspire, and entertain audiences worldwide.'
-  },
-  {
-    id: 2,
-    image: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=1920&q=80',
-    author: 'EVENT CONNECT',
-    title: 'FEATURED FILMS',
-    topic: 'DRAMA',
-    description:
-      'Discover compelling narratives and powerful performances in our featured film collection. From award-winning dramas to thrilling adventures, find your next favorite movie experience.'
-  },
-  {
-    id: 3,
-    image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=1920&q=80',
-    author: 'EVENT CONNECT',
-    title: 'NEW RELEASES',
-    topic: 'ACTION',
-    description:
-      'Stay up to date with the latest releases and upcoming blockbusters. Get exclusive access to trailers, behind-the-scenes content, and early screening opportunities.'
-  },
-  {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=1920&q=80',
-    author: 'EVENT CONNECT',
-    title: 'CLASSIC COLLECTION',
-    topic: 'VINTAGE',
-    description:
-      'Revisit the golden age of cinema with our carefully preserved classic collection. Experience the timeless stories that have shaped modern filmmaking and continue to inspire new generations.'
-  }
-]
+const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = '' }) => {
+  const { isAuth } = useUsersStore() // Check if user is authenticated
 
-const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaultItems }) => {
+  const searchFilter: bodySearchEvent = {
+    searchText: searchQuery,
+    pagination: {
+      pageIndex: 1,
+      isPaging: true,
+      pageSize: 20
+    }
+  }
+
+  // Only fetch favorite events if user is authenticated
+  const { data: eventsData, isLoading: isLoadingFavorites } = useQuery({
+    queryKey: ['carouselEvents', searchQuery],
+    queryFn: () => eventApis.getListEventFollowWithPaging(searchFilter),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled: isAuth // Only fetch if user is logged in
+  })
+
+  const favoriteEvents: ReqFilterOwnerEvent[] = isAuth
+    ? ((((eventsData?.data as any)?.result as any) || []) as ReqFilterOwnerEvent[])
+    : []
+
+  // Fetch featured events if:
+  // - User is not authenticated (use only featured events)
+  // - OR user is authenticated but has less than 4 favorites (fillup with featured)
+  const { data: featuredEventsData, isLoading: isLoadingFeatured } = useQuery({
+    queryKey: ['featuredEvents'],
+    queryFn: () => eventApis.getTop20EventFeaturedEvent(),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !isAuth || (!isLoadingFavorites && favoriteEvents.length < 4)
+  })
+
+  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any) || []) as ReqFilterOwnerEvent[]
+
+  // Combine favorite and featured events to get exactly 4 items
+  let items: ReqFilterOwnerEvent[] = []
+  if (!isAuth) {
+    // If user is not logged in, use only featured events
+    items = featuredEvents.slice(0, 4)
+  } else if (favoriteEvents.length >= 4) {
+    // If we have 4+ favorite events, just use them
+    items = favoriteEvents.slice(0, 4)
+  } else {
+    // If less than 4 favorites, combine with featured events
+    items = [...favoriteEvents]
+    const needed = 4 - favoriteEvents.length
+    // Filter out featured events that are already in favorites (by id)
+    const favoriteIds = new Set(favoriteEvents.map((e) => e.id))
+    const additionalFeatured = featuredEvents.filter((e) => !favoriteIds.has(e.id)).slice(0, needed)
+    items = [...items, ...additionalFeatured]
+  }
+
+  const isLoading = isAuth ? isLoadingFavorites || (favoriteEvents.length < 4 && isLoadingFeatured) : isLoadingFeatured
+
   const [currentIndex, setCurrentIndex] = useState(0)
   const [previousIndex, setPreviousIndex] = useState<number | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
@@ -158,6 +169,15 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaul
       }
     }
   }, [currentIndex, isAnimating, items.length, handleNext])
+
+  // Show loading state
+  if (isLoading || items.length === 0) {
+    return (
+      <div className='relative h-screen w-full overflow-hidden bg-black flex items-center justify-center'>
+        <div className='text-white text-xl'>Đang tải sự kiện...</div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -619,8 +639,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaul
               >
                 <div className='item-image w-full h-full'>
                   <OptimizedImage
-                    src={item.image}
-                    alt={item.title}
+                    src={item.bannerUrl}
+                    alt={item.eventName}
                     width={1920}
                     height={1080}
                     className='w-full h-full'
@@ -628,30 +648,6 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaul
                     sizes='100vw'
                     aspectRatio=''
                   />
-                </div>
-                <div className='content content-wrapper absolute top-[20%] left-1/2 transform -translate-x-1/2 w-full max-w-6xl px-8 text-white'>
-                  <div className='content-inner max-w-[60%] pr-[30%]'>
-                    <div className='author font-bold tracking-[10px] text-sm mb-4 text-white/90 drop-shadow-md'>
-                      {item.author}
-                    </div>
-                    <h1 className='title title-text text-4xl md:text-6xl lg:text-8xl font-bold leading-tight mb-2 drop-shadow-2xl'>
-                      {item.title}
-                    </h1>
-                    <h2 className='topic topic-text text-4xl md:text-6xl lg:text-8xl font-bold leading-tight mb-6 text-orange-500 drop-shadow-2xl'>
-                      {item.topic}
-                    </h2>
-                    <p className='des des-text text-base lg:text-lg mb-8 leading-relaxed text-white/90 drop-shadow-lg'>
-                      {item.description}
-                    </p>
-                    <div className='buttons buttons-container flex gap-4'>
-                      <Button
-                        size='lg'
-                        className='bg-white text-black hover:bg-white/90 font-medium tracking-wider px-6 lg:px-8 transform hover:scale-105 transition-all duration-300 shadow-xl'
-                      >
-                        SEE MORE
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               </div>
             )
@@ -693,8 +689,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaul
               }}
             >
               <OptimizedImage
-                src={item.image}
-                alt={item.title}
+                src={item.bannerUrl}
+                alt={item.eventName}
                 width={200}
                 height={250}
                 className='w-full h-full'
@@ -704,8 +700,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ items = defaul
               />
               <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent' />
               <div className='content absolute bottom-2 left-2 right-2 text-white'>
-                <div className='title font-semibold text-xs truncate drop-shadow-md'>{item.title}</div>
-                <div className='description font-light text-xs text-orange-300 truncate'>{item.topic}</div>
+                <div className='title font-semibold text-xs truncate drop-shadow-md'>{item.eventName}</div>
+                <div className='description font-light text-xs text-orange-300 truncate'>{item.shortDescription}</div>
               </div>
             </div>
           ))}

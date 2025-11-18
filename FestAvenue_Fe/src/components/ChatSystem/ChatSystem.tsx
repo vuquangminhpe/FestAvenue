@@ -70,8 +70,6 @@ export default function ChatSystem() {
 
         // Listen for notifications
         newConnection.on('ReceiveNotification', (notification: Notification) => {
-          console.log('Received notification:', notification)
-
           // Only handle Message type notifications
           if (notification.type !== NotificationType.Message) return
 
@@ -139,8 +137,6 @@ export default function ChatSystem() {
         connectionRef.current = newConnection
         setNotiConnection(newConnection)
         setIsConnected(true)
-
-        console.log('NotificationHub connected successfully')
       } catch (error) {
         console.error('NotificationHub connection error:', error)
       }

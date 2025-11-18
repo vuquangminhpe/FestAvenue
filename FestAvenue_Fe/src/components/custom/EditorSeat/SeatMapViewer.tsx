@@ -196,15 +196,6 @@ export default function SeatMapViewer({
   userEmail,
   selectedSeats = new Set()
 }: SeatMapViewerProps) {
-  // Debug props (development only to avoid flooding production logs)
-  if (import.meta.env.DEV) {
-    console.log('SeatMapViewer received:', {
-      ticketsForSeatsCount: ticketsForSeats.length,
-      ticketsForSeats,
-      userEmail
-    })
-  }
-
   const deriveInitialSeatStatuses = useCallback(
     () => buildInitialSeatStatusMap(mapData, initialSeatStatuses),
     [mapData, initialSeatStatuses]

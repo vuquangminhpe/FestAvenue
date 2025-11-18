@@ -69,13 +69,13 @@ export default function ScheduleAnalyticsFeature() {
       <div className='max-w-7xl mx-auto relative z-10'>
         {/* Header */}
         <div className='text-center mb-16'>
-          <h2 className='text-5xl md:text-6xl font-bold mb-6 text-white'>
+          <h2 className='text-5xl md:text-6xl font-bold mb-6 text-black'>
             Lịch Trình &{' '}
             <span className='text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400'>
               Thống Kê
             </span>
           </h2>
-          <p className='text-xl leading-relaxed max-w-3xl mx-auto text-gray-300'>
+          <p className='text-xl leading-relaxed max-w-3xl mx-auto text-black'>
             Quản lý lịch trình sự kiện hiệu quả và theo dõi hiệu suất qua các biểu đồ phân tích chi tiết.
           </p>
         </div>
@@ -86,8 +86,8 @@ export default function ScheduleAnalyticsFeature() {
           <div className='bento-item md:col-span-2 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:border-emerald-400/50 transition-all duration-500 group relative overflow-hidden'>
             <div className='absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700'></div>
             <div className='relative z-10'>
-              <h3 className='text-3xl font-bold text-white mb-4'>Quản Lý Lịch</h3>
-              <p className='text-gray-300 text-lg leading-relaxed mb-6'>
+              <h3 className='text-3xl font-bold text-black mb-4'>Quản Lý Lịch</h3>
+              <p className='text-black text-lg leading-relaxed mb-6'>
                 Giao diện lịch trực quan với khả năng kéo thả, tạo và chỉnh sửa lịch trình dễ dàng. Đồng bộ tự động với
                 toàn bộ team.
               </p>
@@ -104,8 +104,8 @@ export default function ScheduleAnalyticsFeature() {
           <div className='bento-item bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:border-purple-400/50 transition-all duration-500 group relative overflow-hidden'>
             <div className='absolute bottom-0 left-0 w-48 h-48 bg-purple-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700'></div>
             <div className='relative z-10 h-full flex flex-col'>
-              <h3 className='text-2xl font-bold text-white mb-3'>Phân Công Nhiệm Vụ</h3>
-              <p className='text-gray-300 leading-relaxed flex-grow'>
+              <h3 className='text-2xl font-bold text-black mb-3'>Phân Công Nhiệm Vụ</h3>
+              <p className='text-black leading-relaxed flex-grow'>
                 Giao nhiệm vụ cho từng thành viên trong team với thông báo và nhắc nhở tự động.
               </p>
               <div className='mt-6 flex -space-x-3'>
@@ -126,8 +126,8 @@ export default function ScheduleAnalyticsFeature() {
           <div className='bento-item bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm border border-white/10 rounded-3xl p-8 hover:border-blue-400/50 transition-all duration-500 group relative overflow-hidden'>
             <div className='absolute top-0 left-0 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700'></div>
             <div className='relative z-10 h-full flex flex-col'>
-              <h3 className='text-2xl font-bold text-white mb-3'>Biểu Đồ Phân Tích</h3>
-              <p className='text-gray-300 leading-relaxed mb-4'>
+              <h3 className='text-2xl font-bold text-black mb-3'>Biểu Đồ Phân Tích</h3>
+              <p className='text-black leading-relaxed mb-4'>
                 Theo dõi số liệu sự kiện, doanh thu, vé bán qua các biểu đồ trực quan.
               </p>
               <img
@@ -144,10 +144,9 @@ export default function ScheduleAnalyticsFeature() {
             <div className='absolute bottom-0 right-0 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700'></div>
             <div className='relative z-10 grid md:grid-cols-2 gap-8 items-center'>
               <div>
-                <h3 className='text-3xl font-bold text-white mb-4'>Theo Dõi Thời Gian Thực</h3>
-                <p className='text-gray-300 text-lg leading-relaxed mb-6'>
-                  Cập nhật dữ liệu real-time về trạng thái sự kiện, bán vé và hoạt động của team. Nhận thông báo ngay
-                  lập tức.
+                <h3 className='text-3xl font-bold text-black mb-4'>Theo Dõi Thời Gian Thực</h3>
+                <p className='text-black text-lg leading-relaxed mb-6'>
+                  Cập nhật dữ liệu về trạng thái sự kiện, bán vé và hoạt động của team.
                 </p>
               </div>
               <div>

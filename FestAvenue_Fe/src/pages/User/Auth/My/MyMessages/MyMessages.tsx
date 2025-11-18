@@ -401,7 +401,6 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageUpdated', (data: MessageUpdated) => {
-          console.log(data)
 
           queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
             if (!cached) return cached
@@ -426,7 +425,6 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageDeleted', (data: MessageDeleted) => {
-          console.log(data)
 
           queryClient.setQueryData<InfiniteData<resChatPaging>>(['chat-messages', data.groupChatId], (cached) => {
             if (!cached) return cached
@@ -443,7 +441,6 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessagesMarkedAsRead', (data: MessagesMarkedAsRead) => {
-          console.log(data)
 
           setUnreadCounters((prev) => ({ ...prev, [data.groupChatId]: 0 }))
           if (data.groupChatId === selectedChatIdRef.current && data.userId !== userProfile?.id) {
@@ -452,7 +449,6 @@ export default function ChatMyMessagesSystem() {
         })
 
         newConnection.on('MessageReadByUser', (data: MessageReadByUser) => {
-          console.log(data)
 
           if (data.userId === userProfile?.id) return
           appendReadReceipt(data.messageId, {
