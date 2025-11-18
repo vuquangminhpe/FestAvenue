@@ -7,6 +7,7 @@ import { getAccessTokenFromLS, saveAccessTokenToLS } from './utils/auth'
 import { useUsersStore } from './contexts/app.context'
 import { useQuery } from '@tanstack/react-query'
 import userApi from './apis/user.api'
+import ChatSystem from './components/ChatSystem/ChatSystem'
 function App() {
   const location = useLocation()
   const check_accessToken = location.search.includes('accessToken')
@@ -36,7 +37,14 @@ function App() {
   }, [check_accessToken, location.search, setIsAuth, refetch])
 
   const routeElement = useRouteElement()
-  return <>{routeElement}</>
+  const isAuthenticated = !!getAccessTokenFromLS()
+
+  return (
+    <>
+      {routeElement}
+      {isAuthenticated && <ChatSystem />}
+    </>
+  )
 }
 
 export default App
