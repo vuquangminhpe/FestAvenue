@@ -5,6 +5,41 @@ import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DollarSign, Eye, EyeOff } from 'lucide-react'
 import type { Seat, SeatMapData, Section, Point } from '@/types/seat.types'
+import { getSkin } from './SkinRegistry'
+
+const buildStarPath = (cx: number, cy: number, spikes = 5, outerRadius = 8, innerRadius = 4) => {
+  let path = ''
+  const step = Math.PI / spikes
+  for (let i = 0; i < spikes * 2; i++) {
+    const radius = i % 2 === 0 ? outerRadius : innerRadius
+    const x = cx + Math.cos(i * step - Math.PI / 2) * radius
+    const y = cy + Math.sin(i * step - Math.PI / 2) * radius
+    path += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`
+  }
+  return `${path} Z`
+}
+
+const buildHexPath = (cx: number, cy: number, radius = 8) => {
+  let path = ''
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i + Math.PI / 6
+    const x = cx + radius * Math.cos(angle)
+    const y = cy + radius * Math.sin(angle)
+    path += i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`
+  }
+  return `${path} Z`
+}
+
+const transformLabelText = (value: string, mode?: 'uppercase' | 'capitalize' | 'none') => {
+  if (!mode || mode === 'none') return value
+  if (mode === 'uppercase') return value.toUpperCase()
+  if (mode === 'capitalize') {
+    return value.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+  }
+  return value
+}
+
+const safeId = (id: string) => id.replace(/[^a-zA-Z0-9_-]/g, '')
 
 class SeatInteractionManager {
   private animationQueue: Map<string, any> = new Map()
@@ -528,7 +563,10 @@ export default function SeatMapViewer({
           if (seatGroup.empty()) return
 
           // Update seat color
-          seatGroup.select('circle:nth-child(2)').attr('fill', seatColor)
+          const seatVisual = seatGroup.select('.seat-visual')
+          if (!seatVisual.empty()) {
+            seatVisual.attr('fill', seatColor)
+          }
 
           // Update or add countdown
           if (countdown && seatInfo?.isSeatLock) {
@@ -604,6 +642,7 @@ export default function SeatMapViewer({
     }
 
     const g = svg.append('g').attr('class', 'main-group')
+    const defs = g.append('defs')
 
     // Enable zoom and save transform state
     const zoom = d3
@@ -646,42 +685,143 @@ export default function SeatMapViewer({
     }
 
     // Render sections
-    mapData.sections.forEach((section) => {
+    mapData.sections.forEach((section, index) => {
       const sectionGroup = g.append('g').attr('class', `section-${section.id}`)
+      const appliedSkin = section.appearance?.templateId ? getSkin(section.appearance.templateId) : null
+      const sectionSafeId = safeId(section.id)
 
-      // Draw section boundary
+      let fillOpacity = appliedSkin?.zone.opacity ?? 0.2
+      let strokeColor = appliedSkin?.zone.strokeColor || section.color || '#06b6d4'
+      let strokeWidth = appliedSkin?.zone.strokeWidth || 2
+      let fillValue = section.color || '#06b6d4'
+      let filterId: string | null = null
+
+      if (section.gradient) {
+        const gradientId = `viewer-section-gradient-${index}`
+        const gradient = defs
+          .append('linearGradient')
+          .attr('id', gradientId)
+          .attr('x1', '0%')
+          .attr('y1', '0%')
+          .attr('x2', '100%')
+          .attr('y2', '100%')
+        gradient.append('stop').attr('offset', '0%').style('stop-color', section.gradient.from)
+        gradient.append('stop').attr('offset', '100%').style('stop-color', section.gradient.to)
+        fillValue = `url(#${gradientId})`
+      }
+
+      if (appliedSkin) {
+        if (appliedSkin.zone.fillType === 'solid') {
+          fillValue = appliedSkin.zone.fillColor || fillValue
+        } else if (appliedSkin.zone.fillType === 'linear-gradient' && appliedSkin.zone.gradientStops?.length) {
+          const gradientId = `viewer-skin-linear-${sectionSafeId}`
+          const gradient = defs
+            .append('linearGradient')
+            .attr('id', gradientId)
+            .attr('x1', '0%')
+            .attr('y1', '0%')
+            .attr('x2', '100%')
+            .attr('y2', '100%')
+            .attr('gradientTransform', `rotate(${appliedSkin.zone.gradientRotation ?? 45})`)
+          appliedSkin.zone.gradientStops.forEach((stop: { offset: string; color: string }) => {
+            gradient.append('stop').attr('offset', stop.offset).style('stop-color', stop.color)
+          })
+          fillValue = `url(#${gradientId})`
+        } else if (appliedSkin.zone.fillType === 'radial-gradient' && appliedSkin.zone.gradientStops?.length) {
+          const gradientId = `viewer-skin-radial-${sectionSafeId}`
+          const gradient = defs.append('radialGradient').attr('id', gradientId)
+          appliedSkin.zone.gradientStops.forEach((stop: { offset: string; color: string }) => {
+            gradient.append('stop').attr('offset', stop.offset).style('stop-color', stop.color)
+          })
+          fillValue = `url(#${gradientId})`
+        }
+
+        if (appliedSkin.zone.shadow) {
+          const shadowId = `viewer-shadow-${sectionSafeId}`
+          const filter = defs
+            .append('filter')
+            .attr('id', shadowId)
+            .attr('x', '-50%')
+            .attr('y', '-50%')
+            .attr('width', '200%')
+            .attr('height', '200%')
+          filter
+            .append('feDropShadow')
+            .attr('dx', appliedSkin.zone.shadow.offsetX)
+            .attr('dy', appliedSkin.zone.shadow.offsetY)
+            .attr('stdDeviation', appliedSkin.zone.shadow.blur)
+            .attr('flood-color', appliedSkin.zone.shadow.color)
+          filterId = shadowId
+        }
+      }
+
       if (section.points.length > 0) {
         const line = d3
           .line<Point>()
           .x((d) => d.x)
           .y((d) => d.y)
 
-        sectionGroup
+        const boundary = sectionGroup
           .append('path')
           .datum([...section.points, section.points[0]])
           .attr('d', line)
-          .attr('fill', section.color || '#06b6d4')
-          .attr('fill-opacity', 0.2)
-          .attr('stroke', section.color || '#06b6d4')
-          .attr('stroke-width', 2)
+          .attr('fill', fillValue)
+          .attr('fill-opacity', fillOpacity)
+          .attr('stroke', strokeColor)
+          .attr('stroke-width', strokeWidth)
           .style('cursor', 'default')
+
+        if (appliedSkin?.zone.strokeDasharray) {
+          boundary.attr('stroke-dasharray', appliedSkin.zone.strokeDasharray)
+        }
+        if (appliedSkin?.zone.borderRadius) {
+          boundary.attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        }
+
+        if (filterId) {
+          boundary.style('filter', `url(#${filterId})`)
+        }
 
         // Section label (toggle visibility)
         if (showSectionNames) {
           const bounds = section.bounds || calculateBounds(section.points)
           const centerX = (bounds.minX + bounds.maxX) / 2
           const centerY = (bounds.minY + bounds.maxY) / 2
+          const labelSkin = appliedSkin?.label
+          const rawLabel = section.displayName || section.name
+          const labelText = transformLabelText(rawLabel, labelSkin?.textTransform)
+          const labelPadding = labelSkin?.background?.padding ?? 6
+          const labelFontSize = labelSkin?.fontSize ?? 16
+          const estimatedWidth = Math.max(80, labelText.length * (labelFontSize * 0.6) + labelPadding * 2)
+          const labelHeight = labelFontSize + labelPadding * 2
 
-          sectionGroup
+          const labelGroup = sectionGroup.append('g').attr('class', 'section-label')
+
+          labelGroup
+            .append('rect')
+            .attr('x', centerX - estimatedWidth / 2)
+            .attr('y', centerY - labelHeight)
+            .attr('width', estimatedWidth)
+            .attr('height', labelHeight)
+            .attr('fill', labelSkin?.background?.color || 'rgba(0,0,0,0.65)')
+            .attr('rx', labelSkin?.background?.borderRadius ?? 4)
+            .attr('pointer-events', 'none')
+
+          const labelTextElement = labelGroup
             .append('text')
             .attr('x', centerX)
-            .attr('y', centerY - 10)
+            .attr('y', centerY - labelPadding)
             .attr('text-anchor', 'middle')
-            .attr('fill', section.color || '#06b6d4')
-            .attr('font-size', '20px')
-            .attr('font-weight', 'bold')
+            .attr('fill', labelSkin?.color || '#fff')
+            .attr('font-size', labelFontSize)
+            .attr('font-family', labelSkin?.fontFamily || 'inherit')
+            .attr('font-weight', labelSkin?.fontWeight || 600)
             .attr('pointer-events', 'none')
-            .text(section.displayName || section.name)
+            .text(labelText)
+
+          if (labelSkin?.letterSpacing !== undefined) {
+            labelTextElement.style('letter-spacing', `${labelSkin.letterSpacing}px`)
+          }
         }
       }
 
@@ -693,11 +833,20 @@ export default function SeatMapViewer({
         const seatInfo = getSeatInfo(seat.id)
         const isClickable = isSeatClickable(seat.id)
         const seatColor = getSeatColor(seat.id, status)
+        const seatSkin = appliedSkin?.seat
+        const seatSize = seatSkin ? 5 * seatSkin.size : 5
+        const seatHoverScale = seatSkin?.hoverScale ?? 1.2
+        const seatStroke = seatSkin?.strokeColor || '#fff'
+        const seatStrokeWidth = seatSkin?.strokeWidth || 1
+        const seatBorderRadius = seatSkin?.borderRadius ?? seatSize * 0.3
 
         const hitboxGroup = sectionGroup
           .append('g')
           .attr('class', `seat-group seat-${seat.id}`)
           .style('cursor', isClickable && !readonly ? 'pointer' : 'not-allowed')
+          .attr('data-origin-x', seat.x)
+          .attr('data-origin-y', seat.y)
+          .attr('data-hover-scale', seatHoverScale.toString())
 
         // Invisible hitbox
         hitboxGroup
@@ -709,15 +858,76 @@ export default function SeatMapViewer({
           .attr('pointer-events', 'all')
 
         // Visible seat
-        hitboxGroup
-          .append('circle')
-          .attr('cx', seat.x)
-          .attr('cy', seat.y)
-          .attr('r', 5)
+        let visibleSeat: d3.Selection<any, unknown, null, undefined>
+        switch (seatSkin?.shape) {
+          case 'rect':
+            visibleSeat = hitboxGroup
+              .append('rect')
+              .attr('x', seat.x - seatSize)
+              .attr('y', seat.y - seatSize * 0.7)
+              .attr('width', seatSize * 2)
+              .attr('height', seatSize * 1.4)
+              .attr('rx', seatBorderRadius)
+            break
+          case 'pill': {
+            const pillWidth = seatSize * 2.6
+            const pillHeight = seatSize * 1.1
+            visibleSeat = hitboxGroup
+              .append('rect')
+              .attr('x', seat.x - pillWidth / 2)
+              .attr('y', seat.y - pillHeight / 2)
+              .attr('width', pillWidth)
+              .attr('height', pillHeight)
+              .attr('rx', seatSkin?.borderRadius ?? pillHeight / 2)
+            break
+          }
+          case 'diamond':
+            visibleSeat = hitboxGroup
+              .append('path')
+              .attr(
+                'd',
+                `M ${seat.x} ${seat.y - seatSize} L ${seat.x + seatSize} ${seat.y} L ${seat.x} ${seat.y + seatSize} L ${
+                  seat.x - seatSize
+                } ${seat.y} Z`
+              )
+            break
+          case 'star':
+            visibleSeat = hitboxGroup.append('path').attr('d', buildStarPath(seat.x, seat.y, 5, seatSize, seatSize / 2))
+            break
+          case 'hex':
+            visibleSeat = hitboxGroup.append('path').attr('d', buildHexPath(seat.x, seat.y, seatSize))
+            break
+          case 'custom':
+            if (seatSkin?.path) {
+              visibleSeat = hitboxGroup
+                .append('path')
+                .attr('d', seatSkin.path)
+                .attr('transform', `translate(${seat.x}, ${seat.y}) scale(${seatSize / 10})`)
+            } else {
+              visibleSeat = hitboxGroup.append('circle').attr('cx', seat.x).attr('cy', seat.y).attr('r', seatSize)
+            }
+            break
+          case 'circle':
+          default:
+            visibleSeat = hitboxGroup.append('circle').attr('cx', seat.x).attr('cy', seat.y).attr('r', seatSize)
+            break
+        }
+
+        visibleSeat
+          .classed('seat-visual', true)
+          .attr('data-seat-shape', seatSkin?.shape || 'circle')
           .attr('fill', seatColor)
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 1)
+          .attr('stroke', seatStroke)
+          .attr('stroke-width', seatStrokeWidth)
           .attr('pointer-events', 'none')
+          .attr('vector-effect', 'non-scaling-stroke')
+
+        const baseTransform = hitboxGroup.attr('transform') ?? ''
+        hitboxGroup.attr('data-base-transform', baseTransform)
+
+        if (seatSkin?.shadow) {
+          visibleSeat.style('filter', `drop-shadow(0 0 ${seatSkin.shadow.blur}px ${seatSkin.shadow.color})`)
+        }
 
         // Countdown timer circle (for locked seats of current user or others)
         const countdown = getSeatCountdown(seat.id)
@@ -775,7 +985,15 @@ export default function SeatMapViewer({
         if (isClickable && !readonly) {
           hitboxGroup
             .on('mouseover', function () {
-              d3.select(this).select('circle:nth-child(2)').attr('r', 7)
+              const group = d3.select(this as SVGGElement)
+              const hoverScale = Number(group.attr('data-hover-scale')) || seatHoverScale
+              const originX = Number(group.attr('data-origin-x')) || seat.x
+              const originY = Number(group.attr('data-origin-y')) || seat.y
+              const baseTransformAttr = group.attr('data-base-transform') || ''
+              const transformSequence = `${
+                baseTransformAttr ? `${baseTransformAttr} ` : ''
+              }translate(${originX}, ${originY}) scale(${hoverScale}) translate(${-originX}, ${-originY})`
+              group.attr('transform', transformSequence)
 
               const tooltip = g.append('g').attr('class', 'tooltip')
               tooltip
@@ -797,7 +1015,13 @@ export default function SeatMapViewer({
                 .text(`${section.name} R${seat.row}S${seat.number}`)
             })
             .on('mouseout', function () {
-              d3.select(this).select('circle:nth-child(2)').attr('r', 5)
+              const group = d3.select(this as SVGGElement)
+              const baseTransformAttr = group.attr('data-base-transform') || ''
+              if (baseTransformAttr) {
+                group.attr('transform', baseTransformAttr)
+              } else {
+                group.attr('transform', null)
+              }
               g.selectAll('.tooltip').remove()
             })
         }

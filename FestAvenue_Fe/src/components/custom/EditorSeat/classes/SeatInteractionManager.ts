@@ -222,6 +222,16 @@ export class SeatInteractionManager {
     })
   }
 
+  lockSeat(seatId: string, email?: string) {
+    console.log(email);   
+    this.seatStates.set(seatId, 'locked')
+    // Email is managed by the parent component, but can be used for logging or future features
+  }
+
+  unlockSeat(seatId: string) {
+    this.seatStates.set(seatId, 'available')
+  }
+
   clearState() {
     this.animationQueue.clear()
     this.seatStates.clear()

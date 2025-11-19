@@ -16,8 +16,6 @@ type TabType = 'ticket-config' | 'seat-setup'
 export default function TicketManagement() {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
-  const eventIdSplit = nameId.split('-')
-  const eventId = eventIdSplit[eventIdSplit.length - 1]
   const eventCode = getIdFromNameId(nameId)
 
   // Check permissions - để lấy packageId cho permission guard
@@ -107,7 +105,7 @@ export default function TicketManagement() {
           {activeTab === 'seat-setup' ? (
             /* Full-height mode for EditorSeat (allows zoom) */
             <div className='content-area h-full overflow-hidden'>
-              <EditorSeat eventCode={eventCode} eventId={eventId} ticketPackageId={ticketPackageId} />
+              <EditorSeat eventCode={eventCode}  ticketPackageId={ticketPackageId} />
             </div>
           ) : (
             /* Standard scrollable mode for TicketConfig */

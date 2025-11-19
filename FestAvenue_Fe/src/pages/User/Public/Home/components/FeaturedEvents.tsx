@@ -143,7 +143,7 @@ export default function FeaturedEvents() {
         {featuredEvents && featuredEvents.length > 8 && (
           <div className='text-center mt-12'>
             <button
-              onClick={() => navigate(path.user.event.root)}
+              onClick={() => navigate(path.events)}
               className='px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-xl hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl'
             >
               Xem Tất Cả Sự Kiện

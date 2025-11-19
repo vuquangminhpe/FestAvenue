@@ -79,6 +79,10 @@ export interface Section {
   ticketId?: string // ID của ticket từ API - áp dụng cho tất cả ghế trong section
   hasSeats?: boolean // Nếu false, section không có ghế (standing zone, etc.)
   customSeatCount?: number // Số lượng ghế tùy chỉnh thay vì rows * seatsPerRow
+  appearance?: {
+    templateId: string
+    customOverride?: Record<string, unknown>
+  }
 }
 
 export interface SeatMapData {
