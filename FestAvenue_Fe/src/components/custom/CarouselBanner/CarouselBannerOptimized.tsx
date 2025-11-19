@@ -46,23 +46,28 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
     enabled: !isAuth || (!isLoadingFavorites && favoriteEvents.length < 4)
   })
 
-  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any) || []) as ReqFilterOwnerEvent[]
+  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any)?.data || []) as ReqFilterOwnerEvent[]
+  console.log(featuredEvents)
 
   // Combine favorite and featured events to get exactly 4 items
   let items: ReqFilterOwnerEvent[] = []
+  console.log(isAuth)
+
   if (!isAuth) {
     // If user is not logged in, use only featured events
-    items = featuredEvents.slice(0, 4)
+    console.log('test')
+
+    items = featuredEvents?.slice(0, 4)
   } else if (favoriteEvents.length >= 4) {
     // If we have 4+ favorite events, just use them
-    items = favoriteEvents.slice(0, 4)
+    items = favoriteEvents?.slice(0, 4)
   } else {
     // If less than 4 favorites, combine with featured events
     items = [...favoriteEvents]
-    const needed = 4 - favoriteEvents.length
+    const needed = 4 - favoriteEvents?.length
     // Filter out featured events that are already in favorites (by id)
     const favoriteIds = new Set(favoriteEvents.map((e) => e.id))
-    const additionalFeatured = featuredEvents.filter((e) => !favoriteIds.has(e.id)).slice(0, needed)
+    const additionalFeatured = featuredEvents?.filter((e) => !favoriteIds.has(e.id)).slice(0, needed)
     items = [...items, ...additionalFeatured]
   }
 
@@ -96,7 +101,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
       setIsAnimating(false)
       setPreviousIndex(null)
     }, 1500)
-  }, [isAnimating, currentIndex, items.length])
+  }, [isAnimating, currentIndex, items?.length])
 
   const handlePrev = () => {
     if (isAnimating) return
@@ -168,7 +173,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
         clearTimeout(autoPlayRef.current)
       }
     }
-  }, [currentIndex, isAnimating, items.length, handleNext])
+  }, [currentIndex, isAnimating, items?.length, handleNext])
 
   // Show loading state
   if (isLoading || items.length === 0) {

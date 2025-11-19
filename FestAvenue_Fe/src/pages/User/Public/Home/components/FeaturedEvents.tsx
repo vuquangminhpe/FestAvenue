@@ -90,7 +90,7 @@ export default function FeaturedEvents() {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {featuredEvents?.slice(0, 8)?.map((event: ReqFilterOwnerEvent, index: number) => (
+          {(featuredEvents as any)?.data?.slice(0, 8)?.map((event: ReqFilterOwnerEvent, index: number) => (
             <div
               key={event.id}
               className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
