@@ -46,15 +46,16 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
     enabled: !isAuth || (!isLoadingFavorites && favoriteEvents.length < 4)
   })
 
-  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any)?.data || []) as ReqFilterOwnerEvent[]
-  console.log(featuredEvents)
+  const featuredEvents: ReqFilterOwnerEvent[] = (
+    !isAuth ? (featuredEventsData as any)?.data : (featuredEventsData as any) || []
+  ) as ReqFilterOwnerEvent[]
+  console.log(featuredEventsData)
 
   // Combine favorite and featured events to get exactly 4 items
   let items: ReqFilterOwnerEvent[] = []
 
   if (!isAuth) {
-
-    items = featuredEvents?.slice(0, 4)
+    items = featuredEvents?.slice(0, 4) ?? []
   } else if (favoriteEvents.length >= 4) {
     // If we have 4+ favorite events, just use them
     items = favoriteEvents?.slice(0, 4)
@@ -64,7 +65,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
     const needed = 4 - favoriteEvents?.length
     // Filter out featured events that are already in favorites (by id)
     const favoriteIds = new Set(favoriteEvents.map((e) => e.id))
-    const additionalFeatured = featuredEvents?.filter((e) => !favoriteIds.has(e.id)).slice(0, needed)
+    const additionalFeatured = featuredEvents?.filter((e) => !favoriteIds.has(e.id)).slice(0, needed) ?? []
     items = [...items, ...additionalFeatured]
   }
 

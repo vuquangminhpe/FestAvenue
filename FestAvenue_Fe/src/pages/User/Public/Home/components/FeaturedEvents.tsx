@@ -7,8 +7,11 @@ import path from '@/constants/path'
 import { generateNameId } from '@/utils/utils'
 import type { ReqFilterOwnerEvent } from '@/types/event.types'
 import OptimizedImage from '@/components/custom/OptimizedImage'
+import { useUsersStore } from '@/contexts/app.context'
 
 export default function FeaturedEvents() {
+  const { isAuth } = useUsersStore() // Check if user is authenticated
+
   const navigate = useNavigate()
   const sectionRef = useRef<HTMLDivElement>(null)
 
@@ -90,54 +93,56 @@ export default function FeaturedEvents() {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {(featuredEvents as any)?.data?.slice(0, 8)?.map((event: ReqFilterOwnerEvent, index: number) => (
-            <div
-              key={event.id}
-              className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
-              onClick={() =>
-                navigate(
-                  `${path.user.event.root}/${generateNameId({
-                    id: event.eventCode,
-                    name: event.organization.name,
-                    id_2: event.eventName
-                  })}`
-                )
-              }
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className='relative overflow-hidden'>
-                <OptimizedImage
-                  src={event.logoUrl}
-                  alt={event.eventName}
-                  width={600}
-                  height={400}
-                  className='h-48 w-full'
-                  sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
-                />
+          {(!isAuth ? (featuredEvents as any)?.data : featuredEvents)
+            ?.slice(0, 8)
+            ?.map((event: ReqFilterOwnerEvent, index: number) => (
+              <div
+                key={event.id}
+                className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
+                onClick={() =>
+                  navigate(
+                    `${path.user.event.root}/${generateNameId({
+                      id: event.eventCode,
+                      name: event.organization.name,
+                      id_2: event.eventName
+                    })}`
+                  )
+                }
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className='relative overflow-hidden'>
+                  <OptimizedImage
+                    src={event.logoUrl}
+                    alt={event.eventName}
+                    width={600}
+                    height={400}
+                    className='h-48 w-full'
+                    sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
+                  />
 
-                <div className='absolute inset-0 bg-gradient-to-t from-black/70 to-transparent'></div>
-              </div>
+                  <div className='absolute inset-0 bg-gradient-to-t from-black/70 to-transparent'></div>
+                </div>
 
-              <div className='p-5'>
-                <h3 className='font-bold text-xl mb-3 line-clamp-2 text-gray-900'>{event.eventName}</h3>
+                <div className='p-5'>
+                  <h3 className='font-bold text-xl mb-3 line-clamp-2 text-gray-900'>{event.eventName}</h3>
 
-                <div className='space-y-2 text-sm text-gray-600'>
-                  <div className='flex items-center gap-2'>
-                    <User className='w-4 h-4 text-cyan-600' />
-                    <span className='line-clamp-1'>{event.organization?.name || 'FestAvenue'}</span>
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <Calendar className='w-4 h-4 text-cyan-600' />
-                    <span>
-                      {event.startTimeEventTime
-                        ? new Date(event.startTimeEventTime).toLocaleDateString('vi-VN')
-                        : 'Chưa có ngày'}
-                    </span>
+                  <div className='space-y-2 text-sm text-gray-600'>
+                    <div className='flex items-center gap-2'>
+                      <User className='w-4 h-4 text-cyan-600' />
+                      <span className='line-clamp-1'>{event.organization?.name || 'FestAvenue'}</span>
+                    </div>
+                    <div className='flex items-center gap-2'>
+                      <Calendar className='w-4 h-4 text-cyan-600' />
+                      <span>
+                        {event.startTimeEventTime
+                          ? new Date(event.startTimeEventTime).toLocaleDateString('vi-VN')
+                          : 'Chưa có ngày'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         {featuredEvents && featuredEvents.length > 8 && (
