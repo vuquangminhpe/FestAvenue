@@ -11,7 +11,7 @@ interface TicketListProps {
   ticketPackageId: string
 }
 
-export default function TicketList({ tickets, onUpdate, onDelete, ticketPackageId }: TicketListProps) {
+export default function TicketList({ tickets, onUpdate, onDelete }: TicketListProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
   }
@@ -109,7 +109,7 @@ export default function TicketList({ tickets, onUpdate, onDelete, ticketPackageI
               </TableCell>
               <TableCell>
                 <div className='flex flex-col gap-2'>
-                  <PermissionGuard requires={ticketPackageId}>
+                  <PermissionGuard action='Cập nhật vé'>
                     <Button
                       size='sm'
                       variant='outline'
@@ -118,6 +118,8 @@ export default function TicketList({ tickets, onUpdate, onDelete, ticketPackageI
                     >
                       Cập nhật vé
                     </Button>
+                     </PermissionGuard>
+                      <PermissionGuard action='Xóa vé'>
                     <Button
                       size='sm'
                       variant='outline'

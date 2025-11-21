@@ -78,7 +78,7 @@ export default function SocialMediaList({
           <h2 className='text-2xl font-bold text-gray-900'>Danh sách bài viết</h2>
           <p className='text-sm text-gray-600 mt-1'>Quản lý các bài viết Social Media của sự kiện</p>
         </div>
-        <PermissionGuard requires={socialMediaPackageId}>
+        <PermissionGuard action="Tạo bài viết mới truyền thông">
           {onCreate && (
             <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
               <Plus className='w-4 h-4 mr-2' />
@@ -138,7 +138,7 @@ export default function SocialMediaList({
             <p className='text-gray-600'>
               {socialMediaPackageId ? 'Bắt đầu tạo bài viết đầu tiên của bạn' : 'Danh sách bài viết trống'}
             </p>
-            <PermissionGuard requires={socialMediaPackageId}>
+            <PermissionGuard action="Tạo bài viết mới truyền thông">
               {onCreate && (
                 <Button onClick={onCreate} className='bg-gradient-to-r from-cyan-500 to-blue-500'>
                   <Plus className='w-4 h-4 mr-2' />

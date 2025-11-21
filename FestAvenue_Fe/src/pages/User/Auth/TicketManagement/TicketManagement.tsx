@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router'
-import { Ticket as TicketIcon, Armchair, Loader2 } from 'lucide-react'
+import { Armchair, Ticket as TicketIcon, Loader2 } from 'lucide-react'
 import gsap from 'gsap'
 import TicketConfig from './components/TicketConfig'
 import EditorSeat from '@/components/custom/EditorSeat/EditorSeat'
@@ -74,29 +74,30 @@ export default function TicketManagement() {
         <div className='bg-white border-b border-gray-200 shadow-sm flex-shrink-0'>
           {/* Horizontal Tabs */}
           <div className='px-8 flex gap-2 border-t border-gray-100'>
-            <button
-              onClick={() => handleTabChange('ticket-config')}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
-                activeTab === 'ticket-config'
-                  ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <TicketIcon className='w-5 h-5' />
-              <span>Cấu hình vé</span>
-            </button>
+              <button
+                onClick={() => handleTabChange('ticket-config')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
+                  activeTab === 'ticket-config'
+                    ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <TicketIcon className='w-5 h-5' />
+                <span>Cấu hình vé</span>
+              </button>
 
-            <button
-              onClick={() => handleTabChange('seat-setup')}
-              className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
-                activeTab === 'seat-setup'
-                  ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Armchair className='w-5 h-5' />
-              <span>Thiết lập chỗ ngồi</span>
-            </button>
+              <button
+                onClick={() => handleTabChange('seat-setup')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium transition-all duration-300 border-b-2 ${
+                  activeTab === 'seat-setup'
+                    ? 'border-cyan-400 text-cyan-600 bg-cyan-50/50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <Armchair className='w-5 h-5' />
+                <span>Thiết lập chỗ ngồi</span>
+              </button>
+            
           </div>
         </div>
 

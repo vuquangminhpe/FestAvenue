@@ -1,6 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -14,10 +13,12 @@ import type { UserServicePackageResult } from '@/types/userManagement.types'
 import { useState } from 'react'
 import { useRemoveUserFromEvent } from '../hooks/useUserManagement'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
+import UserPermissionsCell from './UserPermissionsCell'
 
 interface UserTableProps {
   users: UserServicePackageResult[]
   eventId: string
+  ownerId?: string
   onView: (user: UserServicePackageResult) => void
   onEdit: (user: UserServicePackageResult) => void
   currentPage: number
@@ -25,20 +26,10 @@ interface UserTableProps {
   onPageChange: (page: number) => void
 }
 
-const getPackageBadgeColor = (index: number) => {
-  const colors = [
-    'bg-gradient-to-r from-cyan-400 to-blue-300 text-white',
-    'bg-gradient-to-r from-purple-400 to-pink-400 text-white',
-    'bg-gradient-to-r from-green-400 to-teal-400 text-white',
-    'bg-gradient-to-r from-orange-400 to-red-400 text-white',
-    'bg-gradient-to-r from-indigo-400 to-purple-400 text-white'
-  ]
-  return colors[index % colors.length]
-}
-
 export default function UserTable({
   users,
   eventId,
+  ownerId,
   onView,
   onEdit,
   currentPage,
@@ -125,21 +116,11 @@ export default function UserTable({
                     </div>
                   </TableCell>
                   <TableCell className='text-left align-middle'>
-                    <div className='flex flex-wrap gap-2'>
-                      {user.servicePackages.length > 0 ? (
-                        user.servicePackages.map((pkg, idx) => (
-                          <Badge
-                            key={pkg.id}
-                            className={`${getPackageBadgeColor(idx)} shadow-md px-3 py-1`}
-                            title={pkg.description}
-                          >
-                            {pkg.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Badge className='bg-gray-200 text-gray-600 px-3 py-1'>Không có quyền</Badge>
-                      )}
-                    </div>
+                    <UserPermissionsCell 
+                      userId={user.userId} 
+                      eventId={eventId} 
+                      isOwner={user.userId === ownerId}
+                    />
                   </TableCell>
                   <TableCell className='align-middle'>
                     <div className='flex items-center justify-center gap-2'>

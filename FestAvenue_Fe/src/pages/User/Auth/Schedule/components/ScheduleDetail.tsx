@@ -45,7 +45,6 @@ export default function ScheduleDetail({
   onDelete,
   onRefresh,
   onScheduleChange,
-  schedulePackageId
 }: ScheduleDetailProps) {
   const [localSchedule, setLocalSchedule] = useState<Schedule>(schedule)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -254,7 +253,7 @@ export default function ScheduleDetail({
 
           {/* Actions */}
           <div className='flex justify-end gap-3 pt-4 border-t border-gray-200'>
-            <PermissionGuard requires={schedulePackageId}>
+            <PermissionGuard action="Xóa lịch trình" hideWithoutPermission>
               <Button
                 variant='outline'
                 onClick={handleDeleteClick}
@@ -262,11 +261,14 @@ export default function ScheduleDetail({
                 className='text-red-600 hover:text-red-700 hover:bg-red-50'
               >
                 <Trash2 className='w-4 h-4 mr-2' />
-                {deleteMutation.isPending ? 'Đang xóa...' : 'Xóa'}
+                {deleteMutation.isPending ? 'Đang xóa lịch trình...' : 'Xóa lịch trình'}
               </Button>
+            </PermissionGuard>
+            
+            <PermissionGuard action="Chỉnh sửa lịch trình" hideWithoutPermission>
               <Button onClick={onEdit} style={{ backgroundColor: localSchedule.color }}>
                 <Edit className='w-4 h-4 mr-2' />
-                Chỉnh sửa
+                Chỉnh sửa lịch trình
               </Button>
             </PermissionGuard>
           </div>

@@ -133,7 +133,6 @@ export default function PropertiesPanel({
   selectedSections,
   handleBulkTicketAssignment,
   setSelectedSections,
-  ticketPackageId,
   editTool,
   setEditTool,
   startEditingPoints,
@@ -186,24 +185,26 @@ export default function PropertiesPanel({
                 onChange={handleImageUpload}
                 className='hidden'
               />
-              <Button
-                onClick={() => imageInputRef.current?.click()}
-                disabled={extractPolygonsMutation.isPending}
-                className='w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
-                size='sm'
-              >
-                {extractPolygonsMutation.isPending ? (
-                  <>
-                    <Loader2 className='w-4 h-4 mr-2 animate-spin' />
-                    AI Đang Phát Hiện...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className='w-4 h-4 mr-2' />
-                    Phát Hiện Ghế Bằng AI
-                  </>
-                )}
-              </Button>
+              <PermissionGuard action="Phát Hiện Ghế Bằng AI" hideWithoutPermission>
+                <Button
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={extractPolygonsMutation.isPending}
+                  className='w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700'
+                  size='sm'
+                >
+                  {extractPolygonsMutation.isPending ? (
+                    <>
+                      <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                      AI Đang Phát Hiện...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className='w-4 h-4 mr-2' />
+                      Phát Hiện Ghế Bằng AI
+                    </>
+                  )}
+                </Button>
+              </PermissionGuard>
               {isImageImportMode && (
                 <Alert className='bg-cyan-600/20 border-cyan-500/50'>
                   <AlertDescription className='text-xs text-black'>
@@ -346,7 +347,7 @@ export default function PropertiesPanel({
                 <Edit className='w-4 h-4' />
                 Công Cụ Chỉnh Sửa
               </h3>
-              <PermissionGuard requires={ticketPackageId}>
+              <PermissionGuard action="Cập nhật sơ đồ" hideWithoutPermission>
                 <div className='grid grid-cols-2 gap-2'>
                   <Button
                     onClick={() => setEditTool('select')}

@@ -51,11 +51,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
 
   // Combine favorite and featured events to get exactly 4 items
   let items: ReqFilterOwnerEvent[] = []
-  console.log(isAuth)
 
   if (!isAuth) {
-    // If user is not logged in, use only featured events
-    console.log('test')
 
     items = featuredEvents?.slice(0, 4)
   } else if (favoriteEvents.length >= 4) {

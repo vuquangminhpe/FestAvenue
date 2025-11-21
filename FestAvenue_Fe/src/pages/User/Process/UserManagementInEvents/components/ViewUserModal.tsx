@@ -1,15 +1,19 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Mail, Shield } from 'lucide-react'
+import { Mail, Shield, Loader2, Crown } from 'lucide-react'
 import type { UserServicePackageResult } from '@/types/userManagement.types'
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
+import { useQuery } from '@tanstack/react-query'
+import permissionEventApi from '@/apis/permissionEvent.api'
 
 interface ViewUserModalProps {
   isOpen: boolean
   onClose: () => void
   user: UserServicePackageResult | null
+  eventId: string
+  isOwner?: boolean
 }
 
 const getPackageBadgeColor = (index: number) => {
@@ -22,8 +26,46 @@ const getPackageBadgeColor = (index: number) => {
   return colors[index % colors.length]
 }
 
-export default function ViewUserModal({ isOpen, onClose, user }: ViewUserModalProps) {
+export default function ViewUserModal({ isOpen, onClose, user, eventId, isOwner }: ViewUserModalProps) {
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // 1. Fetch all available permissions (structure)
+  const { data: allPermissionsData, isLoading: isLoadingAll } = useQuery({
+    queryKey: ['eventPermissions', eventId],
+    queryFn: () => permissionEventApi.getPermissionEvent(eventId),
+    enabled: !!eventId && isOpen && !isOwner
+  })
+
+  // 2. Fetch user's current permissions
+  const { data: userPermissionsData, isLoading: isLoadingUser } = useQuery({
+    queryKey: ['userPermissions', eventId, user?.userId],
+    queryFn: () => permissionEventApi.getPermissionEventByMemberId(eventId, user!.userId),
+    enabled: !!eventId && !!user?.userId && isOpen && !isOwner
+  })
+
+  const isLoading = isLoadingAll || isLoadingUser
+ 
+  // Map IDs to Names
+  const userActionNames: string[] = []
+  const userData = (userPermissionsData?.data as any)?.[0]
+
+  if (userData?.servicePackagePermissions && allPermissionsData?.data) {
+    const actionIdToNameMap: Record<string, string> = {}
+    allPermissionsData.data.forEach(pkg => {
+      pkg.permissionActions.forEach(action => {
+        actionIdToNameMap[action.permissionActionId] = action.actionName
+      })
+    })
+
+    userData.servicePackagePermissions.forEach((pkg: any) => {
+      if (pkg.permissions) {
+        pkg.permissions.forEach((id: string) => {
+          const name = actionIdToNameMap[id]
+          if (name) userActionNames.push(name)
+        })
+      }
+    })
+  }
 
   useEffect(() => {
     if (isOpen && contentRef.current) {
@@ -64,8 +106,10 @@ export default function ViewUserModal({ isOpen, onClose, user }: ViewUserModalPr
               </div>
             )}
             <div className='flex-1'>
-              <h3 className='text-2xl font-bold text-gray-800'>{user.fullName}</h3>
-              <p className='text-sm text-gray-500 mt-1'>ID: {user.userId}</p>
+              <h3 className='text-2xl font-bold text-gray-800 flex items-center gap-2'>
+                {user.fullName}
+                {isOwner && <Crown className='w-5 h-5 fill-yellow-500 text-yellow-600' />}
+              </h3>
             </div>
           </div>
 
@@ -84,14 +128,22 @@ export default function ViewUserModal({ isOpen, onClose, user }: ViewUserModalPr
               <div className='flex-1'>
                 <p className='text-sm text-gray-500 font-medium mb-2'>Chức năng có thể dùng:</p>
                 <div className='flex flex-wrap gap-2'>
-                  {user.servicePackages.length > 0 ? (
-                    user.servicePackages
-                      .filter((pkg) => pkg.isActive)
-                      .map((pkg, index) => (
-                        <Badge key={pkg.id} className={`${getPackageBadgeColor(index)} shadow-md px-3 py-1`}>
-                          {pkg.name}
-                        </Badge>
-                      ))
+                  {isOwner ? (
+                    <Badge className='bg-yellow-100 text-yellow-700 border-yellow-200 px-3 py-1 gap-1 shadow-sm'>
+                      <Crown className='w-3 h-3 fill-yellow-500 text-yellow-600' />
+                      Chủ sự kiện (Toàn quyền)
+                    </Badge>
+                  ) : isLoading ? (
+                     <div className="flex items-center gap-2 text-sm text-gray-500">
+                       <Loader2 className="w-4 h-4 animate-spin" />
+                       Đang tải quyền...
+                     </div>
+                  ) : userActionNames.length > 0 ? (
+                    userActionNames.map((actionName, index) => (
+                      <Badge key={index} className={`${getPackageBadgeColor(index)} shadow-md px-3 py-1`}>
+                        {actionName}
+                      </Badge>
+                    ))
                   ) : (
                     <Badge className='bg-gray-200 text-gray-600 px-3 py-1'>Không có quyền</Badge>
                   )}
@@ -99,7 +151,7 @@ export default function ViewUserModal({ isOpen, onClose, user }: ViewUserModalPr
               </div>
             </div>
 
-            {/* Service Package Details */}
+            {/* Service Package Details - Keeping this as it shows package info which might still be relevant, or could be removed if redundant */}
             {user.servicePackages.length > 0 && (
               <div className='mt-4 pt-4 border-t border-gray-200'>
                 <p className='text-sm text-gray-500 font-medium mb-2'>Chi tiết packages:</p>

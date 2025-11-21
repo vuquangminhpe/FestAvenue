@@ -20,7 +20,6 @@ export default function SocialMediaItem({
   onView,
   onEdit,
   onDelete,
-  socialMediaPackageId
 }: SocialMediaItemProps) {
   return (
     <Card className='overflow-hidden hover:shadow-lg transition-all duration-300 group'>
@@ -95,24 +94,30 @@ export default function SocialMediaItem({
         </div>
       </CardContent>
 
-      <CardFooter className='bg-gray-50 flex justify-between items-center gap-2 pt-3'>
-        <Button size='sm' variant='outline' onClick={() => onView(post.postSocialMediaId)} className='flex-1'>
-          <Eye className='w-4 h-4 mr-1' />
-          Xem
-        </Button>
-        <PermissionGuard requires={socialMediaPackageId}>
+      <CardFooter className='flex-col bg-gray-50 flex justify-between items-center gap-2 pt-3'>
+        <PermissionGuard action="Xem bài viết truyền thông" hideWithoutPermission>
+          <Button size='sm' variant='outline' onClick={() => onView(post.postSocialMediaId)} className='flex-1 p-2'>
+            <Eye className='w-4 h-4 mr-1' />
+            Xem bài viết truyền thông
+          </Button>
+        </PermissionGuard>
+        
+        <PermissionGuard action="Sửa bài viết truyền thông" hideWithoutPermission>
           <Button
             size='sm'
             variant='default'
             onClick={() => onEdit(post.postSocialMediaId)}
-            className='flex-1 bg-blue-500 hover:bg-blue-600'
+            className='flex-1 p-2 bg-blue-500 hover:bg-blue-600'
           >
             <Edit className='w-4 h-4 mr-1' />
-            Sửa
+            Sửa bài viết truyền thông
           </Button>
-          <Button size='sm' variant='destructive' onClick={() => onDelete(post.postSocialMediaId)} className='flex-1'>
+        </PermissionGuard>
+
+        <PermissionGuard action="Xóa bài viết truyền thông" hideWithoutPermission>
+          <Button size='sm' variant='destructive' onClick={() => onDelete(post.postSocialMediaId)} className='flex-1 p-2'>
             <Trash2 className='w-4 h-4 mr-1' />
-            Xóa
+            Xóa bài viết truyền thông
           </Button>
         </PermissionGuard>
       </CardFooter>

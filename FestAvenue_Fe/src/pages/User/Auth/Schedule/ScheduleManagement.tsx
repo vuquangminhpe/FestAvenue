@@ -335,7 +335,7 @@ export default function ScheduleManagement() {
             </h1>
             <p className='text-gray-600 mt-1'>Theo dõi và quản lý các lịch trình của bạn</p>
           </div>
-          <PermissionGuard requires={schedulePackageId}>
+          <PermissionGuard action="Tạo lịch trình mới">
             <Button onClick={handleCreateNew} size='lg' className='gap-2'>
               <Plus className='w-5 h-5' />
               Tạo lịch trình mới

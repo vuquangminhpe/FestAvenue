@@ -148,7 +148,7 @@ export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
             className='pl-10 border-gray-300 focus:border-cyan-400 focus:ring-cyan-400'
           />
         </div>
-        <PermissionGuard requires={ticketPackageId}>
+        <PermissionGuard action='Tạo mới vé'>
           <Button
             onClick={() => setIsAddModalOpen(true)}
             className='bg-gradient-to-r from-cyan-400 to-blue-400 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold px-6'

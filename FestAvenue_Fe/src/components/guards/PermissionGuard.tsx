@@ -5,6 +5,8 @@ interface PermissionGuardProps {
   children: ReactNode
   /** Service package ID required */
   requires?: string
+  /** Specific Action Name required */
+  action?: string
   /** Any of these service package IDs */
   requiresAny?: string[]
   /** All of these service package IDs */
@@ -29,14 +31,15 @@ interface PermissionGuardProps {
 export function PermissionGuard({
   children,
   requires,
+  action,
   requiresAny,
   requiresAll,
   requiresEventOwner,
   fallback = null,
   hideWithoutPermission = false
 }: PermissionGuardProps) {
-  const { hasPermission, hasAnyPermission, hasAllPermissions, isEventOwner, isLoading } = usePermissions()
-
+  const { hasPermission, hasActionPermission, hasAnyPermission, hasAllPermissions, isEventOwner, isLoading } = usePermissions()
+  
   // Loading state - có thể customize
   if (isLoading && !hideWithoutPermission) {
     return <>{fallback}</>
@@ -47,8 +50,13 @@ export function PermissionGuard({
     return <>{fallback}</>
   }
 
-  // Check single permission
+  // Check single permission (package ID)
   if (requires && !hasPermission(requires)) {
+    return <>{fallback}</>
+  }
+
+  // Check specific action permission
+  if (action && !hasActionPermission(action)) {
     return <>{fallback}</>
   }
 
@@ -69,12 +77,13 @@ export function PermissionGuard({
  * Hook để check permission trong component logic
  */
 export function useCanAccess(options: Omit<PermissionGuardProps, 'children' | 'fallback'>): boolean {
-  const { hasPermission, hasAnyPermission, hasAllPermissions, isEventOwner, isLoading } = usePermissions()
+  const { hasPermission, hasActionPermission, hasAnyPermission, hasAllPermissions, isEventOwner, isLoading } = usePermissions()
 
   if (isLoading) return false
 
   if (options.requiresEventOwner && !isEventOwner) return false
   if (options.requires && !hasPermission(options.requires)) return false
+  if (options.action && !hasActionPermission(options.action)) return false
   if (options.requiresAny && !hasAnyPermission(options.requiresAny)) return false
   if (options.requiresAll && !hasAllPermissions(options.requiresAll)) return false
 

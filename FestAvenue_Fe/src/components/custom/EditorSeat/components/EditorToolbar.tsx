@@ -18,7 +18,6 @@ interface EditorToolbarProps {
 }
 
 export default function EditorToolbar({
-  ticketPackageId,
   handleSaveSeatingChart,
   isCreating,
   isUpdating,
@@ -34,28 +33,52 @@ export default function EditorToolbar({
     <div className='absolute top-4 right-4 z-50 flex flex-col gap-2 animate-in slide-in-from-right duration-500'>
       {/* Primary Actions */}
       <div className='flex flex-col gap-2 bg-slate-900/95 backdrop-blur-xl p-3 rounded-xl border border-purple-500/30 shadow-2xl'>
-        <PermissionGuard requires={ticketPackageId}>
-          {/* Save Button */}
-          <Button
-            onClick={handleSaveSeatingChart}
-            disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
-            className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
-            size='sm'
-          >
-            {isCreating || isUpdating ? (
-              <>
-                <Loader2 className='w-4 h-4 mr-1 animate-spin' />
-                {hasExistingStructure ? 'Đang cập nhật...' : 'Đang lưu...'}
-              </>
-            ) : (
-              <>
-                <Save className='w-4 h-4 mr-1' />
-                {hasExistingStructure ? 'Cập nhật sơ đồ' : 'Lưu sơ đồ'}
-              </>
-            )}
-          </Button>
+        {hasExistingStructure ? (
+          <PermissionGuard action="Cập nhật sơ đồ">
+            <Button
+              onClick={handleSaveSeatingChart}
+              disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
+              className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+              size='sm'
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                  Đang cập nhật...
+                </>
+              ) : (
+                <>
+                  <Save className='w-4 h-4 mr-1' />
+                  Cập nhật sơ đồ
+                </>
+              )}
+            </Button>
+          </PermissionGuard>
+        ) : (
+          <PermissionGuard action="Lưu sơ đồ">
+            <Button
+              onClick={handleSaveSeatingChart}
+              disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
+              className='bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 shadow-lg hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+              size='sm'
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-1 animate-spin' />
+                  Đang lưu...
+                </>
+              ) : (
+                <>
+                  <Save className='w-4 h-4 mr-1' />
+                  Lưu sơ đồ
+                </>
+              )}
+            </Button>
+          </PermissionGuard>
+        )}
 
-          {hasExistingStructure && (
+        {hasExistingStructure && (
+          <PermissionGuard action="Xóa sơ đồ ghế">
             <Button
               onClick={handleDeleteSeatMap}
               disabled={isDeletingByEventCode}
@@ -74,19 +97,21 @@ export default function EditorToolbar({
                 </>
               )}
             </Button>
-          )}
-        </PermissionGuard>
+          </PermissionGuard>
+        )}
 
         {/* Export Button */}
-        <Button
-          onClick={exportToJSON}
-          disabled={mapData.sections.length === 0}
-          className='bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
-          size='sm'
-        >
-          <Download className='w-4 h-4 mr-1' />
-          Xuất JSON
-        </Button>
+        <PermissionGuard action="Xuất JSON" hideWithoutPermission>
+          <Button
+            onClick={exportToJSON}
+            disabled={mapData.sections.length === 0}
+            className='bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-green-500/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed'
+            size='sm'
+          >
+            <Download className='w-4 h-4 mr-1' />
+            Xuất JSON
+          </Button>
+        </PermissionGuard>
 
         {/* Capacity Display */}
         {!isLoadingEvent && capacity > 0 && (

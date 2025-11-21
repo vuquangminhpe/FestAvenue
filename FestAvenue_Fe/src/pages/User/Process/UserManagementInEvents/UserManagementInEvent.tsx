@@ -154,9 +154,9 @@ export default function UserManagementInEvents() {
           <p className='text-gray-600 mt-2'>Quản lý và phân quyền cho các thành viên tham gia sự kiện</p>
         </div>
 
-        {/* Only Event Owner can add members and create group chats */}
-        <PermissionGuard requiresEventOwner>
-          <div className='flex gap-3'>
+        {/* Actions based on permissions */}
+        <div className='flex gap-3'>
+          <PermissionGuard action="Thêm thành viên" hideWithoutPermission>
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
@@ -164,6 +164,9 @@ export default function UserManagementInEvents() {
               <Plus className='w-5 h-5' />
               Thêm thành viên
             </Button>
+          </PermissionGuard>
+          
+          <PermissionGuard action="Tạo nhóm chatssssssss">
             <Button
               onClick={handleCreateGroupChat}
               disabled={createGroupChatMutation.isPending}
@@ -176,15 +179,17 @@ export default function UserManagementInEvents() {
               )}
               Tạo nhóm chat
             </Button>
-          </div>
-        </PermissionGuard>
+          </PermissionGuard>
+        </div>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
         <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='members'>Thành viên ({totalUsers})</TabsTrigger>
-          <TabsTrigger value='invitations'>Lời mời đã gửi ({totalInvitations})</TabsTrigger>
+          <TabsTrigger value='members'>Quản lý thành viên ({totalUsers})</TabsTrigger>
+          <PermissionGuard action="Quản lý lời mời" hideWithoutPermission>
+            <TabsTrigger value='invitations'>Quản lý lời mời ({totalInvitations})</TabsTrigger>
+          </PermissionGuard>
         </TabsList>
 
         {/* Members Tab */}
@@ -204,6 +209,7 @@ export default function UserManagementInEvents() {
             <UserTable
               users={users}
               eventId={eventId}
+              ownerId={detailEvent?.createBy}
               onView={handleViewUser}
               onEdit={handleEditUser}
               currentPage={currentPage}
@@ -274,9 +280,12 @@ export default function UserManagementInEvents() {
         </TabsContent>
       </Tabs>
 
-      {/* Modals - Only Event Owner can access */}
-      <PermissionGuard requiresEventOwner>
+      {/* Modals */}
+      <PermissionGuard action="Thêm thành viên">
         <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} eventId={eventId} />
+      </PermissionGuard>
+      
+      <PermissionGuard action="Chỉnh sửa quyền">
         <EditUserModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -286,7 +295,13 @@ export default function UserManagementInEvents() {
       </PermissionGuard>
 
       {/* View modal - Everyone can view */}
-      <ViewUserModal isOpen={isViewModalOpen} onClose={() => setIsViewModalOpen(false)} user={selectedUser} />
+      <ViewUserModal 
+        isOpen={isViewModalOpen} 
+        onClose={() => setIsViewModalOpen(false)} 
+        user={selectedUser} 
+        eventId={eventId}
+        isOwner={selectedUser?.userId === detailEvent?.createBy}
+      />
     </div>
   )
 }
