@@ -116,11 +116,7 @@ export default function UserTable({
                     </div>
                   </TableCell>
                   <TableCell className='text-left align-middle'>
-                    <UserPermissionsCell 
-                      userId={user.userId} 
-                      eventId={eventId} 
-                      isOwner={user.userId === ownerId}
-                    />
+                    <UserPermissionsCell userId={user.userId} eventId={eventId} isOwner={user.userId === ownerId} />
                   </TableCell>
                   <TableCell className='align-middle'>
                     <div className='flex items-center justify-center gap-2'>
@@ -136,7 +132,7 @@ export default function UserTable({
                       </Button>
 
                       {/* Only Event Owner can edit and delete */}
-                      <PermissionGuard requiresEventOwner>
+                      <PermissionGuard action='Chỉnh sửa quyền'>
                         <Button
                           variant='ghost'
                           size='icon'
@@ -146,6 +142,8 @@ export default function UserTable({
                         >
                           <Edit className='w-4 h-4' />
                         </Button>
+                      </PermissionGuard>
+                      <PermissionGuard action='Xóa khỏi sự kiện'>
                         <Button
                           variant='ghost'
                           size='icon'
@@ -216,7 +214,11 @@ export default function UserTable({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className='gap-2'>
-            <Button variant='outline' onClick={() => setDeleteDialogOpen(false)} disabled={removeUserMutation.isPending}>
+            <Button
+              variant='outline'
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={removeUserMutation.isPending}
+            >
               Hủy
             </Button>
             <Button

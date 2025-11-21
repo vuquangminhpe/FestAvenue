@@ -3,7 +3,7 @@
  * Sử dụng exact name để tránh conflict khi backend thay đổi tên package
  */
 export const SERVICE_PACKAGE_NAMES = {
-  SOCIAL_MEDIA: 'Quản lý social medias',
+  SOCIAL_MEDIA: 'Quản lý bài viết truyền thông',
   USER_MANAGEMENT: 'Quản lý thành viên',
   TICKET: 'Quản lý vé',
   ANALYTICS: 'Thống kê',

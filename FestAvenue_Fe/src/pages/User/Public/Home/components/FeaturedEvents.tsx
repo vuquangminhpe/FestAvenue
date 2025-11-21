@@ -7,11 +7,8 @@ import path from '@/constants/path'
 import { generateNameId } from '@/utils/utils'
 import type { ReqFilterOwnerEvent } from '@/types/event.types'
 import OptimizedImage from '@/components/custom/OptimizedImage'
-import { useUsersStore } from '@/contexts/app.context'
 
 export default function FeaturedEvents() {
-  const { isAuth } = useUsersStore() // Check if user is authenticated
-
   const navigate = useNavigate()
   const sectionRef = useRef<HTMLDivElement>(null)
 
@@ -93,9 +90,9 @@ export default function FeaturedEvents() {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
-          {(!isAuth ? (featuredEvents as any)?.data : featuredEvents)
-            ?.slice(0, 8)
-            ?.map((event: ReqFilterOwnerEvent, index: number) => (
+          {(Array.isArray(featuredEvents) ? featuredEvents : (featuredEvents as any)?.data || [])
+            .slice(0, 8)
+            .map((event: ReqFilterOwnerEvent, index: number) => (
               <div
                 key={event.id}
                 className='group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out hover:-translate-y-6 overflow-hidden cursor-pointer'
@@ -145,7 +142,7 @@ export default function FeaturedEvents() {
             ))}
         </div>
 
-        {featuredEvents && featuredEvents.length > 8 && (
+        {(Array.isArray(featuredEvents) ? featuredEvents : (featuredEvents as any)?.data || []).length > 8 && (
           <div className='text-center mt-12'>
             <button
               onClick={() => navigate(path.events)}

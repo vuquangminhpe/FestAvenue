@@ -204,7 +204,7 @@ export default function SocialMediaManagement() {
       <div className='max-w-7xl mx-auto'>
         {/* Header */}
         <div className='mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900 mb-2'>Quản lý Social Media</h1>
+          <h1 className='text-3xl font-bold text-gray-900 mb-2'>Quản lý bài viết truyền thông</h1>
           <p className='text-gray-600'>Tạo và quản lý các bài viết mạng xã hội cho sự kiện của bạn</p>
         </div>
 

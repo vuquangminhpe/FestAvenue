@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
   TrendingUp,
   Users,
@@ -12,8 +12,7 @@ import {
   Search,
   UserCheck,
   Clock,
-  AlertCircle,
-  Lock
+  AlertCircle
 } from 'lucide-react'
 import { Button } from '../../../../../components/ui/button'
 import StatCard from './components/StatCard'
@@ -29,8 +28,9 @@ import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
 import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'
-import { useCheckIsEventOwner } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 import { useGetDashboardEventGeneral } from './hooks/useEventAnalytics'
+import { PermissionGuard } from '@/components/guards'
+import path from '@/constants/path'
 
 type TabType =
   | 'overview'
@@ -44,26 +44,22 @@ type TabType =
   | 'staff'
 
 export default function EventAnalyticsDashboard() {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventCode = getIdFromNameId(nameId)
 
   // Check if user is event owner (only event owners can see analytics)
-  const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
-  const isEventOwner = ownerCheckData?.data || false
 
   const [analytics, setAnalytics] = useState<EventAnalytics | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
 
-  // const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral("68fe21e94278d27ef06a03e8")
-  // console.log(dataDashboardEventGeneral);
-
   const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral(eventCode)
 
-  const participants = dataDashboardEventGeneral?.participantAnalysis ?? [];
-  const ticketSalesAnalysis = dataDashboardEventGeneral?.ticketSalesAnalysis ?? [];
-  
+  const participants = dataDashboardEventGeneral?.participantAnalysis ?? []
+  const ticketSalesAnalysis = dataDashboardEventGeneral?.ticketSalesAnalysis ?? []
+
   useEffect(() => {
     loadAnalytics()
   }, [])
@@ -87,40 +83,6 @@ export default function EventAnalyticsDashboard() {
       notation: 'compact',
       compactDisplay: 'short'
     }).format(value)
-  }
-
-  // Check owner permission first
-  if (isCheckingOwner) {
-    return (
-      <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center'>
-        <div className='text-center'>
-          <div className='w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
-          <p className='text-gray-600'>Đang kiểm tra quyền truy cập...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Permission denied - Analytics chỉ dành cho event owner
-  if (!isEventOwner) {
-    return (
-      <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center'>
-        <div className='max-w-md text-center'>
-          <div className='mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center mb-6'>
-            <Lock className='w-10 h-10 text-red-600' />
-          </div>
-          <h2 className='text-2xl font-bold text-gray-900 mb-3'>Chỉ dành cho chủ sự kiện</h2>
-          <p className='text-gray-600 mb-6'>
-            Trang phân tích chỉ dành cho chủ sự kiện. Bạn không có quyền xem thông tin này.
-          </p>
-          <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
-            <p className='text-sm text-blue-800'>
-              <strong>Lưu ý:</strong> Chỉ người tạo sự kiện mới có quyền xem báo cáo phân tích và thống kê.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
   }
 
   if (isLoading) {
@@ -154,219 +116,252 @@ export default function EventAnalyticsDashboard() {
   ] as const
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 p-6'>
-      <div className='max-w-7xl mx-auto space-y-6'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-3'>
-              <TrendingUp className='w-8 h-8 text-cyan-600' />
-              Phân tích sự kiện
-            </h1>
-            <p className='text-gray-600 mt-2 flex items-center gap-2'>
-              <Calendar className='w-4 h-4' />
-              {summary.eventName}
+    <PermissionGuard
+      action='Thống kê'
+      fallback={
+        <div className='min-h-screen bg-gradient-to-br md:-translate-y-[200px] from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center p-6'>
+          <div className='max-w-md w-full bg-white rounded-2xl shadow-xl border border-gray-200 p-8 text-center'>
+            <div className='w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6'>
+              <AlertCircle className='w-10 h-10 text-red-600' />
+            </div>
+            <h2 className='text-2xl font-bold text-gray-900 mb-3'>Không có quyền truy cập</h2>
+            <p className='text-gray-600 mb-6'>
+              Bạn không có quyền xem phân tích thống kê của sự kiện này. Vui lòng liên hệ quản trị viên để được cấp
+              quyền.
             </p>
-          </div>
-          <Button className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 gap-2'>
-            <Download className='w-4 h-4' />
-            Xuất báo cáo
-          </Button>
-        </div>
-
-        {/* Tabs Navigation */}
-        <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-2'>
-          <div className='flex flex-wrap gap-2'>
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as TabType)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className='w-4 h-4' />
-                  {tab.label}
-                </button>
-              )
-            })}
+            <div className='flex flex-col sm:flex-row gap-3 justify-center'>
+              <Button
+                variant='outline'
+                onClick={() => window.history.back()}
+                className='border-gray-300 hover:bg-gray-50'
+              >
+                Quay lại
+              </Button>
+              <Button
+                className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+                onClick={() => navigate(path.user.event.root)}
+              >
+                Về trang sự kiện
+              </Button>
+            </div>
           </div>
         </div>
+      }
+    >
+      <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 p-6'>
+        <div className='max-w-7xl mx-auto space-y-6'>
+          {/* Header */}
+          <div className='flex items-center justify-between'>
+            <div>
+              <h1 className='text-3xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent flex items-center gap-3'>
+                <TrendingUp className='w-8 h-8 text-cyan-600' />
+                Phân tích sự kiện
+              </h1>
+              <p className='text-gray-600 mt-2 flex items-center gap-2'>
+                <Calendar className='w-4 h-4' />
+                {summary.eventName}
+              </p>
+            </div>
+            <Button className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 gap-2'>
+              <Download className='w-4 h-4' />
+              Xuất báo cáo
+            </Button>
+          </div>
 
-        {/* Tab Content */}
-        <div className='space-y-6'>
-          {/* Overview Tab */}
-          {activeTab === 'overview' && (
-            <>
-              <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
-                <StatCard
-                  title='Tổng người tham gia'
-                  value={dataDashboardEventGeneral?.eventSummary?.totalParticipants ?? 0}
-                  change={12.5}
-                  icon={Users}
-                  iconColor='#22d3ee'
-                  iconBg='#ecfeff'
-                  trend='up'
-                />
-                <StatCard
-                  title='Doanh thu'
-                  value={formatCurrency(dataDashboardEventGeneral?.eventSummary?.totalRevenue ?? 0)}
-                  change={23.8}
-                  icon={DollarSign}
-                  iconColor='#10b981'
-                  iconBg='#d1fae5'
-                  trend='up'
-                />
-                <StatCard
-                  title='Lượt xem sự kiện'
-                  value={dataDashboardEventGeneral?.eventSummary?.totalViews ?? 0}
-                  change={18.2}
-                  icon={Eye}
-                  iconColor='#3b82f6'
-                  iconBg='#dbeafe'
-                  trend='up'
-                />
-              </div>
+          {/* Tabs Navigation */}
+          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-2'>
+            <div className='flex flex-wrap gap-2'>
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as TabType)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className='w-4 h-4' />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
-              <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
-                <StatCard
-                  title='Tỷ lệ check-in'
-                  value={dataDashboardEventGeneral?.eventSummary?.checkInRate ?? 0}
-                  icon={CheckCircle}
-                  iconColor='#10b981'
-                  iconBg='#d1fae5'
-                  suffix='%'
-                />
-                <StatCard
-                  title='Loại vé phổ biến nhất'
-                  value={dataDashboardEventGeneral?.eventSummary?.popularTicketType ?? "-"}
-                  icon={Users}
-                  iconColor='#ec4899'
-                  iconBg='#fce7f3'
-                />
-                <StatCard
-                  title='Bài đăng social media'
-                  value={dataDashboardEventGeneral?.eventSummary?.totalSocialPosts ?? 0}
-                  icon={Share2}
-                  iconColor='#06b6d4'
-                  iconBg='#cffafe'
-                />
-              </div>
-              {/* Event Summary */}
-              <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
-                <h3 className='text-lg font-bold text-gray-900 mb-4'>Tổng quan sự kiện</h3>
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                  <div>
-                    <p className='text-sm text-gray-600 mb-1'>Ngày diễn ra</p>
-                    <p className='text-base font-semibold text-gray-900'>
-                      {new Date(summary.eventDate).toLocaleDateString('vi-VN')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600 mb-1'>Ngày bán vé cao nhất</p>
-                    <p className='text-base font-semibold text-gray-900'>
-                      {new Date(summary.peakSalesDate).toLocaleDateString('vi-VN')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className='text-sm text-gray-600 mb-1'>Tổng chi phí</p>
-                    <p className='text-base font-semibold text-gray-900'>{formatCurrency(summary.totalExpenses)}</p>
+          {/* Tab Content */}
+          <div className='space-y-6'>
+            {/* Overview Tab */}
+            {activeTab === 'overview' && (
+              <>
+                <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
+                  <StatCard
+                    title='Tổng người tham gia'
+                    value={dataDashboardEventGeneral?.eventSummary?.totalParticipants ?? 0}
+                    change={12.5}
+                    icon={Users}
+                    iconColor='#22d3ee'
+                    iconBg='#ecfeff'
+                    trend='up'
+                  />
+                  <StatCard
+                    title='Doanh thu'
+                    value={formatCurrency(dataDashboardEventGeneral?.eventSummary?.totalRevenue ?? 0)}
+                    change={23.8}
+                    icon={DollarSign}
+                    iconColor='#10b981'
+                    iconBg='#d1fae5'
+                    trend='up'
+                  />
+                  <StatCard
+                    title='Lượt xem sự kiện'
+                    value={dataDashboardEventGeneral?.eventSummary?.totalViews ?? 0}
+                    change={18.2}
+                    icon={Eye}
+                    iconColor='#3b82f6'
+                    iconBg='#dbeafe'
+                    trend='up'
+                  />
+                </div>
+
+                <div className='grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4'>
+                  <StatCard
+                    title='Tỷ lệ check-in'
+                    value={dataDashboardEventGeneral?.eventSummary?.checkInRate ?? 0}
+                    icon={CheckCircle}
+                    iconColor='#10b981'
+                    iconBg='#d1fae5'
+                    suffix='%'
+                  />
+                  <StatCard
+                    title='Loại vé phổ biến nhất'
+                    value={dataDashboardEventGeneral?.eventSummary?.popularTicketType ?? '-'}
+                    icon={Users}
+                    iconColor='#ec4899'
+                    iconBg='#fce7f3'
+                  />
+                  <StatCard
+                    title='Bài đăng social media'
+                    value={dataDashboardEventGeneral?.eventSummary?.totalSocialPosts ?? 0}
+                    icon={Share2}
+                    iconColor='#06b6d4'
+                    iconBg='#cffafe'
+                  />
+                </div>
+                {/* Event Summary */}
+                <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
+                  <h3 className='text-lg font-bold text-gray-900 mb-4'>Tổng quan sự kiện</h3>
+                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                    <div>
+                      <p className='text-sm text-gray-600 mb-1'>Ngày diễn ra</p>
+                      <p className='text-base font-semibold text-gray-900'>
+                        {new Date(summary.eventDate).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-600 mb-1'>Ngày bán vé cao nhất</p>
+                      <p className='text-base font-semibold text-gray-900'>
+                        {new Date(summary.peakSalesDate).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                    <div>
+                      <p className='text-sm text-gray-600 mb-1'>Tổng chi phí</p>
+                      <p className='text-base font-semibold text-gray-900'>{formatCurrency(summary.totalExpenses)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-              {/* Người tham gia + Bán vé (Flex) */}
-              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                <ParticipantsChart data={participants} />
-                <TicketSalesChart data={ticketSalesAnalysis} />
-              </div>
-
-              {/* Doanh thu + Lượt xem (Flex) */}
-              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                <RevenueChart data={analytics.revenue} />
-                <ViewsChart data={analytics.eventViews} />
-              </div>
-            </>
-          )}
-
-          {/* Participants Tab */}
-          {activeTab === 'participants' && <ParticipantsChart data={participants} />}
-
-          {/* Tickets Tab */}
-          {activeTab === 'tickets' && <TicketSalesChart data={ticketSalesAnalysis} />}
-
-          {/* Revenue Tab */}
-          {activeTab === 'revenue' && <RevenueChart data={analytics.revenue} />}
-
-          {/* Views Tab */}
-          {activeTab === 'views' && <ViewsChart data={analytics.eventViews} />}
-
-          {/* Social Media Tab */}
-          {activeTab === 'social' && <SocialMediaPostsChart data={analytics.socialMediaPosts} />}
-
-          {/* Keywords Tab */}
-          {activeTab === 'keywords' && <KeywordSearchChart data={analytics.keywordSearch} />}
-
-          {/* Staff Tab */}
-          {activeTab === 'staff' && (
-            <>
-              {/* Staff Stats Cards */}
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-                <StatCard
-                  title='Tổng nhân viên'
-                  value={summary.totalStaff}
-                  icon={UserCheck}
-                  iconColor='#3b82f6'
-                  iconBg='#dbeafe'
-                />
-                <StatCard
-                  title='Task hoàn thành'
-                  value={summary.completedTasks}
-                  change={15.3}
-                  icon={CheckCircle}
-                  iconColor='#10b981'
-                  iconBg='#d1fae5'
-                  trend='up'
-                />
-                <StatCard
-                  title='Task trễ hạn'
-                  value={summary.lateTasks}
-                  change={-8.2}
-                  icon={AlertCircle}
-                  iconColor='#ef4444'
-                  iconBg='#fee2e2'
-                  trend='down'
-                />
-                <StatCard
-                  title='Tỷ lệ hoàn thành TB'
-                  value={summary.avgTaskCompletionRate}
-                  change={5.7}
-                  icon={Clock}
-                  iconColor='#8b5cf6'
-                  iconBg='#ede9fe'
-                  suffix='%'
-                  trend='up'
-                />
-              </div>
-
-              {/* Task Completion Chart */}
-              <TaskCompletionChart data={analytics.taskStatus} />
-
-              {/* Staff Performance + Ranking */}
-              <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                <StaffPerformanceChart data={analytics.staffPerformance} />
-                <div className='space-y-6'>
-                  <StaffRankingTable data={analytics.staffRanking} />
+                {/* Người tham gia + Bán vé (Flex) */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                  <ParticipantsChart data={participants} />
+                  <TicketSalesChart data={ticketSalesAnalysis} />
                 </div>
-              </div>
-            </>
-          )}
+
+                {/* Doanh thu + Lượt xem (Flex) */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                  <RevenueChart data={analytics.revenue} />
+                  <ViewsChart data={analytics.eventViews} />
+                </div>
+              </>
+            )}
+
+            {/* Participants Tab */}
+            {activeTab === 'participants' && <ParticipantsChart data={participants} />}
+
+            {/* Tickets Tab */}
+            {activeTab === 'tickets' && <TicketSalesChart data={ticketSalesAnalysis} />}
+
+            {/* Revenue Tab */}
+            {activeTab === 'revenue' && <RevenueChart data={analytics.revenue} />}
+
+            {/* Views Tab */}
+            {activeTab === 'views' && <ViewsChart data={analytics.eventViews} />}
+
+            {/* Social Media Tab */}
+            {activeTab === 'social' && <SocialMediaPostsChart data={analytics.socialMediaPosts} />}
+
+            {/* Keywords Tab */}
+            {activeTab === 'keywords' && <KeywordSearchChart data={analytics.keywordSearch} />}
+
+            {/* Staff Tab */}
+            {activeTab === 'staff' && (
+              <>
+                {/* Staff Stats Cards */}
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+                  <StatCard
+                    title='Tổng nhân viên'
+                    value={summary.totalStaff}
+                    icon={UserCheck}
+                    iconColor='#3b82f6'
+                    iconBg='#dbeafe'
+                  />
+                  <StatCard
+                    title='Task hoàn thành'
+                    value={summary.completedTasks}
+                    change={15.3}
+                    icon={CheckCircle}
+                    iconColor='#10b981'
+                    iconBg='#d1fae5'
+                    trend='up'
+                  />
+                  <StatCard
+                    title='Task trễ hạn'
+                    value={summary.lateTasks}
+                    change={-8.2}
+                    icon={AlertCircle}
+                    iconColor='#ef4444'
+                    iconBg='#fee2e2'
+                    trend='down'
+                  />
+                  <StatCard
+                    title='Tỷ lệ hoàn thành TB'
+                    value={summary.avgTaskCompletionRate}
+                    change={5.7}
+                    icon={Clock}
+                    iconColor='#8b5cf6'
+                    iconBg='#ede9fe'
+                    suffix='%'
+                    trend='up'
+                  />
+                </div>
+
+                {/* Task Completion Chart */}
+                <TaskCompletionChart data={analytics.taskStatus} />
+
+                {/* Staff Performance + Ranking */}
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                  <StaffPerformanceChart data={analytics.staffPerformance} />
+                  <div className='space-y-6'>
+                    <StaffRankingTable data={analytics.staffRanking} />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </PermissionGuard>
   )
 }

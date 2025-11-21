@@ -156,7 +156,7 @@ export default function UserManagementInEvents() {
 
         {/* Actions based on permissions */}
         <div className='flex gap-3'>
-          <PermissionGuard action="Thêm thành viên" hideWithoutPermission>
+          <PermissionGuard action='Thêm thành viên' hideWithoutPermission>
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 px-6 py-6 rounded-xl'
@@ -165,8 +165,8 @@ export default function UserManagementInEvents() {
               Thêm thành viên
             </Button>
           </PermissionGuard>
-          
-          <PermissionGuard action="Tạo nhóm chatssssssss">
+
+          <PermissionGuard action='Tạo nhóm chat'>
             <Button
               onClick={handleCreateGroupChat}
               disabled={createGroupChatMutation.isPending}
@@ -187,7 +187,7 @@ export default function UserManagementInEvents() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
         <TabsList className='grid w-full grid-cols-2'>
           <TabsTrigger value='members'>Quản lý thành viên ({totalUsers})</TabsTrigger>
-          <PermissionGuard action="Quản lý lời mời" hideWithoutPermission>
+          <PermissionGuard action='Quản lý lời mời' hideWithoutPermission>
             <TabsTrigger value='invitations'>Quản lý lời mời ({totalInvitations})</TabsTrigger>
           </PermissionGuard>
         </TabsList>
@@ -281,11 +281,11 @@ export default function UserManagementInEvents() {
       </Tabs>
 
       {/* Modals */}
-      <PermissionGuard action="Thêm thành viên">
+      <PermissionGuard action='Thêm thành viên'>
         <AddUserModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} eventId={eventId} />
       </PermissionGuard>
-      
-      <PermissionGuard action="Chỉnh sửa quyền">
+
+      <PermissionGuard action='Chỉnh sửa quyền'>
         <EditUserModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
@@ -295,10 +295,10 @@ export default function UserManagementInEvents() {
       </PermissionGuard>
 
       {/* View modal - Everyone can view */}
-      <ViewUserModal 
-        isOpen={isViewModalOpen} 
-        onClose={() => setIsViewModalOpen(false)} 
-        user={selectedUser} 
+      <ViewUserModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        user={selectedUser}
         eventId={eventId}
         isOwner={selectedUser?.userId === detailEvent?.createBy}
       />

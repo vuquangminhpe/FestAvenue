@@ -17,8 +17,8 @@ interface EventOwnerLayoutProps {
 
 // Map service package names to routes (sử dụng exact name từ backend để tránh conflict)
 const SERVICE_PACKAGE_ROUTE_MAP: Record<string, { displayName: string; href: string }> = {
-  'Quản lý social medias': {
-    displayName: 'Quản lý social medias',
+  'Quản lý bài viết truyền thông': {
+    displayName: 'Quản lý bài viết truyền thông',
     href: path.user.event_owner.social_media
   },
   'Quản lý thành viên': {

@@ -47,7 +47,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
   })
 
   const featuredEvents: ReqFilterOwnerEvent[] = (
-    !isAuth ? (featuredEventsData as any)?.data : (featuredEventsData as any) || []
+    (featuredEventsData as any)?.data || []
   ) as ReqFilterOwnerEvent[]
   console.log(featuredEventsData)
 

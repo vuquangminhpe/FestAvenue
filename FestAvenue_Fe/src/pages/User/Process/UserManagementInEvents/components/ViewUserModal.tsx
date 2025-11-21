@@ -44,15 +44,15 @@ export default function ViewUserModal({ isOpen, onClose, user, eventId, isOwner 
   })
 
   const isLoading = isLoadingAll || isLoadingUser
- 
+
   // Map IDs to Names
   const userActionNames: string[] = []
   const userData = (userPermissionsData?.data as any)?.[0]
 
   if (userData?.servicePackagePermissions && allPermissionsData?.data) {
     const actionIdToNameMap: Record<string, string> = {}
-    allPermissionsData.data.forEach(pkg => {
-      pkg.permissionActions.forEach(action => {
+    allPermissionsData.data.forEach((pkg) => {
+      pkg.permissionActions.forEach((action) => {
         actionIdToNameMap[action.permissionActionId] = action.actionName
       })
     })
@@ -134,10 +134,10 @@ export default function ViewUserModal({ isOpen, onClose, user, eventId, isOwner 
                       Chủ sự kiện (Toàn quyền)
                     </Badge>
                   ) : isLoading ? (
-                     <div className="flex items-center gap-2 text-sm text-gray-500">
-                       <Loader2 className="w-4 h-4 animate-spin" />
-                       Đang tải quyền...
-                     </div>
+                    <div className='flex items-center gap-2 text-sm text-gray-500'>
+                      <Loader2 className='w-4 h-4 animate-spin' />
+                      Đang tải quyền...
+                    </div>
                   ) : userActionNames.length > 0 ? (
                     userActionNames.map((actionName, index) => (
                       <Badge key={index} className={`${getPackageBadgeColor(index)} shadow-md px-3 py-1`}>
@@ -162,7 +162,6 @@ export default function ViewUserModal({ isOpen, onClose, user, eventId, isOwner 
                         {pkg.name}
                         {!pkg.isActive && <span className='ml-2 text-xs text-red-500'>(Không khả dụng)</span>}
                       </p>
-                      {pkg.description && <p className='text-xs text-gray-500 mt-1'>{pkg.description}</p>}
                       <p className='text-xs text-gray-400 mt-1'>Giá: {pkg.price.toLocaleString()} VND</p>
                     </div>
                   ))}
