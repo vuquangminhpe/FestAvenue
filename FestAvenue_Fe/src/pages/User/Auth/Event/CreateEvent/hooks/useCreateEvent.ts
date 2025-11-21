@@ -36,7 +36,7 @@ export const useCreateEvent = () => {
   const [trailerPreview, setTrailerPreview] = useState<string>('')
   const { data: getDataByEventId } = useQuery({
     queryKey: ['getDataByEventId', eventId],
-    queryFn: () => eventApis.getEventByEventCode(eventId as string),
+    queryFn: () => eventApis.getEventByEventCodeForEventOwner(eventId as string),
     enabled: !!eventId
   })
   // Upload mutation

@@ -69,7 +69,7 @@ function CreateEvent() {
   // Fetch event data if in update mode
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
     queryKey: ['event', eventId],
-    queryFn: () => eventApis.getEventByEventCode(eventId!),
+    queryFn: () => eventApis.getEventByEventCodeForEventOwner(eventId!),
     enabled: !!eventId
   })
 

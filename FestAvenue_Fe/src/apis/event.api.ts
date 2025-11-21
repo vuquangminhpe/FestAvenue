@@ -48,6 +48,12 @@ const eventApis = {
     )
     return data?.data
   },
+  getEventByEventCodeForEventOwner: async (eventCode: string) => {
+    const data = await http.get<APIResponse<ResEventByEventCode>>(
+      `/event/get-event-by-event-code-for-event-owner?eventCode=${eventCode}`
+    )
+    return data?.data
+  },
   getEventWithFilterPaging: async (body: EventSearchFilter) => {
     const data = await http.post<APIResponse<EventFilterList>>('/event/get-event-with-filter-paging', body)
     return data?.data?.data
@@ -136,7 +142,7 @@ const eventApis = {
       `/general-statistics?EventCode=${eventCode}`
     )
     return data?.data
-  },
+  }
 }
 
 const staffEventApis = {

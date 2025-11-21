@@ -275,7 +275,7 @@ export interface ReqFilterOwnerEvent {
   createBy: string
   createdAt: string // ISO date string
   updatedAt: string | null
-
+  linkExcel: string
   // New time fields - Event Lifecycle covers all
   startEventLifecycleTime?: string // ISO date string
   endEventLifecycleTime?: string // ISO date string

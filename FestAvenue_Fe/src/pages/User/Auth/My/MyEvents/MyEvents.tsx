@@ -20,7 +20,8 @@ import {
   AlertCircle,
   Loader2,
   Eye,
-  Edit
+  Edit,
+  ExternalLink
 } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import path from '@/constants/path'
@@ -84,7 +85,44 @@ export default function MyEvents() {
 
   const events = eventsData?.result || []
 
-  const totalEvents = eventsData?.pagination?.total || 0
+  // Filter events based on active tab
+  const getFilteredEvents = () => {
+    if (activeTab === 'pendingRejected') {
+      return events.filter((eventWrapper: any) =>
+        eventWrapper.eventVersions?.some(
+          (version: ReqFilterOwnerEvent) =>
+            version.eventVersionStatus === EventStatusValues.Pending ||
+            version.eventVersionStatus === EventStatusValues.Reject
+        )
+      )
+    }
+    if (activeTab === 'myEvents') {
+      return events.filter((eventWrapper: any) =>
+        eventWrapper.eventVersions?.some(
+          (version: ReqFilterOwnerEvent) =>
+            version.eventVersionStatus !== EventStatusValues.Pending &&
+            version.eventVersionStatus !== EventStatusValues.Reject
+        )
+      )
+    }
+    return events
+  }
+
+  const filteredEvents = getFilteredEvents()
+  const myEventsCount = events.filter((eventWrapper: any) =>
+    eventWrapper.eventVersions?.some(
+      (version: ReqFilterOwnerEvent) =>
+        version.eventVersionStatus !== EventStatusValues.Pending &&
+        version.eventVersionStatus !== EventStatusValues.Reject
+    )
+  ).length
+  const pendingRejectedCount = events.filter((eventWrapper: any) =>
+    eventWrapper.eventVersions?.some(
+      (version: ReqFilterOwnerEvent) =>
+        version.eventVersionStatus === EventStatusValues.Pending ||
+        version.eventVersionStatus === EventStatusValues.Reject
+    )
+  ).length
 
   const renderTableRow = (eventVersion: ReqFilterOwnerEvent) => {
     const status = statusConfig[eventVersion.eventVersionStatus as keyof typeof statusConfig]
@@ -147,14 +185,21 @@ export default function MyEvents() {
           </div>
         </TableCell>
 
-        {/* Created Date */}
+        {/* Excel Link */}
         <TableCell>
-          <div className='flex items-center gap-2 text-sm text-slate-600'>
-            <Clock className='w-4 h-4' />
-            <span>
-              {eventVersion.createdAt ? format(new Date(eventVersion.createdAt), 'dd/MM/yyyy', { locale: vi }) : '-'}
-            </span>
-          </div>
+          {eventVersion.linkExcel ? (
+            <a
+              href={eventVersion.linkExcel}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors duration-200'
+            >
+              <ExternalLink className='w-3.5 h-3.5' />
+              <span>Xem Excel</span>
+            </a>
+          ) : (
+            <span className='text-sm text-slate-400 italic'>Chưa có</span>
+          )}
         </TableCell>
 
         {/* Actions */}
@@ -275,8 +320,9 @@ export default function MyEvents() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-        <TabsList className='grid w-full grid-cols-2 mb-6'>
-          <TabsTrigger value='myEvents'>Sự kiện của tôi ({totalEvents})</TabsTrigger>
+        <TabsList className='grid w-full grid-cols-3 mb-6'>
+          <TabsTrigger value='myEvents'>Sự kiện của tôi ({myEventsCount})</TabsTrigger>
+          <TabsTrigger value='pendingRejected'>Đang xử lý duyệt & Bị từ chối ({pendingRejectedCount})</TabsTrigger>
           <TabsTrigger value='invitations'>Các sự kiện được mời tham gia</TabsTrigger>
         </TabsList>
 
@@ -286,7 +332,7 @@ export default function MyEvents() {
             <div className='flex items-center justify-center py-12'>
               <Loader2 className='w-8 h-8 animate-spin text-blue-500' />
             </div>
-          ) : events.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <Card className='p-12 text-center'>
               <Calendar className='w-16 h-16 text-slate-300 mx-auto mb-4' />
               <h3 className='text-lg font-semibold text-slate-700 mb-2'>Chưa có sự kiện nào</h3>
@@ -309,13 +355,62 @@ export default function MyEvents() {
                     <TableHead className='w-[150px]'>Ngày bắt đầu</TableHead>
                     <TableHead className='w-[150px]'>Địa điểm</TableHead>
                     <TableHead className='w-[100px]'>Sức chứa</TableHead>
-                    <TableHead className='w-[120px]'>Ngày tạo</TableHead>
+                    <TableHead className='w-[120px]'>Link excel thống kê</TableHead>
                     <TableHead className='w-[180px]'>Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {events?.map((eventWrapper: any) =>
-                    eventWrapper.eventVersions?.map((eventVersion: ReqFilterOwnerEvent) => renderTableRow(eventVersion))
+                  {filteredEvents?.map((eventWrapper: any) =>
+                    eventWrapper.eventVersions
+                      ?.filter((version: ReqFilterOwnerEvent) =>
+                        activeTab === 'myEvents'
+                          ? version.eventVersionStatus !== EventStatusValues.Pending &&
+                            version.eventVersionStatus !== EventStatusValues.Reject
+                          : true
+                      )
+                      .map((eventVersion: ReqFilterOwnerEvent) => renderTableRow(eventVersion))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Pending & Rejected Events Tab */}
+        <TabsContent value='pendingRejected'>
+          {isLoading ? (
+            <div className='flex items-center justify-center py-12'>
+              <Loader2 className='w-8 h-8 animate-spin text-blue-500' />
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <Card className='p-12 text-center'>
+              <AlertCircle className='w-16 h-16 text-slate-300 mx-auto mb-4' />
+              <h3 className='text-lg font-semibold text-slate-700 mb-2'>Không có sự kiện nào đang xử lý</h3>
+              <p className='text-slate-500'>Các sự kiện đang chờ duyệt hoặc bị từ chối sẽ hiển thị ở đây</p>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='w-[350px]'>Sự kiện</TableHead>
+                    <TableHead className='w-[150px]'>Trạng thái</TableHead>
+                    <TableHead className='w-[150px]'>Ngày bắt đầu</TableHead>
+                    <TableHead className='w-[150px]'>Địa điểm</TableHead>
+                    <TableHead className='w-[100px]'>Sức chứa</TableHead>
+                    <TableHead className='w-[120px]'>Link excel thống kê</TableHead>
+                    <TableHead className='w-[180px]'>Hành động</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEvents?.map((eventWrapper: any) =>
+                    eventWrapper.eventVersions
+                      ?.filter(
+                        (version: ReqFilterOwnerEvent) =>
+                          version.eventVersionStatus === EventStatusValues.Pending ||
+                          version.eventVersionStatus === EventStatusValues.Reject
+                      )
+                      .map((eventVersion: ReqFilterOwnerEvent) => renderTableRow(eventVersion))
                   )}
                 </TableBody>
               </Table>
