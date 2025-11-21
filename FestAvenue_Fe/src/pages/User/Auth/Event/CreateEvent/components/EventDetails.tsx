@@ -175,7 +175,7 @@ export function EventDetails({ form }: EventDetailsProps) {
                     value={field.value ? new Date(field.value) : undefined}
                     onChange={(date) => {
                       if (date) {
-                        field.onChange(formatDateToLocalISO(date))
+                        field.onChange(date.toISOString())
                         // Trigger validation for dependent fields
                         setTimeout(() => {
                           form.trigger(['endEventLifecycleTime', 'startTicketSaleTime'])
@@ -205,7 +205,7 @@ export function EventDetails({ form }: EventDetailsProps) {
                     value={field.value ? new Date(field.value) : undefined}
                     onChange={(date) => {
                       if (date) {
-                        field.onChange(formatDateToLocalISO(date))
+                        field.onChange(date.toISOString())
                         // Trigger validation for dependent fields
                         setTimeout(() => {
                           form.trigger([
