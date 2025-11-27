@@ -26,7 +26,7 @@ const FavoriteEvents = lazy(() => import('./pages/User/Auth/My/FavoriteEvents/Fa
 const PaymentEvent = lazy(() => import('./pages/User/Auth/Payment/PaymentEvent/PaymentEvent'))
 const CreateEvent = lazy(() => import('./pages/User/Auth/Event/CreateEvent/CreateEvent'))
 const ScheduleManagement = lazy(() => import('./pages/User/Auth/Schedule/ScheduleManagement'))
-const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/Event/EventAnalytics'))
+const EventAnalyticsDashboard = lazy(() => import('./pages/User/Auth/Event/EventAnalytics/EventAnalytics'))
 const EventDetails = lazy(() => import('./pages/User/Auth/Event/EventDetails/EventDetails'))
 const SocialMediaDetail = lazy(() => import('./pages/User/Auth/SocialMediaDetail/SocialMediaDetail'))
 const StaffLogin = lazy(() => import('./pages/Staff/Auth/Login'))

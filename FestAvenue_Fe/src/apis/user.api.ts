@@ -18,11 +18,9 @@ import type {
   bodyGetChatMessagesWithPagging,
   updateOrganizationBody,
   bodyForgotPassword,
-  bodyGetPaymentForUser,
   getPaymentForUserRes
 } from '@/types/user.types'
 import http from '@/utils/http'
-import http_v2 from '@/utils/http_v2'
 
 const userApi = {
   login_normal: async (body: bodyLoginType) => {
@@ -131,8 +129,10 @@ const userApi = {
     const data = await http.put<APIResponse<{ messages: string }>>(`organization/update-organization/${id}`, body)
     return data?.data
   },
-  getPaymentForUser: async (body: bodyGetPaymentForUser) => {
-    const data = await http_v2.post<APIResponse<getPaymentForUserRes>>('/payment/get-payment-for-user', body)
+  getPaymentForUser: async (userId: string) => {
+    const data = await http.get<APIResponse<getPaymentForUserRes[]>>('/payment/get-payments-by-userId', {
+      params: { userId }
+    })
     return data?.data
   }
 }

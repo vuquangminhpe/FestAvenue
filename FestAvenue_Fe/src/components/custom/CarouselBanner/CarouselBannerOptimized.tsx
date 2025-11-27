@@ -46,10 +46,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
     enabled: !isAuth || (!isLoadingFavorites && favoriteEvents.length < 4)
   })
 
-  const featuredEvents: ReqFilterOwnerEvent[] = (
-    (featuredEventsData as any)?.data || []
-  ) as ReqFilterOwnerEvent[]
-  console.log(featuredEventsData)
+  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any)?.data || []) as ReqFilterOwnerEvent[]
 
   // Combine favorite and featured events to get exactly 4 items
   let items: ReqFilterOwnerEvent[] = []

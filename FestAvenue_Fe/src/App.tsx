@@ -8,6 +8,7 @@ import { useUsersStore } from './contexts/app.context'
 import { useQuery } from '@tanstack/react-query'
 import userApi from './apis/user.api'
 import ChatSystem from './components/ChatSystem/ChatSystem'
+import ChatBot from './components/ChatBot/ChatBot'
 function App() {
   const location = useLocation()
   const check_accessToken = location.search.includes('accessToken')
@@ -43,6 +44,7 @@ function App() {
     <>
       {routeElement}
       {isAuthenticated && <ChatSystem />}
+      {isAuthenticated && <ChatBot />}
     </>
   )
 }

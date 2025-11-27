@@ -10,15 +10,14 @@ import {
   Filter,
   CreditCard,
   CheckCircle,
-  XCircle,
-  Clock,
   Receipt,
   Package,
   Search,
   RefreshCw,
   TrendingUp,
   Eye,
-  FileText
+  FileText,
+  Ticket
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -27,11 +26,13 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
-import { Separator } from '@/components/ui/separator'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 import userApi from '@/apis/user.api'
-import type { bodyGetPaymentForUser, getPaymentForUserData } from '@/types/user.types'
+import type { getPaymentForUserData } from '@/types/user.types'
+import { SeatStatus } from '@/types/user.types'
+import { useUsersStore } from '@/contexts/app.context'
+import EventTicketQRSection from '@/components/custom/QR/EventTicketQRSection'
 
 const filterSchema = z.object({
   status: z.string().optional(),
@@ -47,10 +48,9 @@ type FilterFormData = z.infer<typeof filterSchema>
 
 const statusOptions = [
   { value: 'all', label: 'Tất cả trạng thái' },
-  { value: '1', label: 'Thành công' },
-  { value: '0', label: 'Thất bại' },
-  { value: '2', label: 'Đang xử lý' },
-  { value: '3', label: 'Đã hoàn tiền' }
+  { value: '1', label: 'Chưa kích hoạt' },
+  { value: '2', label: 'Cho phép quét' },
+  { value: '3', label: 'Đã quét' }
 ]
 
 const orderByOptions = [
@@ -63,6 +63,7 @@ export default function MyPayment() {
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedPayment, setSelectedPayment] = useState<getPaymentForUserData | null>(null)
   const [showPaymentDetail, setShowPaymentDetail] = useState(false)
+  const [, setShowQRSection] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const statsRef = useRef<HTMLDivElement>(null)
   const tableRef = useRef<HTMLDivElement>(null)
@@ -80,29 +81,29 @@ export default function MyPayment() {
     }
   })
 
-  // Prepare query body
-  const getQueryBody = (formData: FilterFormData): bodyGetPaymentForUser => ({
-    status: formData.status === 'all' ? '' : formData.status || '',
-    transactionFromDate: formData.transactionFromDate || '',
-    transactionToDate: formData.transactionToDate || '',
-    createdFromDate: formData.createdFromDate || '',
-    createdToDate: formData.createdToDate || '',
-    pagination: {
-      orderBy: formData.orderBy || 'createdAt',
-      pageIndex,
-      isPaging: true,
-      pageSize: formData.pageSize || 20
-    }
-  })
-
+  // // Prepare query body
+  // const getQueryBody = (formData: FilterFormData): bodyGetPaymentForUser => ({
+  //   status: formData.status === 'all' ? '' : formData.status || '',
+  //   transactionFromDate: formData.transactionFromDate || '',
+  //   transactionToDate: formData.transactionToDate || '',
+  //   createdFromDate: formData.createdFromDate || '',
+  //   createdToDate: formData.createdToDate || '',
+  //   pagination: {
+  //     orderBy: formData.orderBy || 'createdAt',
+  //     pageIndex,
+  //     isPaging: true,
+  //     pageSize: formData.pageSize || 20
+  //   }
+  // })
+  const user = useUsersStore()
   // Fetch payments
   const paymentsQuery = useQuery({
-    queryKey: ['payments', form.watch(), pageIndex],
-    queryFn: () => userApi.getPaymentForUser(getQueryBody(form.getValues())),
-    enabled: true
+    queryKey: ['payments', user?.isProfile?.id],
+    queryFn: () => userApi.getPaymentForUser(user?.isProfile?.id as string),
+    enabled: !!user?.isProfile?.id
   })
 
-  const payments = paymentsQuery.data?.data?.result || []
+  const payments = paymentsQuery?.data?.data || []
 
   // GSAP Animations
   useEffect(() => {
@@ -150,8 +151,10 @@ export default function MyPayment() {
   const stats = {
     total: payments.length,
     totalAmount: payments.reduce((sum, payment) => sum + payment.amount, 0),
-    successful: payments.filter((p) => p.status === 1).length,
-    successfulAmount: payments.filter((p) => p.status === 1).reduce((sum, payment) => sum + payment.amount, 0)
+    successful: payments.filter((p) => p.seats.some((seat) => seat.seatStatus === SeatStatus.Scanned)).length,
+    successfulAmount: payments
+      .filter((p) => p.seats.some((seat) => seat.seatStatus === SeatStatus.Scanned))
+      .reduce((sum, payment) => sum + payment.amount, 0)
   }
 
   const formatCurrency = (amount: number) => {
@@ -169,41 +172,6 @@ export default function MyPayment() {
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
-
-  const getStatusBadge = (status: number) => {
-    switch (status) {
-      case 1:
-        return (
-          <Badge className='bg-green-100 text-green-800 border-green-200'>
-            <CheckCircle className='w-3 h-3 mr-1' />
-            Thành công
-          </Badge>
-        )
-      case 0:
-        return (
-          <Badge variant='destructive'>
-            <XCircle className='w-3 h-3 mr-1' />
-            Thất bại
-          </Badge>
-        )
-      case 2:
-        return (
-          <Badge className='bg-yellow-100 text-yellow-800 border-yellow-200'>
-            <Clock className='w-3 h-3 mr-1' />
-            Đang xử lý
-          </Badge>
-        )
-      case 3:
-        return (
-          <Badge className='bg-blue-100 text-blue-800 border-blue-200'>
-            <RefreshCw className='w-3 h-3 mr-1' />
-            Đã hoàn tiền
-          </Badge>
-        )
-      default:
-        return <Badge variant='secondary'>Không xác định</Badge>
-    }
   }
 
   const handleSearch = (data: FilterFormData) => {
@@ -514,79 +482,71 @@ export default function MyPayment() {
             </div>
           ) : (
             <div ref={tableRef} className='space-y-3'>
-              {payments.map((payment: getPaymentForUserData) => (
-                <div
-                  key={payment.id}
-                  className='payment-row flex flex-col lg:flex-row lg:items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-cyan-300 hover:shadow-md transition-all duration-200 group'
-                >
-                  <div className='flex items-center space-x-4 flex-1'>
-                    <div className='p-3 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full group-hover:from-cyan-200 group-hover:to-blue-200 transition-all duration-200'>
-                      {payment.packageId ? (
-                        <Package className='w-6 h-6 text-cyan-600' />
-                      ) : (
-                        <Receipt className='w-6 h-6 text-cyan-600' />
-                      )}
-                    </div>
-
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center gap-2 mb-1'>
-                        <p className='font-semibold text-gray-900 truncate'>ID: {payment.id.slice(0, 8)}...</p>
-                        {payment.transactionId && (
-                          <Badge variant='outline' className='text-xs'>
-                            {payment.transactionId.slice(0, 6)}...
-                          </Badge>
+              {payments.map((payment: getPaymentForUserData, index) => {
+                const firstSeat = payment.seats[0]
+                return (
+                  <div
+                    key={`${payment.event.eventCode}-${index}`}
+                    className='payment-row flex flex-col lg:flex-row lg:items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-cyan-300 hover:shadow-md transition-all duration-200 group'
+                  >
+                    <div className='flex items-center space-x-4 flex-1'>
+                      <div className='p-3 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-full group-hover:from-cyan-200 group-hover:to-blue-200 transition-all duration-200'>
+                        {payment.event.package ? (
+                          <Package className='w-6 h-6 text-cyan-600' />
+                        ) : (
+                          <Receipt className='w-6 h-6 text-cyan-600' />
                         )}
                       </div>
 
-                      <div className='flex flex-col lg:flex-row lg:items-center lg:gap-6 text-sm text-gray-600 space-y-1 lg:space-y-0'>
-                        <div className='flex items-center gap-1'>
-                          <Calendar className='w-3 h-3' />
-                          {formatDate(payment.transactionDate)}
+                      <div className='flex-1 min-w-0'>
+                        <div className='flex items-center gap-2 mb-1'>
+                          <p className='font-semibold text-gray-900 truncate'>{payment.event.eventName}</p>
+                          <Badge variant='outline' className='text-xs'>
+                            {payment.event.eventCode}
+                          </Badge>
                         </div>
 
-                        {payment.packageId && (
+                        <div className='flex flex-col lg:flex-row lg:items-center lg:gap-6 text-sm text-gray-600 space-y-1 lg:space-y-0'>
                           <div className='flex items-center gap-1'>
-                            <Package className='w-3 h-3' />
-                            Package: {payment.packageId.slice(0, 8)}...
+                            <Calendar className='w-3 h-3' />
+                            {firstSeat?.paymentTime ? formatDate(firstSeat.paymentTime) : 'Chưa thanh toán'}
                           </div>
-                        )}
 
-                        {payment.discount > 0 && (
-                          <div className='flex items-center gap-1 text-green-600'>
-                            <TrendingUp className='w-3 h-3' />
-                            Giảm giá: {formatCurrency(payment.discount)}
+                          {payment.event.package && (
+                            <div className='flex items-center gap-1'>
+                              <Package className='w-3 h-3' />
+                              {payment.event.package}
+                            </div>
+                          )}
+
+                          <div className='flex items-center gap-1 text-blue-600'>
+                            <Ticket className='w-3 h-3' />
+                            {payment.seats.length} ghế
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className='flex flex-col lg:flex-row lg:items-center gap-3 mt-3 lg:mt-0'>
-                    <div className='text-right'>
-                      <p className='text-xl font-bold text-gray-900'>{formatCurrency(payment.amount)}</p>
-                      {payment.refundAmount > 0 && (
-                        <p className='text-sm text-red-600'>Hoàn: {formatCurrency(payment.refundAmount)}</p>
-                      )}
+                    <div className='flex flex-col lg:flex-row lg:items-center gap-3 mt-3 lg:mt-0'>
+                      <div className='text-right'>
+                        <p className='text-xl font-bold text-gray-900'>{formatCurrency(payment.amount)}</p>
+                        {payment.event.refundAmount && payment.event.refundAmount > 0 && (
+                          <p className='text-sm text-red-600'>Hoàn: {formatCurrency(payment.event.refundAmount)}</p>
+                        )}
+                      </div>
+
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='hover:bg-cyan-50 hover:text-cyan-700'
+                        onClick={() => handleViewDetails(payment)}
+                      >
+                        <Eye className='w-4 h-4' />
+                      </Button>
                     </div>
-
-                    <div className='flex flex-col items-end gap-2'>
-                      {getStatusBadge(payment.status)}
-                      {payment.refundDate && (
-                        <p className='text-xs text-gray-500'>Hoàn tiền: {formatDate(payment.refundDate)}</p>
-                      )}
-                    </div>
-
-                    <Button
-                      variant='ghost'
-                      size='sm'
-                      className='hover:bg-cyan-50 hover:text-cyan-700'
-                      onClick={() => handleViewDetails(payment)}
-                    >
-                      <Eye className='w-4 h-4' />
-                    </Button>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
 
@@ -619,196 +579,13 @@ export default function MyPayment() {
 
       {/* Payment Detail Dialog */}
       <Dialog open={showPaymentDetail} onOpenChange={setShowPaymentDetail}>
-        <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
-          <DialogHeader>
-            <DialogTitle className='flex items-center gap-2'>
-              <Receipt className='w-5 h-5 text-cyan-600' />
-              Chi tiết giao dịch
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedPayment && (
-            <div className='space-y-6'>
-              {/* Header Info */}
-              <div className='flex items-center justify-between p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-200'>
-                <div>
-                  <h3 className='text-lg font-semibold text-gray-900'>ID: {selectedPayment.id}</h3>
-                  {selectedPayment.transactionId && (
-                    <p className='text-sm text-gray-600'>Mã giao dịch: {selectedPayment.transactionId}</p>
-                  )}
-                </div>
-                <div className='text-right'>
-                  <p className='text-2xl font-bold text-cyan-600'>{formatCurrency(selectedPayment.amount)}</p>
-                  {getStatusBadge(selectedPayment.status)}
-                </div>
-              </div>
-
-              {/* Payment Information */}
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                <Card>
-                  <CardHeader className='pb-3'>
-                    <CardTitle className='text-sm font-medium text-gray-700'>Thông tin thanh toán</CardTitle>
-                  </CardHeader>
-                  <CardContent className='space-y-3'>
-                    <div className='flex justify-between'>
-                      <span className='text-sm text-gray-600'>Số tiền:</span>
-                      <span className='font-semibold'>{formatCurrency(selectedPayment.amount)}</span>
-                    </div>
-
-                    {selectedPayment.discount > 0 && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Giảm giá:</span>
-                        <span className='font-semibold text-green-600'>
-                          -{formatCurrency(selectedPayment.discount)}
-                        </span>
-                      </div>
-                    )}
-
-                    {selectedPayment.refundAmount > 0 && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Số tiền hoàn:</span>
-                        <span className='font-semibold text-red-600'>
-                          {formatCurrency(selectedPayment.refundAmount)}
-                        </span>
-                      </div>
-                    )}
-
-                    <Separator />
-
-                    <div className='flex justify-between'>
-                      <span className='text-sm text-gray-600'>Ngày giao dịch:</span>
-                      <span className='font-semibold'>{formatDate(selectedPayment.transactionDate)}</span>
-                    </div>
-
-                    <div className='flex justify-between'>
-                      <span className='text-sm text-gray-600'>Ngày tạo:</span>
-                      <span className='font-semibold'>{formatDate(selectedPayment.createdAt)}</span>
-                    </div>
-
-                    {selectedPayment.updatedAt && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Ngày cập nhật:</span>
-                        <span className='font-semibold'>{formatDate(selectedPayment.updatedAt)}</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className='pb-3'>
-                    <CardTitle className='text-sm font-medium text-gray-700'>Thông tin bổ sung</CardTitle>
-                  </CardHeader>
-                  <CardContent className='space-y-3'>
-                    <div className='flex justify-between'>
-                      <span className='text-sm text-gray-600'>Trạng thái:</span>
-                      <div>{getStatusBadge(selectedPayment.status)}</div>
-                    </div>
-
-                    {selectedPayment.packageId && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Package ID:</span>
-                        <span className='font-semibold'>{selectedPayment.packageId}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.eventId && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Event ID:</span>
-                        <span className='font-semibold'>{selectedPayment.eventId}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.organizationId && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Organization ID:</span>
-                        <span className='font-semibold'>{selectedPayment.organizationId}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.ticketId && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Ticket ID:</span>
-                        <span className='font-semibold'>{selectedPayment.ticketId}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.ticketType && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Loại vé:</span>
-                        <span className='font-semibold'>{selectedPayment.ticketType}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.moduleIds && selectedPayment.moduleIds.length > 0 && (
-                      <div>
-                        <span className='text-sm text-gray-600'>Module IDs:</span>
-                        <div className='mt-1 flex flex-wrap gap-1'>
-                          {selectedPayment.moduleIds.map((moduleId, index) => (
-                            <Badge key={index} variant='outline' className='text-xs'>
-                              {moduleId}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Refund Information */}
-              {selectedPayment.refundAmount > 0 && (
-                <Card className='border-orange-200 bg-orange-50'>
-                  <CardHeader className='pb-3'>
-                    <CardTitle className='text-sm font-medium text-orange-700 flex items-center gap-2'>
-                      <RefreshCw className='w-4 h-4' />
-                      Thông tin hoàn tiền
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className='space-y-3'>
-                    <div className='flex justify-between'>
-                      <span className='text-sm text-gray-600'>Số tiền hoàn:</span>
-                      <span className='font-semibold text-orange-600'>
-                        {formatCurrency(selectedPayment.refundAmount)}
-                      </span>
-                    </div>
-
-                    {selectedPayment.refundDate && (
-                      <div className='flex justify-between'>
-                        <span className='text-sm text-gray-600'>Ngày hoàn tiền:</span>
-                        <span className='font-semibold'>{formatDate(selectedPayment.refundDate)}</span>
-                      </div>
-                    )}
-
-                    {selectedPayment.refundReason && (
-                      <div>
-                        <span className='text-sm text-gray-600'>Lý do hoàn tiền:</span>
-                        <p className='mt-1 text-sm font-medium bg-white p-2 rounded border'>
-                          {selectedPayment.refundReason}
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Actions */}
-              <div className='flex justify-end gap-3 pt-4 border-t'>
-                <Button variant='outline' onClick={() => setShowPaymentDetail(false)}>
-                  Đóng
-                </Button>
-                <Button
-                  className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
-                  onClick={() => {
-                    // Có thể thêm chức năng in hoặc xuất PDF ở đây
-                    console.log('Export payment details:', selectedPayment)
-                  }}
-                >
-                  <FileText className='w-4 h-4 mr-2' />
-                  Xuất báo cáo
-                </Button>
-              </div>
-            </div>
-          )}
+        <DialogContent className='!max-w-6xl sm:!max-w-6xl'>
+          <EventTicketQRSection
+            ticketData={selectedPayment as any}
+            handleClose={() => {
+              setShowQRSection(false)
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>

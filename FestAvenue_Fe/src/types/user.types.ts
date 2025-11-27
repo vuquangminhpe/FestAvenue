@@ -268,27 +268,52 @@ export interface bodyGetPaymentForUser {
     pageSize: number
   }
 }
-export interface getPaymentForUserData {
-  userId: string
-  eventId?: string
-  moduleIds?: string[]
-  organizationId?: string
-  ticketId?: string
-  amount: number
-  status: number
-  ticketType?: string
-  transactionDate: string
-  transactionId?: string
-  discount: number
-  refundAmount: number
-  refundDate?: string
-  refundReason?: string
-  packageId?: string
+export interface Event {
+  eventCode: string
+  eventName: string
+  description: string
+  eventType: string
+  isUpgrade: boolean
+  package?: string | null
+  refundAmount: number | null
+  refundStatus: number | null
+  refundReason?: string | null
+}
+
+// Seat Status Constants
+export const SeatStatus = {
+  NotActivated: 1, // Chưa kích hoạt
+  Scannable: 2, // Cho phép quét mã
+  Scanned: 3 // Đã quét
+} as const
+
+export type SeatStatusType = (typeof SeatStatus)[keyof typeof SeatStatus]
+
+export interface Seat {
+  seatIndex: string
+  ticketId: string
+  seatStatus: SeatStatusType
+  seatPrice: number
+  ticketName: string
+  ticketPrice: number
+  paymentInitiatedTime?: string | null
+  paymentTime?: string | null
+}
+
+export interface UserInfo {
   id: string
-  createdAt: string
-  updatedAt?: string
+  email: string
+  firstName: string
+  lastName: string
+  phone?: string | null
 }
 
 export interface getPaymentForUserRes {
-  result: getPaymentForUserData[]
+  amount: number
+  event: Event
+  seats: Seat[]
+  user: UserInfo
 }
+
+// Alias for compatibility with existing code
+export type getPaymentForUserData = getPaymentForUserRes

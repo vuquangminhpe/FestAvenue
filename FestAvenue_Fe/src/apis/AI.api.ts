@@ -1,8 +1,11 @@
 import type { AIDetectRes } from '@/types/AI.types'
 import type {
   APIResponse,
+  bodyEventChatBot,
   bodyGenerateTags,
   bodyModerateContent,
+  resChatBot,
+  resChatBotHistory,
   resGenerateTags,
   resModerateContent
 } from '@/types/API.types'
@@ -48,6 +51,20 @@ const AIApis = {
     const data = await http.post<resModerateContent>(
       'https://minh9972t12-ModerateContent.hf.space/validate-content',
       body
+    )
+    return data
+  },
+  eventChatBot: async (body: bodyEventChatBot) => {
+    const data = await http.post<resChatBot>('https://minhvtt-ChatbotRAG.hf.space/chat', body)
+    return data
+  },
+  getHistoryChatBySessionId: async (session_id: string) => {
+    const data = await http.get<resChatBotHistory>(`https://minhvtt-ChatbotRAG.hf.space/chat/history/${session_id}`)
+    return data
+  },
+  deleteHistoryChatBySessionId: async (session_id: string) => {
+    const data = await http.get<APIResponse<{ message: string }>>(
+      `https://minhvtt-ChatbotRAG.hf.space/chat/clear-session?session_id=${session_id}`
     )
     return data
   }

@@ -28,7 +28,11 @@ import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
 import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'
-import { useGetDashboardEventGeneral } from './hooks/useEventAnalytics'
+import {
+  useGetDashboardEventGeneral,
+  useGetStaffStatistics,
+  useGetSocialMediaPostStatistics
+} from './hooks/useEventAnalytics'
 import { PermissionGuard } from '@/components/guards'
 import path from '@/constants/path'
 
@@ -55,7 +59,10 @@ export default function EventAnalyticsDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
 
+  // Fetch data from APIs
   const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral(eventCode)
+  const { data: dataStaffStatistics, isLoading: isLoadingStaff } = useGetStaffStatistics(eventCode)
+  const { data: dataSocialMediaStatistics, isLoading: isLoadingSocial } = useGetSocialMediaPostStatistics(eventCode)
 
   const participants = dataDashboardEventGeneral?.participantAnalysis ?? []
   const ticketSalesAnalysis = dataDashboardEventGeneral?.ticketSalesAnalysis ?? []
@@ -300,7 +307,56 @@ export default function EventAnalyticsDashboard() {
             {activeTab === 'views' && <ViewsChart data={analytics.eventViews} />}
 
             {/* Social Media Tab */}
-            {activeTab === 'social' && <SocialMediaPostsChart data={analytics.socialMediaPosts} />}
+            {activeTab === 'social' && (
+              <>
+                {isLoadingSocial ? (
+                  <div className='text-center py-12'>
+                    <div className='w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
+                    <p className='text-gray-600'>Đang tải dữ liệu social media...</p>
+                  </div>
+                ) : dataSocialMediaStatistics ? (
+                  <SocialMediaPostsChart
+                    data={
+                      Array.isArray(dataSocialMediaStatistics)
+                        ? dataSocialMediaStatistics.map((post) => ({
+                            postId: post.postId,
+                            title: post.title,
+                            content: post.content,
+                            bannerUrl: post.bannerUrl,
+                            postedDate: post.postedDate,
+                            views: post.views,
+                            likes: post.likes,
+                            shares: 0, // API không có shares
+                            comments: post.comments,
+                            clicks: post.viewCount, // Map viewCount -> clicks
+                            clickRate: post.viewRate, // Map viewRate -> clickRate
+                            color: post.color
+                          }))
+                        : [
+                            {
+                              postId: dataSocialMediaStatistics.postId,
+                              title: dataSocialMediaStatistics.title,
+                              content: dataSocialMediaStatistics.content,
+                              bannerUrl: dataSocialMediaStatistics.bannerUrl,
+                              postedDate: dataSocialMediaStatistics.postedDate,
+                              views: dataSocialMediaStatistics.views,
+                              likes: dataSocialMediaStatistics.likes,
+                              shares: 0,
+                              comments: dataSocialMediaStatistics.comments,
+                              clicks: dataSocialMediaStatistics.viewCount,
+                              clickRate: dataSocialMediaStatistics.viewRate,
+                              color: dataSocialMediaStatistics.color
+                            }
+                          ]
+                    }
+                  />
+                ) : (
+                  <div className='text-center py-12'>
+                    <p className='text-gray-600'>Không có dữ liệu social media</p>
+                  </div>
+                )}
+              </>
+            )}
 
             {/* Keywords Tab */}
             {activeTab === 'keywords' && <KeywordSearchChart data={analytics.keywordSearch} />}
@@ -308,55 +364,79 @@ export default function EventAnalyticsDashboard() {
             {/* Staff Tab */}
             {activeTab === 'staff' && (
               <>
-                {/* Staff Stats Cards */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-                  <StatCard
-                    title='Tổng nhân viên'
-                    value={summary.totalStaff}
-                    icon={UserCheck}
-                    iconColor='#3b82f6'
-                    iconBg='#dbeafe'
-                  />
-                  <StatCard
-                    title='Task hoàn thành'
-                    value={summary.completedTasks}
-                    change={15.3}
-                    icon={CheckCircle}
-                    iconColor='#10b981'
-                    iconBg='#d1fae5'
-                    trend='up'
-                  />
-                  <StatCard
-                    title='Task trễ hạn'
-                    value={summary.lateTasks}
-                    change={-8.2}
-                    icon={AlertCircle}
-                    iconColor='#ef4444'
-                    iconBg='#fee2e2'
-                    trend='down'
-                  />
-                  <StatCard
-                    title='Tỷ lệ hoàn thành TB'
-                    value={summary.avgTaskCompletionRate}
-                    change={5.7}
-                    icon={Clock}
-                    iconColor='#8b5cf6'
-                    iconBg='#ede9fe'
-                    suffix='%'
-                    trend='up'
-                  />
-                </div>
-
-                {/* Task Completion Chart */}
-                <TaskCompletionChart data={analytics.taskStatus} />
-
-                {/* Staff Performance + Ranking */}
-                <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                  <StaffPerformanceChart data={analytics.staffPerformance} />
-                  <div className='space-y-6'>
-                    <StaffRankingTable data={analytics.staffRanking} />
+                {isLoadingStaff ? (
+                  <div className='text-center py-12'>
+                    <div className='w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4' />
+                    <p className='text-gray-600'>Đang tải dữ liệu nhân sự...</p>
                   </div>
-                </div>
+                ) : dataStaffStatistics ? (
+                  <>
+                    {/* Staff Stats Cards */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+                      <StatCard
+                        title='Tổng nhân viên'
+                        value={dataStaffStatistics.taskSummary.totalStaff}
+                        icon={UserCheck}
+                        iconColor='#3b82f6'
+                        iconBg='#dbeafe'
+                      />
+                      <StatCard
+                        title='Task hoàn thành'
+                        value={dataStaffStatistics.taskSummary.completedTasks}
+                        change={15.3}
+                        icon={CheckCircle}
+                        iconColor='#10b981'
+                        iconBg='#d1fae5'
+                        trend='up'
+                      />
+                      <StatCard
+                        title='Task trễ hạn'
+                        value={dataStaffStatistics.taskSummary.lateTasks}
+                        change={-8.2}
+                        icon={AlertCircle}
+                        iconColor='#ef4444'
+                        iconBg='#fee2e2'
+                        trend='down'
+                      />
+                      <StatCard
+                        title='Tỷ lệ hoàn thành TB'
+                        value={dataStaffStatistics.taskSummary.avgTaskCompletionRate}
+                        change={5.7}
+                        icon={Clock}
+                        iconColor='#8b5cf6'
+                        iconBg='#ede9fe'
+                        suffix='%'
+                        trend='up'
+                      />
+                    </div>
+
+                    {/* Task Completion Chart */}
+                    <TaskCompletionChart
+                      data={dataStaffStatistics.taskStatusAnalysis.map((item) => ({
+                        ...item,
+                        pending: 0 // API không trả về pending, set mặc định = 0
+                      }))}
+                    />
+
+                    {/* Staff Performance */}
+                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+                      <StaffPerformanceChart data={dataStaffStatistics.staffPerformance} />
+                      <div className='space-y-6'>
+                        <StaffRankingTable
+                          data={dataStaffStatistics.staffPerformance.map((staff, index) => ({
+                            rank: index + 1,
+                            staff: staff,
+                            change: 0 // API không trả về change, set mặc định = 0
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className='text-center py-12'>
+                    <p className='text-gray-600'>Không có dữ liệu thống kê nhân sự</p>
+                  </div>
+                )}
               </>
             )}
           </div>
