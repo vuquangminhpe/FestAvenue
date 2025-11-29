@@ -29,7 +29,7 @@ const StaffLogin = () => {
     mutationFn: userApi.login_normal,
     onSuccess: async (data) => {
       saveAccessTokenToLS(data?.data?.accessToken)
-
+      setIsLogin(true)
       // Lấy thông tin profile để kiểm tra roles
       try {
         const profileData = await userApi.getMyProfile()

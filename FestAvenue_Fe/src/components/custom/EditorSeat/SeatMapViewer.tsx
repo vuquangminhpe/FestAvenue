@@ -550,14 +550,20 @@ export default function SeatMapViewer({
   // Update only seat colors and countdowns without full re-render
   const updateSeatsOnly = useCallback(
     (svg: any) => {
+      const mainG = svg.select('.main-group')
+
       mapData.sections.forEach((section) => {
         const seats = section.seats || (section.rows > 0 ? generateSeatsForSection(section) : [])
+        const appliedSkin = section.appearance?.templateId ? getSkin(section.appearance.templateId) : null
+        const seatSkin = appliedSkin?.seat
+        const seatHoverScale = seatSkin?.hoverScale ?? 1.2
 
         seats.forEach((seat) => {
           const status = seatStatuses.get(seat.id) || seat.status
           const seatInfo = getSeatInfo(seat.id)
           const seatColor = getSeatColor(seat.id, status)
           const countdown = getSeatCountdown(seat.id)
+          const isClickable = isSeatClickable(seat.id)
 
           const seatGroup = svg.select(`.seat-${seat.id}`)
           if (seatGroup.empty()) return
@@ -566,6 +572,66 @@ export default function SeatMapViewer({
           const seatVisual = seatGroup.select('.seat-visual')
           if (!seatVisual.empty()) {
             seatVisual.attr('fill', seatColor)
+          }
+
+          // Update cursor style based on clickability
+          seatGroup.style('cursor', isClickable && !readonly ? 'pointer' : 'not-allowed')
+
+          // Remove ALL old event handlers first
+          seatGroup.on('click', null)
+          seatGroup.on('mouseover', null)
+          seatGroup.on('mouseout', null)
+
+          // Re-attach event handlers ONLY if clickable
+          if (!readonly && isClickable) {
+            // Click handler
+            seatGroup.on('click', (event: any) => {
+              event.stopPropagation()
+              handleQuickSeatToggle(seat.id, status, seatInfo?.seatPrice || seat.price)
+            })
+
+            // Hover effects
+            seatGroup
+              .on('mouseover', function (this: SVGGElement) {
+                const group = d3.select(this)
+                const hoverScale = Number(group.attr('data-hover-scale')) || seatHoverScale
+                const originX = Number(group.attr('data-origin-x')) || seat.x
+                const originY = Number(group.attr('data-origin-y')) || seat.y
+                const baseTransformAttr = group.attr('data-base-transform') || ''
+                const transformSequence = `${
+                  baseTransformAttr ? `${baseTransformAttr} ` : ''
+                }translate(${originX}, ${originY}) scale(${hoverScale}) translate(${-originX}, ${-originY})`
+                group.attr('transform', transformSequence)
+
+                const tooltip = mainG.append('g').attr('class', 'tooltip')
+                tooltip
+                  .append('rect')
+                  .attr('x', seat.x - 35)
+                  .attr('y', seat.y - 30)
+                  .attr('width', 70)
+                  .attr('height', 20)
+                  .attr('fill', 'rgba(0,0,0,0.9)')
+                  .attr('rx', 3)
+
+                tooltip
+                  .append('text')
+                  .attr('x', seat.x)
+                  .attr('y', seat.y - 15)
+                  .attr('text-anchor', 'middle')
+                  .attr('fill', 'white')
+                  .attr('font-size', '11px')
+                  .text(`${section.name} R${seat.row}S${seat.number}`)
+              })
+              .on('mouseout', function (this: SVGGElement) {
+                const group = d3.select(this)
+                const baseTransformAttr = group.attr('data-base-transform') || ''
+                if (baseTransformAttr) {
+                  group.attr('transform', baseTransformAttr)
+                } else {
+                  group.attr('transform', null)
+                }
+                mainG.selectAll('.tooltip').remove()
+              })
           }
 
           // Update or add countdown
@@ -621,7 +687,10 @@ export default function SeatMapViewer({
       getSeatCountdown,
       generateSeatsForSection,
       userEmail,
-      selectedSeats
+      selectedSeats,
+      isSeatClickable,
+      readonly,
+      handleQuickSeatToggle
     ]
   )
 

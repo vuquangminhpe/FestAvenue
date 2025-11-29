@@ -1,12 +1,14 @@
 import type { APIResponse } from '@/types/API.types'
 import type {
   bodyAcceptRequestWithDrawal,
+  bodyApproveContractForStaff,
   bodyApproveEventForStaff,
   bodyCreateWithDrawal,
   bodyGetListReqDrawalByAdmin,
   bodyRejectRequestWithDrawal,
   bodySearchEvent,
   bodySearchWithAI,
+  bodyUpdateContract,
   createEvent,
   EventFilterList,
   EventSearchFilter,
@@ -142,6 +144,16 @@ const eventApis = {
       `/general-statistics?EventCode=${eventCode}`
     )
     return data?.data
+  },
+  getContractByEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<{ linkContract: string }>>('/event/get-contract-by-event-code', {
+      params: { eventCode }
+    })
+    return data?.data
+  },
+  updateContractByEventCode: async (body: bodyUpdateContract) => {
+    const data = await http.post<APIResponse<{ message: string }>>('/event/update-contract-by-event-code', body)
+    return data?.data
   }
 }
 
@@ -159,6 +171,14 @@ const staffEventApis = {
   },
   rejectEventForStaff: async (body: bodyRejectEventForStaff) => {
     const data = await http.post<APIResponse<{ messages: string }>>('/event/reject-event', body)
+    return data?.data
+  },
+  approveContractForStaff: async (body: bodyApproveContractForStaff) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/event/accept-contract-event', body)
+    return data?.data
+  },
+  rejectContractForStaff: async (body: bodyApproveContractForStaff) => {
+    const data = await http.post<APIResponse<{ messages: string }>>('/event/reject-contract-event', body)
     return data?.data
   }
 }

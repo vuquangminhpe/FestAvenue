@@ -177,7 +177,9 @@ export const EventStatusValues = {
   SelectPackage: 2,
   Active: 3,
   Reject: 4,
-  Canceled: 5
+  Canceled: 5,
+  PendingContract: 8,
+  RejectedContract: 9
 } as const
 
 export type EventStatusValue = (typeof EventStatusValues)[keyof typeof EventStatusValues]
@@ -276,6 +278,7 @@ export interface ReqFilterOwnerEvent {
   createdAt: string // ISO date string
   updatedAt: string | null
   linkExcel: string
+  linkContract: string
   // New time fields - Event Lifecycle covers all
   startEventLifecycleTime?: string // ISO date string
   endEventLifecycleTime?: string // ISO date string
@@ -461,4 +464,12 @@ export interface bodyRejectRequestWithDrawal {
   reason: string
   envidenceRejectImageUrl: string
   noteByAdmin: string
+}
+export interface bodyUpdateContract {
+  eventCode: string
+  linkContract: string
+}
+export interface bodyApproveContractForStaff {
+  eventVersionId: string
+  message: string
 }

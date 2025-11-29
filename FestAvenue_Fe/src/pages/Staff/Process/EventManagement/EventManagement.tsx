@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { staffEventApis } from '@/apis/event.api'
+import { staffEventApis, eventApis } from '@/apis/event.api'
 import { EventStatusValues } from '@/types/event.types'
 import type { EventSearchStaffFilter, EventVersion } from '@/types/event.types'
 import {
@@ -30,7 +30,9 @@ import {
   AlertTriangle,
   Mail,
   Phone,
-  Globe
+  Globe,
+  FileText,
+  ExternalLink
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
@@ -49,6 +51,12 @@ export default function StaffEventManagement() {
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [approveMessage, setApproveMessage] = useState('')
   const [rejectMessage, setRejectMessage] = useState('')
+  const [showApproveContractDialog, setShowApproveContractDialog] = useState(false)
+  const [showRejectContractDialog, setShowRejectContractDialog] = useState(false)
+  const [approveContractMessage, setApproveContractMessage] = useState('')
+  const [rejectContractMessage, setRejectContractMessage] = useState('')
+  const [showViewContractDialog, setShowViewContractDialog] = useState(false)
+  const [contractUrl, setContractUrl] = useState<string>('')
 
   const { data: eventsData, isLoading } = useQuery({
     queryKey: ['staffEvents', searchQuery, activeTab],
@@ -57,7 +65,6 @@ export default function StaffEventManagement() {
         search: searchQuery,
         categoryId: undefined,
         pagination: {
-          orderBy: 'createdAt',
           pageIndex: 1,
           isPaging: true,
           pageSize: 50
@@ -125,6 +132,75 @@ export default function StaffEventManagement() {
     })
   }
 
+  // Contract approval/rejection mutations
+  const approveContractMutation = useMutation({
+    mutationFn: (data: { eventVersionId: string; message: string }) => staffEventApis.approveContractForStaff(data),
+    onSuccess: () => {
+      toast.success('Đã phê duyệt hợp đồng thành công')
+      queryClient.invalidateQueries({ queryKey: ['staffEvents'] })
+      setShowApproveContractDialog(false)
+      setSelectedEvent(null)
+      setApproveContractMessage('')
+    },
+    onError: () => {
+      toast.error('Lỗi khi phê duyệt hợp đồng')
+    }
+  })
+
+  const rejectContractMutation = useMutation({
+    mutationFn: (data: { eventVersionId: string; message: string }) => staffEventApis.rejectContractForStaff(data),
+    onSuccess: () => {
+      toast.success('Đã từ chối hợp đồng')
+      queryClient.invalidateQueries({ queryKey: ['staffEvents'] })
+      setShowRejectContractDialog(false)
+      setSelectedEvent(null)
+      setRejectContractMessage('')
+    },
+    onError: () => {
+      toast.error('Lỗi khi từ chối hợp đồng')
+    }
+  })
+
+  const handleApproveContract = () => {
+    if (!selectedEvent) return
+    if (!approveContractMessage.trim()) {
+      toast.error('Vui lòng nhập tin nhắn phản hồi')
+      return
+    }
+
+    approveContractMutation.mutate({
+      eventVersionId: selectedEvent.id,
+      message: approveContractMessage
+    })
+  }
+
+  const handleRejectContract = () => {
+    if (!selectedEvent) return
+    if (!rejectContractMessage.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối')
+      return
+    }
+
+    rejectContractMutation.mutate({
+      eventVersionId: selectedEvent.id,
+      message: rejectContractMessage
+    })
+  }
+
+  const handleViewContract = async (eventCode: string) => {
+    try {
+      const result = await eventApis.getContractByEventCode(eventCode)
+      if (result?.data?.linkContract) {
+        setContractUrl(result.data.linkContract)
+        setShowViewContractDialog(true)
+      } else {
+        toast.error('Chưa có hợp đồng')
+      }
+    } catch (error) {
+      toast.error('Lỗi khi tải hợp đồng')
+    }
+  }
+
   return (
     <div className='w-full'>
       <Helmet>
@@ -154,7 +230,7 @@ export default function StaffEventManagement() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-        <TabsList className='grid w-full grid-cols-3 mb-6'>
+        <TabsList className='grid w-full grid-cols-4 mb-6'>
           <TabsTrigger value='all'>Tất cả ({totalEvents})</TabsTrigger>
           <TabsTrigger value='pending'>
             <AlertTriangle className='w-4 h-4 mr-2' />
@@ -163,6 +239,10 @@ export default function StaffEventManagement() {
           <TabsTrigger value='approved'>
             <CheckCircle2 className='w-4 h-4 mr-2' />
             Đã duyệt
+          </TabsTrigger>
+          <TabsTrigger value='contracts'>
+            <FileText className='w-4 h-4 mr-2' />
+            Hợp đồng
           </TabsTrigger>
         </TabsList>
 
@@ -272,16 +352,23 @@ export default function StaffEventManagement() {
                             className={`${
                               eventVersion.eventVersionStatus === EventStatusValues.Pending
                                 ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                : eventVersion.eventVersionStatus === EventStatusValues.PendingContract
+                                ? 'bg-purple-100 text-purple-700 border-purple-300'
                                 : 'bg-green-100 text-green-700 border-green-300'
                             } border`}
                           >
-                            {eventVersion.eventVersionStatus === EventStatusValues.Pending ? 'Chờ duyệt' : 'Đã duyệt'}
+                            {eventVersion.eventVersionStatus === EventStatusValues.Pending
+                              ? 'Chờ duyệt'
+                              : eventVersion.eventVersionStatus === EventStatusValues.PendingContract
+                              ? 'Chờ duyệt HĐ'
+                              : 'Đã duyệt'}
                           </Badge>
                         </TableCell>
 
                         {/* Actions */}
                         <TableCell>
                           <div className='flex gap-1 justify-center'>
+                            {/* Nút xem chi tiết - hiển thị cho tất cả status */}
                             <Button
                               size='sm'
                               variant='outline'
@@ -292,7 +379,10 @@ export default function StaffEventManagement() {
                             >
                               <Eye className='w-4 h-4' />
                             </Button>
-                            {eventVersion.eventVersionStatus === EventStatusValues.Pending && (
+
+                            {/* Actions dựa trên status - KHÔNG lồng ghép */}
+                            {eventVersion.eventVersionStatus === EventStatusValues.Pending ? (
+                              /* Status = Pending (1): Chờ duyệt event */
                               <>
                                 <Button
                                   size='sm'
@@ -315,7 +405,39 @@ export default function StaffEventManagement() {
                                   <XCircle className='w-4 h-4' />
                                 </Button>
                               </>
-                            )}
+                            ) : eventVersion.eventVersionStatus === EventStatusValues.PendingContract ? (
+                              /* Status = PendingContract (8): Chờ duyệt hợp đồng */
+                              <>
+                                <Button
+                                  size='sm'
+                                  variant='outline'
+                                  className='border-blue-300 text-blue-700 hover:bg-blue-50'
+                                  onClick={() => handleViewContract(eventVersion.eventCode)}
+                                >
+                                  <FileText className='w-4 h-4' />
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  className='bg-green-600 hover:bg-green-700 text-white'
+                                  onClick={() => {
+                                    setSelectedEvent(eventVersion)
+                                    setShowApproveContractDialog(true)
+                                  }}
+                                >
+                                  <CheckCircle2 className='w-4 h-4' />
+                                </Button>
+                                <Button
+                                  size='sm'
+                                  variant='destructive'
+                                  onClick={() => {
+                                    setSelectedEvent(eventVersion)
+                                    setShowRejectContractDialog(true)
+                                  }}
+                                >
+                                  <XCircle className='w-4 h-4' />
+                                </Button>
+                              </>
+                            ) : null}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -611,6 +733,146 @@ export default function StaffEventManagement() {
                 </>
               )}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Contract Dialog */}
+      <Dialog open={showApproveContractDialog} onOpenChange={setShowApproveContractDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Phê duyệt hợp đồng</DialogTitle>
+            <DialogDescription>Gửi tin nhắn phản hồi cho người tạo sự kiện</DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-4'>
+            <div>
+              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {selectedEvent?.eventName}</p>
+            </div>
+
+            <div>
+              <label className='text-sm font-medium text-slate-700 mb-2 block'>Tin nhắn phản hồi</label>
+              <Textarea
+                placeholder='Nhập tin nhắn cho người tạo sự kiện...'
+                value={approveContractMessage}
+                onChange={(e) => setApproveContractMessage(e.target.value)}
+                rows={4}
+                className='resize-none'
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setShowApproveContractDialog(false)}
+              disabled={approveContractMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleApproveContract}
+              disabled={approveContractMutation.isPending || !approveContractMessage.trim()}
+              className='bg-green-600 hover:bg-green-700'
+            >
+              {approveContractMutation.isPending ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className='w-4 h-4 mr-2' />
+                  Phê duyệt HĐ
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Contract Dialog */}
+      <Dialog open={showRejectContractDialog} onOpenChange={setShowRejectContractDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Từ chối hợp đồng</DialogTitle>
+            <DialogDescription>Vui lòng cho biết lý do từ chối hợp đồng này</DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-4'>
+            <div>
+              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {selectedEvent?.eventName}</p>
+            </div>
+
+            <div>
+              <label className='text-sm font-medium text-slate-700 mb-2 block'>Lý do từ chối</label>
+              <Textarea
+                placeholder='Nhập lý do từ chối hợp đồng...'
+                value={rejectContractMessage}
+                onChange={(e) => setRejectContractMessage(e.target.value)}
+                rows={4}
+                className='resize-none'
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setShowRejectContractDialog(false)}
+              disabled={rejectContractMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={handleRejectContract}
+              disabled={rejectContractMutation.isPending || !rejectContractMessage.trim()}
+            >
+              {rejectContractMutation.isPending ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <XCircle className='w-4 h-4 mr-2' />
+                  Từ chối HĐ
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Contract Dialog */}
+      <Dialog open={showViewContractDialog} onOpenChange={setShowViewContractDialog}>
+        <DialogContent className='max-w-4xl max-h-[90vh]'>
+          <DialogHeader>
+            <DialogTitle>Xem Hợp đồng</DialogTitle>
+            <DialogDescription>Hợp đồng sự kiện</DialogDescription>
+          </DialogHeader>
+
+          <div className='w-full h-[70vh]'>
+            {contractUrl ? (
+              <iframe src={contractUrl} className='w-full h-full border rounded' title='Contract PDF' />
+            ) : (
+              <div className='flex items-center justify-center h-full'>
+                <Loader2 className='w-8 h-8 animate-spin text-blue-500' />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setShowViewContractDialog(false)}>
+              Đóng
+            </Button>
+            {contractUrl && (
+              <Button onClick={() => window.open(contractUrl, '_blank')} className='bg-blue-600 hover:bg-blue-700'>
+                <ExternalLink className='w-4 h-4 mr-2' />
+                Mở trong tab mới
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -32,7 +32,7 @@ export const useAdminStore = create<AdminState>()((set) => ({
 }))
 
 export const useStaffStore = create<StaffState>()((set) => ({
-  isLogin: false,
+  isLogin: getAccessTokenFromLS() !== null ? true : false,
   setIsLogin: (value) => set({ isLogin: value }),
   profile: undefined,
   setProfile: (value) => set({ profile: value })

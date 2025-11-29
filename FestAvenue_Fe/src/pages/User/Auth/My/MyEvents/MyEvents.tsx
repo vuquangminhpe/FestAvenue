@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { eventApis } from '@/apis/event.api'
+import mediaApis from '@/apis/media.api'
 import { EventStatusValues } from '@/types/event.types'
 import type { EventSearchFilter, ReqFilterOwnerEvent } from '@/types/event.types'
 import {
@@ -21,8 +22,21 @@ import {
   Loader2,
   Eye,
   Edit,
-  ExternalLink
+  ExternalLink,
+  Upload,
+  FileText
 } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import path from '@/constants/path'
 import { format } from 'date-fns'
@@ -62,13 +76,31 @@ const statusConfig = {
     color: 'bg-gray-100 text-gray-700 border-gray-300',
     icon: XCircle,
     description: 'Sự kiện đã bị hủy bỏ'
+  },
+  [EventStatusValues.PendingContract]: {
+    label: 'Chờ xử lý hợp đồng',
+    color: 'bg-purple-100 text-purple-700 border-purple-300',
+    icon: Clock,
+    description: 'Cần upload hợp đồng để staff xét duyệt'
+  },
+  [EventStatusValues.RejectedContract]: {
+    label: 'Hợp đồng bị từ chối',
+    color: 'bg-orange-100 text-orange-700 border-orange-300',
+    icon: AlertCircle,
+    description: 'Hợp đồng bị từ chối, cần upload lại'
   }
 }
 
 export default function MyEvents() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<string>('myEvents')
+  const [showContractUploadDialog, setShowContractUploadDialog] = useState(false)
+  const [selectedEventForContract, setSelectedEventForContract] = useState<ReqFilterOwnerEvent | null>(null)
+  const [contractFile, setContractFile] = useState<File | null>(null)
+  const [showViewContractDialog, setShowViewContractDialog] = useState(false)
+  const [contractUrl, setContractUrl] = useState<string>('')
 
   const searchFilter: EventSearchFilter = {
     pagination: {
@@ -84,6 +116,69 @@ export default function MyEvents() {
   })
 
   const events = eventsData?.result || []
+
+  // Contract upload mutation
+  const uploadContractMutation = useMutation({
+    mutationFn: async ({ eventCode, file }: { eventCode: string; file: File }) => {
+      // Step 1: Upload PDF to S3
+      const uploadResult = await mediaApis.uploadsStorage(file)
+      const contractLink = uploadResult?.data
+
+      if (!contractLink) {
+        throw new Error('Đã có lỗi xảy ra khi lưu hợp đồng, vui lòng thử lại.')
+      }
+
+      // Step 2: Update contract by event code
+      await eventApis.updateContractByEventCode({
+        eventCode,
+        linkContract: contractLink as any
+      })
+
+      return contractLink
+    },
+    onSuccess: () => {
+      toast.success('Hợp đồng đã được upload thành công')
+      queryClient.invalidateQueries({ queryKey: ['myEvents'] })
+      setShowContractUploadDialog(false)
+      setContractFile(null)
+      setSelectedEventForContract(null)
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Lỗi khi upload hợp đồng')
+    }
+  })
+
+  const handleUploadContract = () => {
+    if (!contractFile || !selectedEventForContract) {
+      toast.error('Vui lòng chọn file PDF')
+      return
+    }
+
+    // Verify PDF file extension
+    if (!contractFile.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Chỉ chấp nhận file PDF')
+      return
+    }
+
+    uploadContractMutation.mutate({
+      eventCode: selectedEventForContract.eventCode,
+      file: contractFile
+    })
+  }
+
+  const handleViewContract = async (eventCode: string) => {
+    try {
+      const result = await eventApis.getContractByEventCode(eventCode)
+      if (result?.data?.linkContract) {
+        setContractUrl(result.data.linkContract)
+        setShowViewContractDialog(true)
+      } else {
+        toast.error('Chưa có hợp đồng')
+      }
+    } catch (error) {
+      toast.error('Lỗi khi tải hợp đồng')
+    }
+  }
 
   // Filter events based on active tab
   const getFilteredEvents = () => {
@@ -278,6 +373,37 @@ export default function MyEvents() {
                 Quản lí
               </Button>
             )}
+
+            {/* Nút Upload hợp đồng - hiển thị cho PendingContract và RejectedContract */}
+            {(eventVersion.eventVersionStatus === EventStatusValues.PendingContract ||
+              (eventVersion.eventVersionStatus === EventStatusValues.RejectedContract &&
+                eventVersion.linkContract === null)) && (
+              <Button
+                size='sm'
+                className='bg-purple-600 hover:bg-purple-700'
+                onClick={() => {
+                  setSelectedEventForContract(eventVersion)
+                  setShowContractUploadDialog(true)
+                }}
+              >
+                <Upload className='w-4 h-4 mr-1' />
+                Upload HĐ
+              </Button>
+            )}
+
+            {/* Nút Xem hợp đồng - hiển thị cho tất cả status trừ Pending, Reject, Canceled */}
+            {eventVersion.eventVersionStatus !== EventStatusValues.Pending &&
+              eventVersion.eventVersionStatus !== EventStatusValues.Reject &&
+              eventVersion.eventVersionStatus !== EventStatusValues.Canceled && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='border-blue-300 text-blue-700 hover:bg-blue-50'
+                  onClick={() => handleViewContract(eventVersion.eventCode)}
+                >
+                  <FileText className='w-4 h-4' />
+                </Button>
+              )}
           </div>
         </TableCell>
       </TableRow>
@@ -423,6 +549,121 @@ export default function MyEvents() {
           <InvitationsTable />
         </TabsContent>
       </Tabs>
+
+      {/* Contract Upload Dialog */}
+      <Dialog open={showContractUploadDialog} onOpenChange={setShowContractUploadDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Upload Hợp đồng</DialogTitle>
+            <DialogDescription>
+              Tải lên hợp đồng đã ký (định dạng PDF). Vui lòng tải mẫu hợp đồng tại{' '}
+              <a
+                href='https://docs.google.com/document/d/18wg5UucbFAyQxxEoLscYSUIpKna8SBh3RJMsploQOVc/edit?tab=t.0#heading=h.3byljzd9kg5o'
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-blue-600 hover:underline'
+              >
+                đây
+              </a>
+              , chỉnh sửa và xuất ra PDF trước khi upload.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className='space-y-4'>
+            <div>
+              <p className='font-semibold text-slate-800 mb-2'>Sự kiện: {selectedEventForContract?.eventName}</p>
+            </div>
+
+            <div className='space-y-2'>
+              <Label htmlFor='contract-file'>Chọn file hợp đồng (PDF)</Label>
+              <Input
+                id='contract-file'
+                type='file'
+                accept='.pdf'
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    if (!file.name.toLowerCase().endsWith('.pdf')) {
+                      toast.error('Chỉ chấp nhận file PDF')
+                      e.target.value = ''
+                      return
+                    }
+                    setContractFile(file)
+                  }
+                }}
+              />
+              {contractFile && (
+                <p className='text-sm text-green-600'>
+                  Đã chọn: {contractFile.name} ({(contractFile.size / 1024 / 1024).toFixed(2)} MB)
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setShowContractUploadDialog(false)
+                setContractFile(null)
+                setSelectedEventForContract(null)
+              }}
+              disabled={uploadContractMutation.isPending}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleUploadContract}
+              disabled={!contractFile || uploadContractMutation.isPending}
+              className='bg-purple-600 hover:bg-purple-700'
+            >
+              {uploadContractMutation.isPending ? (
+                <>
+                  <Loader2 className='w-4 h-4 mr-2 animate-spin' />
+                  Đang upload...
+                </>
+              ) : (
+                <>
+                  <Upload className='w-4 h-4 mr-2' />
+                  Upload
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Contract Dialog */}
+      <Dialog open={showViewContractDialog} onOpenChange={setShowViewContractDialog}>
+        <DialogContent className='max-w-4xl max-h-[90vh]'>
+          <DialogHeader>
+            <DialogTitle>Xem Hợp đồng</DialogTitle>
+            <DialogDescription>Hợp đồng sự kiện</DialogDescription>
+          </DialogHeader>
+
+          <div className='w-full h-[70vh]'>
+            {contractUrl ? (
+              <iframe src={contractUrl} className='w-full h-full border rounded' title='Contract PDF' />
+            ) : (
+              <div className='flex items-center justify-center h-full'>
+                <Loader2 className='w-8 h-8 animate-spin text-blue-500' />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={() => setShowViewContractDialog(false)}>
+              Đóng
+            </Button>
+            {contractUrl && (
+              <Button onClick={() => window.open(contractUrl, '_blank')} className='bg-blue-600 hover:bg-blue-700'>
+                <ExternalLink className='w-4 h-4 mr-2' />
+                Mở trong tab mới
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

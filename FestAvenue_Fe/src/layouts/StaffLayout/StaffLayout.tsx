@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router'
+import { useState, useEffect, type ReactNode } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { MessageCircle, Menu, X, Users, Settings, LogOut, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStaffStore } from '@/contexts/app.context'
+import { useQuery } from '@tanstack/react-query'
+import userApi from '@/apis/user.api'
+import { getAccessTokenFromLS } from '@/utils/auth'
 import path from '@/constants/path'
+import { toast } from 'sonner'
 
 interface StaffLayoutProps {
   children: ReactNode
@@ -12,7 +16,33 @@ interface StaffLayoutProps {
 const StaffLayout = ({ children }: StaffLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const location = useLocation()
+  const navigate = useNavigate()
   const setIsLogin = useStaffStore((state) => state.setIsLogin)
+  const profile = useStaffStore((state) => state.profile)
+  const setProfile = useStaffStore((state) => state.setProfile)
+
+  // Fetch profile khi reload trang
+  const { data: profileData } = useQuery({
+    queryKey: ['getStaffProfile'],
+    queryFn: () => userApi.getMyProfile(),
+    enabled: !!getAccessTokenFromLS() && !profile,
+    retry: 1
+  })
+
+  // Cập nhật profile và kiểm tra role
+  useEffect(() => {
+    if (profileData?.data) {
+      // Kiểm tra xem có role Staff không
+      if (!profileData.data.roles.includes('Staff')) {
+        toast.error('Bạn không có quyền truy cập Staff')
+        localStorage.removeItem('access_token')
+        setIsLogin(false)
+        navigate(path.staff.auth.login)
+        return
+      }
+      setProfile(profileData.data)
+    }
+  }, [profileData, setProfile, setIsLogin, navigate])
 
   const menuItems = [
     {
