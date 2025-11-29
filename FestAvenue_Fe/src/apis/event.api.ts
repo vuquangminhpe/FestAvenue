@@ -121,7 +121,9 @@ const eventApis = {
   },
   //Lấy danh sách sự kiện kết thúc theo user là event owner
   getEventEndTimeByUser: async () => {
-    const data = await http.get<APIResponse<ReqFilterOwnerEvent[]>>('/withdrawal-request/get-event-endtime-by-user')
+    const data = await http.get<APIResponse<ReqFilterOwnerEvent[]>>(
+      '/withdrawal-request/get-event-sold-tickets-by-user'
+    )
     return data?.data
   },
   //Lấy detail của yêu cầu rút tiền theo eventCode
