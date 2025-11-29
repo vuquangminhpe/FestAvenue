@@ -4,69 +4,18 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '../../ui/button'
 import OptimizedImage from '../OptimizedImage'
 import { useQuery } from '@tanstack/react-query'
-import { eventApis } from '@/apis/event.api'
-import type { ReqFilterOwnerEvent, bodySearchEvent } from '@/types/event.types'
-import { useUsersStore } from '@/contexts/app.context'
+import bannerApis from '@/apis/banner.api'
+import type { Banner } from '@/types/banner.types'
 
-interface CarouselBannerProps {
-  searchQuery?: string
-}
-
-const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = '' }) => {
-  const { isAuth } = useUsersStore() // Check if user is authenticated
-
-  const searchFilter: bodySearchEvent = {
-    searchText: searchQuery,
-    pagination: {
-      pageIndex: 1,
-      isPaging: true,
-      pageSize: 20
-    }
-  }
-
-  // Only fetch favorite events if user is authenticated
-  const { data: eventsData, isLoading: isLoadingFavorites } = useQuery({
-    queryKey: ['carouselEvents', searchQuery],
-    queryFn: () => eventApis.getListEventFollowWithPaging(searchFilter),
-    staleTime: 1000 * 60 * 2, // 2 minutes
-    enabled: isAuth // Only fetch if user is logged in
+const CarouselBannerOptimized: React.FC = () => {
+  // Fetch banner data
+  const { data: bannerData, isLoading } = useQuery({
+    queryKey: ['bannerSliderHome'],
+    queryFn: () => bannerApis.getBannerSliderHomeActive(),
+    staleTime: 1000 * 60 * 5 // 5 minutes
   })
 
-  const favoriteEvents: ReqFilterOwnerEvent[] = isAuth
-    ? ((((eventsData?.data as any)?.result as any) || []) as ReqFilterOwnerEvent[])
-    : []
-
-  // Fetch featured events if:
-  // - User is not authenticated (use only featured events)
-  // - OR user is authenticated but has less than 4 favorites (fillup with featured)
-  const { data: featuredEventsData, isLoading: isLoadingFeatured } = useQuery({
-    queryKey: ['featuredEvents'],
-    queryFn: () => eventApis.getTop20EventFeaturedEvent(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: !isAuth || (!isLoadingFavorites && favoriteEvents.length < 4)
-  })
-
-  const featuredEvents: ReqFilterOwnerEvent[] = ((featuredEventsData as any)?.data || []) as ReqFilterOwnerEvent[]
-
-  // Combine favorite and featured events to get exactly 4 items
-  let items: ReqFilterOwnerEvent[] = []
-
-  if (!isAuth) {
-    items = featuredEvents?.slice(0, 4) ?? []
-  } else if (favoriteEvents.length >= 4) {
-    // If we have 4+ favorite events, just use them
-    items = favoriteEvents?.slice(0, 4)
-  } else {
-    // If less than 4 favorites, combine with featured events
-    items = [...favoriteEvents]
-    const needed = 4 - favoriteEvents?.length
-    // Filter out featured events that are already in favorites (by id)
-    const favoriteIds = new Set(favoriteEvents.map((e) => e.id))
-    const additionalFeatured = featuredEvents?.filter((e) => !favoriteIds.has(e.id)).slice(0, needed) ?? []
-    items = [...items, ...additionalFeatured]
-  }
-
-  const isLoading = isAuth ? isLoadingFavorites || (favoriteEvents.length < 4 && isLoadingFeatured) : isLoadingFeatured
+  const items: Banner[] = ((bannerData as any)?.data || []) as Banner[]
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [previousIndex, setPreviousIndex] = useState<number | null>(null)
@@ -182,6 +131,50 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
   return (
     <>
       <style>{`
+        /* Import Vietnamese fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lobster&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap');
+
+        /* Custom font styles */
+        .topic-text {
+          font-family: 'Lobster', cursive;
+          font-weight: 400;
+          letter-spacing: 0.08em;
+          line-height: 1.5;
+          padding-top: 0.3em;
+          padding-bottom: 0.3em;
+          background: linear-gradient(135deg,
+            #FF7979 0%,
+            #FF6B6B 15%,
+            #E74C3C 35%,
+            #C0392B 55%,
+            #A93226 70%,
+            #8B1A1A 85%,
+            #6B1717 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          font-style: italic;
+          -webkit-text-stroke: 1.5px rgba(139, 26, 26, 0.6);
+          text-stroke: 1.5px rgba(139, 26, 26, 0.6);
+          filter: drop-shadow(0 0 15px rgba(231, 76, 60, 0.6))
+                  drop-shadow(2px 2px 6px rgba(0, 0, 0, 0.7));
+        }
+
+        .title-text {
+          font-family: 'Kaushan Script', cursive;
+          font-weight: 400;
+          letter-spacing: 0.02em;
+          text-shadow:
+            3px 3px 6px rgba(0, 0, 0, 0.9),
+            0 0 20px rgba(0, 0, 0, 0.7),
+            -1px -1px 0 rgba(0, 0, 0, 0.5),
+            1px 1px 0 rgba(255, 255, 255, 0.1);
+          -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.2);
+        }
+
         /* Ultra-smooth CSS Animations with 60fps optimization */
         @keyframes slideInFromCenter {
           0% {
@@ -626,7 +619,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
 
             return (
               <div
-                key={item.id}
+                key={`banner-${index}`}
                 className={`item ${isActive ? 'active' : ''} ${isExiting ? 'exiting' : ''} ${
                   isInitial ? 'initial' : ''
                 } ${isAnimating && (isActive || isExiting) ? `animating-${direction}` : ''}`}
@@ -639,8 +632,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
               >
                 <div className='item-image w-full h-full'>
                   <OptimizedImage
-                    src={item.bannerUrl}
-                    alt={item.eventName}
+                    src={item.image}
+                    alt={item.title}
                     width={1920}
                     height={1080}
                     className='w-full h-full'
@@ -648,6 +641,23 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
                     sizes='100vw'
                     aspectRatio=''
                   />
+                </div>
+
+                {/* Content overlay with text */}
+                <div className='content content-wrapper absolute top-[40%] left-0 z-10 px-8 md:px-16 lg:px-24'>
+                  <div className='content-inner max-w-2xl'>
+                    {item.topic && (
+                      <div className='topic-text text-3xl md:text-4xl lg:text-5xl font-bold mb-3 uppercase tracking-wider'>
+                        {item.topic}
+                      </div>
+                    )}
+                    <div className='title-text text-white text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 leading-tight drop-shadow-2xl'>
+                      {item.title}
+                    </div>
+                    <div className='des-text text-gray-200 text-sm md:text-base lg:text-lg leading-relaxed mb-8 drop-shadow-lg line-clamp-3'>
+                      {item.description}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
@@ -678,7 +688,7 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
         <div className='thumbnail thumbnail-optimized absolute bottom-16 right-36 flex flex-col gap-4 z-[200]'>
           {items.map((item, index) => (
             <div
-              key={item.id}
+              key={`thumbnail-${index}`}
               onClick={() => handleThumbnailClick(index)}
               className={`item w-24 h-32 lg:w-28 lg:h-36 flex-shrink-0 relative rounded-xl overflow-hidden border-2 transition-all duration-300 ${
                 index === currentIndex ? 'active border-orange-500' : 'border-white/20 hover:border-white/60'
@@ -689,8 +699,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
               }}
             >
               <OptimizedImage
-                src={item.bannerUrl}
-                alt={item.eventName}
+                src={item.image}
+                alt={item.title}
                 width={200}
                 height={250}
                 className='w-full h-full'
@@ -700,8 +710,8 @@ const CarouselBannerOptimized: React.FC<CarouselBannerProps> = ({ searchQuery = 
               />
               <div className='absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent' />
               <div className='content absolute bottom-2 left-2 right-2 text-white'>
-                <div className='title font-semibold text-xs truncate drop-shadow-md'>{item.eventName}</div>
-                <div className='description font-light text-xs text-orange-300 truncate'>{item.shortDescription}</div>
+                <div className='title font-semibold text-[10px] truncate drop-shadow-md'>{item.title}</div>
+                <div className='description font-light text-[9px] text-orange-300 truncate'>{item.description}</div>
               </div>
             </div>
           ))}
