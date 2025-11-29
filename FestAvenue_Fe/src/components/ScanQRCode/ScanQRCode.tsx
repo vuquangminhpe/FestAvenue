@@ -1,6 +1,6 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Camera,
   ScanLine,
@@ -16,7 +16,7 @@ import {
   Hash,
   Calendar
 } from 'lucide-react'
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
+import { Scanner } from '@yudiel/react-qr-scanner'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import serviceSeatManagementApi from '@/apis/serviceSeatManagement.api'
 import userApi from '@/apis/user.api'
@@ -44,14 +44,12 @@ const TicketVerification: React.FC = () => {
   const navigate = useNavigate()
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
-  const [qrScanner, setQrScanner] = useState<Html5Qrcode | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [manualInput, setManualInput] = useState({
     eventCode: '',
     seatIndex: '',
     email: ''
   })
-  const [cameraStatus, setCameraStatus] = useState<'idle' | 'starting' | 'active' | 'error'>('idle')
   const [lastScannedCode, setLastScannedCode] = useState<string>('')
   const [scanCooldown, setScanCooldown] = useState<number>(0)
   const [currentEmail, setCurrentEmail] = useState<string>('')
@@ -121,178 +119,6 @@ const TicketVerification: React.FC = () => {
     checkInMutation.error
   ])
 
-  // Stop camera và scanner
-  const stopCamera = useCallback(async () => {
-    if (qrScanner) {
-      try {
-        const currentState = qrScanner.getState()
-        if (currentState === Html5QrcodeScannerState.SCANNING) {
-          await qrScanner.stop()
-        }
-        if (currentState !== Html5QrcodeScannerState.NOT_STARTED) {
-          await qrScanner.clear()
-        }
-        setQrScanner(null)
-      } catch (err) {
-        console.error('Error stopping scanner:', err)
-        setQrScanner(null)
-      }
-    }
-
-    setIsScanning(false)
-    setCameraStatus('idle')
-  }, [qrScanner])
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      stopCamera()
-    }
-  }, [stopCamera])
-
-  // Component mount and cleanup effect
-  useEffect(() => {
-    console.log('TicketVerification component mounted')
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      console.warn('Camera không được hỗ trợ trên trình duyệt này')
-      setError('Camera không được hỗ trợ trên trình duyệt này')
-    }
-
-    return () => {
-      console.log('TicketVerification component unmounting')
-      stopCamera()
-    }
-  }, [stopCamera])
-
-  const setupQrScanner = () => {
-    const scanner = new Html5Qrcode('qr-reader')
-    setQrScanner(scanner)
-    return scanner
-  }
-
-  const startCamera = async () => {
-    try {
-      setError(null)
-      setCameraStatus('starting')
-
-      await new Promise((resolve) => setTimeout(resolve, 300))
-
-      const element = document.getElementById('qr-reader')
-      if (!element) {
-        throw new Error('Không tìm thấy phần tử QR reader')
-      }
-
-      const scanner = setupQrScanner()
-      if (!scanner) return
-
-      const config = {
-        fps: 10,
-        qrbox: function (viewfinderWidth: number, viewfinderHeight: number) {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight)
-          const qrboxSize = Math.floor(minEdge * 0.6)
-          return {
-            width: qrboxSize,
-            height: qrboxSize
-          }
-        },
-        aspectRatio: 1.0,
-        rememberLastUsedCamera: true,
-        videoConstraints: {
-          width: { min: 320, ideal: 640, max: 1280 },
-          height: { min: 240, ideal: 480, max: 720 },
-          facingMode: 'environment'
-        },
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true
-        }
-      }
-
-      try {
-        const cameras = await Html5Qrcode.getCameras()
-        console.log('Available cameras:', cameras)
-
-        const rearCamera = cameras.find(
-          (camera) =>
-            camera.label.toLowerCase().includes('back') ||
-            camera.label.toLowerCase().includes('rear') ||
-            camera.label.toLowerCase().includes('environment')
-        )
-
-        const cameraId = rearCamera ? rearCamera.id : { facingMode: 'environment' }
-
-        await scanner.start(
-          cameraId,
-          config,
-          (decodedText: string) => {
-            if (decodedText && decodedText !== lastScannedCode) {
-              console.log('QR Code detected:', decodedText)
-              setLastScannedCode(decodedText)
-              handleVerifyTicket(decodedText)
-
-              setScanCooldown(20)
-              const cooldownInterval = setInterval(() => {
-                setScanCooldown((prev) => {
-                  if (prev <= 1) {
-                    clearInterval(cooldownInterval)
-                    setLastScannedCode('')
-                    return 0
-                  }
-                  return prev - 1
-                })
-              }, 1000)
-            }
-          },
-          () => {
-            // Suppress scanning errors
-          }
-        )
-      } catch (err: any) {
-        console.log('Rear camera not available, trying front camera...', err)
-
-        try {
-          await scanner.start(
-            { facingMode: 'user' },
-            config,
-            (decodedText: string) => {
-              if (decodedText && decodedText !== lastScannedCode) {
-                console.log('QR Code detected:', decodedText)
-                setLastScannedCode(decodedText)
-                handleVerifyTicket(decodedText)
-
-                setScanCooldown(20)
-                const cooldownInterval = setInterval(() => {
-                  setScanCooldown((prev) => {
-                    if (prev <= 1) {
-                      clearInterval(cooldownInterval)
-                      setLastScannedCode('')
-                      return 0
-                    }
-                    return prev - 1
-                  })
-                }, 1000)
-              }
-            },
-            () => {
-              // Suppress scanning errors
-            }
-          )
-        } catch (userCamErr: any) {
-          console.log('Front camera also not available', userCamErr)
-          throw new Error('Không có camera khả dụng')
-        }
-      }
-
-      setIsScanning(true)
-      setCameraStatus('active')
-    } catch (err: any) {
-      console.error('Error starting camera:', err)
-      setError(`Lỗi camera: ${err.message}`)
-      setCameraStatus('error')
-      setIsScanning(false)
-    }
-  }
-
   // Play sound feedback
   const playSound = (isSuccess: boolean) => {
     try {
@@ -321,6 +147,41 @@ const TicketVerification: React.FC = () => {
     } catch (error) {
       console.log('Audio not supported or error playing sound:', error)
     }
+  }
+
+  // Handle QR code scan
+  const handleScan = (detectedCodes: any[]) => {
+    if (!detectedCodes || detectedCodes.length === 0) return
+
+    const qrCodeString = detectedCodes[0].rawValue
+
+    // Prevent duplicate scans
+    if (qrCodeString === lastScannedCode || scanCooldown > 0 || checkInMutation.isPending) {
+      return
+    }
+
+    console.log('QR Code detected:', qrCodeString)
+    setLastScannedCode(qrCodeString)
+    handleVerifyTicket(qrCodeString)
+
+    // Set cooldown
+    setScanCooldown(3)
+    const cooldownInterval = setInterval(() => {
+      setScanCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownInterval)
+          setLastScannedCode('')
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  // Handle scan error
+  const handleScanError = (error: any) => {
+    console.error('Scan error:', error)
+    // Don't show error for normal scanning failures, only critical errors
   }
 
   // Verify ticket code
@@ -487,49 +348,36 @@ const TicketVerification: React.FC = () => {
               {/* Camera View */}
               <div className='relative mb-6'>
                 <div className='aspect-video bg-gray-900 rounded-xl overflow-hidden relative border-2 border-gray-200'>
-                  <div
-                    id='qr-reader'
-                    className={`${cameraStatus === 'active' ? 'block' : 'hidden'}`}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      minHeight: '300px',
-                      position: 'relative',
-                      backgroundColor: 'transparent'
-                    }}
-                  />
-
-                  {cameraStatus === 'starting' && (
-                    <div className='flex items-center justify-center h-full'>
-                      <div className='text-center'>
-                        <RefreshCw className='h-16 w-16 text-cyan-500 mx-auto mb-4 animate-spin' />
-                        <p className='text-cyan-500 font-medium'>Đang khởi động camera...</p>
-                      </div>
+                  {isScanning ? (
+                    <div className='w-full h-full'>
+                      <Scanner
+                        onScan={handleScan}
+                        onError={handleScanError}
+                        constraints={{
+                          facingMode: 'environment'
+                        }}
+                        styles={{
+                          container: {
+                            width: '100%',
+                            height: '100%',
+                            position: 'relative'
+                          },
+                          video: {
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }
+                        }}
+                        components={{
+                          finder: true
+                        }}
+                      />
                     </div>
-                  )}
-
-                  {cameraStatus === 'active' && isScanning && (
-                    <div className='absolute inset-0 pointer-events-none z-10'>
-                      <div className='absolute inset-4 border-2 border-cyan-400 rounded-lg'>
-                        <div className='absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-cyan-400 rounded-tl-lg'></div>
-                        <div className='absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-cyan-400 rounded-tr-lg'></div>
-                        <div className='absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-cyan-400 rounded-bl-lg'></div>
-                        <div className='absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-cyan-400 rounded-br-lg'></div>
-                      </div>
-                      <ScanLine className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-8 w-8 text-cyan-400' />
-                    </div>
-                  )}
-
-                  {(cameraStatus === 'idle' || cameraStatus === 'error') && (
+                  ) : (
                     <div className='flex items-center justify-center h-full'>
                       <div className='text-center'>
                         <Camera className='h-16 w-16 text-gray-400 mx-auto mb-4' />
-                        <p className='text-gray-400'>
-                          {cameraStatus === 'error' ? 'Lỗi camera' : 'Camera chưa kích hoạt'}
-                        </p>
-                        {cameraStatus === 'error' && error && (
-                          <p className='text-red-400 text-sm mt-2 max-w-xs mx-auto'>{error}</p>
-                        )}
+                        <p className='text-gray-400'>Camera chưa kích hoạt</p>
                       </div>
                     </div>
                   )}
@@ -544,26 +392,24 @@ const TicketVerification: React.FC = () => {
 
               {/* Camera Controls */}
               <div className='flex gap-3'>
-                {cameraStatus === 'idle' || cameraStatus === 'error' ? (
+                {!isScanning ? (
                   <button
-                    onClick={startCamera}
-                    disabled={false}
-                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:from-gray-400 disabled:to-gray-400 text-white rounded-xl transition-all font-medium shadow-lg'
+                    onClick={() => {
+                      setIsScanning(true)
+                      setError(null)
+                    }}
+                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-xl transition-all font-medium shadow-lg'
                   >
                     <Camera className='h-5 w-5' />
                     Bắt đầu quét
                   </button>
-                ) : cameraStatus === 'starting' ? (
-                  <button
-                    disabled
-                    className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-400 text-white rounded-xl font-medium shadow-lg cursor-not-allowed'
-                  >
-                    <RefreshCw className='h-5 w-5 animate-spin' />
-                    Đang khởi động...
-                  </button>
                 ) : (
                   <button
-                    onClick={stopCamera}
+                    onClick={() => {
+                      setIsScanning(false)
+                      setLastScannedCode('')
+                      setScanCooldown(0)
+                    }}
                     className='flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-medium shadow-lg'
                   >
                     <XCircle className='h-5 w-5' />
@@ -840,35 +686,6 @@ const TicketVerification: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Custom CSS */}
-        <style>{`
-          #qr-reader video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            display: block !important;
-            border-radius: 12px;
-            background: #000;
-          }
-
-          #qr-reader canvas {
-            display: none !important;
-          }
-
-          #qr-reader > div {
-            position: relative !important;
-            width: 100% !important;
-            height: 100% !important;
-            min-height: 300px !important;
-          }
-
-          #qr-reader {
-            min-height: 300px !important;
-            background: #1a1a1a;
-            border-radius: 12px;
-          }
-        `}</style>
       </div>
     </PermissionGuard>
   )
