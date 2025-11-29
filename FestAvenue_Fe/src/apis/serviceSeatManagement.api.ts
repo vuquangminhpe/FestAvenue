@@ -1,5 +1,5 @@
 import type { APIResponse } from '@/types/API.types'
-import type { bodyCreateSeatingChart } from '@/types/serviceSeatChartManagement'
+import type { bodyCheckInSeat, bodyCreateSeatingChart, resCheckInSeat } from '@/types/serviceSeatChartManagement'
 import http from '@/utils/http'
 
 const serviceSeatManagementApi = {
@@ -13,6 +13,10 @@ const serviceSeatManagementApi = {
   },
   deleteSeatingChart: async (id: string) => {
     const data = await http.delete<APIResponse<{ message: string }>>(`/seating-chart/delete-seating-char-by-id/${id}`)
+    return data?.data
+  },
+  CheckInSeat: async (body: bodyCheckInSeat) => {
+    const data = await http.post<APIResponse<resCheckInSeat>>('/seating-chart/check-in-seat', body)
     return data?.data
   }
 }

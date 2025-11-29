@@ -151,7 +151,7 @@ export default function MyPayment() {
   const stats = {
     total: payments.length,
     totalAmount: payments.reduce((sum, payment) => sum + payment.amount, 0),
-    successful: payments.filter((p) => p.seats.some((seat) => seat.seatStatus === SeatStatus.Scanned)).length,
+    successful: payments.filter((p) => p.seats?.some((seat) => seat.seatStatus === SeatStatus.Scanned)).length,
     successfulAmount: payments
       .filter((p) => p.seats.some((seat) => seat.seatStatus === SeatStatus.Scanned))
       .reduce((sum, payment) => sum + payment.amount, 0)

@@ -8,8 +8,9 @@ import {
   useUserPermissionsInEvent
 } from '@/pages/User/Process/UserManagementInEvents/hooks/usePermissions'
 import { getIdFromNameId } from '@/utils/utils'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Lock } from 'lucide-react'
 import { PermissionProvider } from '@/contexts/PermissionContext'
+import { useGetEventByCode } from '@/pages/User/Auth/Event/EventDetails/hooks'
 
 interface EventOwnerLayoutProps {
   children: ReactNode
@@ -36,6 +37,10 @@ const SERVICE_PACKAGE_ROUTE_MAP: Record<string, { displayName: string; href: str
   'Quản lý lịch trình': {
     displayName: 'Quản lý lịch',
     href: path.user.schedule.view
+  },
+  'Quét mã vé sự kiện': {
+    displayName: 'Quét mã vé sự kiện',
+    href: path.user.scanQR.view
   }
 }
 
@@ -49,7 +54,7 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
   const { isLoading: isLoadingPackages } = useEventPackages(eventCode)
   const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
   const { isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
-
+  const { data: dataEventCodeDetail } = useGetEventByCode(eventCode)
   const isEventOwner: boolean =
     ownerCheckData &&
     typeof ownerCheckData === 'object' &&
@@ -57,6 +62,17 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
     typeof ownerCheckData.data === 'boolean'
       ? ownerCheckData.data
       : false
+
+  // Check if event is currently active (between start and end time)
+  const isEventActive = useMemo(() => {
+    if (!dataEventCodeDetail?.startTimeEventTime || !dataEventCodeDetail?.endTimeEventTime) {
+      return false
+    }
+    const eventStartTime = new Date(dataEventCodeDetail.startTimeEventTime)
+    const eventEndTime = new Date(dataEventCodeDetail.endTimeEventTime)
+    const now = new Date()
+    return now >= eventStartTime && now < eventEndTime
+  }, [dataEventCodeDetail])
 
   // Build navigation items - Hiển thị tất cả services cho mọi người
   const navigation = useMemo(() => {
@@ -104,6 +120,38 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                   // Extract pathname from href (remove query params for comparison)
                   const itemPath = item.href.split('?')[0]
                   const isActive = location.pathname === itemPath
+
+                  // Check if this is the QR scan feature and event is not active
+                  const isScanQR = item.name === 'Quét mã vé sự kiện'
+                  const isDisabled = isScanQR && !isEventActive
+
+                  // If disabled, render as disabled button with tooltip
+                  if (isDisabled) {
+                    return (
+                      <div key={item.name} className='relative group'>
+                        <button
+                          disabled
+                          className={cn(
+                            'px-6 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all duration-300',
+                            'bg-gray-100 text-gray-400 cursor-not-allowed flex items-center gap-2',
+                            'opacity-60'
+                          )}
+                          title='Tính năng chỉ mở khi sự kiện đã bắt đầu, vui lòng chờ đến thời gian'
+                        >
+                          <Lock className='w-4 h-4' />
+                          {item.name}
+                        </button>
+                        {/* Tooltip */}
+                        <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50'>
+                          Tính năng chỉ mở khi sự kiện đã bắt đầu
+                          <div className='absolute top-full left-1/2 transform -translate-x-1/2 -mt-1'>
+                            <div className='border-4 border-transparent border-t-gray-800'></div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return (
                     <Link
                       key={item.name}

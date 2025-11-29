@@ -39,6 +39,7 @@ import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { Helmet } from 'react-helmet-async'
 import GoongMap from '@/components/custom/GoongMap/GoongMap'
+import PDFViewer from '@/components/PDFViewer/PDFViewer'
 
 export default function StaffEventManagement() {
   const queryClient = useQueryClient()
@@ -847,15 +848,14 @@ export default function StaffEventManagement() {
 
       {/* View Contract Dialog */}
       <Dialog open={showViewContractDialog} onOpenChange={setShowViewContractDialog}>
-        <DialogContent className='max-w-4xl max-h-[90vh]'>
+        <DialogContent className='!max-w-[1440px] max-h-[90vh]'>
           <DialogHeader>
-            <DialogTitle>Xem Hợp đồng</DialogTitle>
-            <DialogDescription>Hợp đồng sự kiện</DialogDescription>
+            <DialogTitle>Xem hợp đồng</DialogTitle>
           </DialogHeader>
 
-          <div className='w-full h-[70vh]'>
+          <div className='w-full h-[75vh]'>
             {contractUrl ? (
-              <iframe src={contractUrl} className='w-full h-full border rounded' title='Contract PDF' />
+              <PDFViewer url={contractUrl} />
             ) : (
               <div className='flex items-center justify-center h-full'>
                 <Loader2 className='w-8 h-8 animate-spin text-blue-500' />

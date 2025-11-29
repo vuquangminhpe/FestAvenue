@@ -45,6 +45,7 @@ import { Helmet } from 'react-helmet-async'
 import { useQuery } from '@tanstack/react-query'
 import { generateNameId } from '@/utils/utils'
 import InvitationsTable from './components/InvitationsTable'
+import PDFViewer from '@/components/PDFViewer/PDFViewer'
 
 const statusConfig = {
   [EventStatusValues.Pending]: {
@@ -635,15 +636,14 @@ export default function MyEvents() {
 
       {/* View Contract Dialog */}
       <Dialog open={showViewContractDialog} onOpenChange={setShowViewContractDialog}>
-        <DialogContent className='max-w-4xl max-h-[90vh]'>
+        <DialogContent className='!max-w-[1440px] max-h-[95vh]'>
           <DialogHeader>
-            <DialogTitle>Xem Hợp đồng</DialogTitle>
-            <DialogDescription>Hợp đồng sự kiện</DialogDescription>
+            <DialogTitle>Xem hợp đồng</DialogTitle>
           </DialogHeader>
 
-          <div className='w-full h-[70vh]'>
+          <div className='w-full h-[75vh]'>
             {contractUrl ? (
-              <iframe src={contractUrl} className='w-full h-full border rounded' title='Contract PDF' />
+              <PDFViewer url={contractUrl} />
             ) : (
               <div className='flex items-center justify-center h-full'>
                 <Loader2 className='w-8 h-8 animate-spin text-blue-500' />

@@ -69,6 +69,10 @@ const path = {
       payment_organization: '/user/payment/payment_organization',
       payment_event: '/user/payment/payment_event'
     },
+    scanQR: {
+      root: '/user/scanQR',
+      view: '/user/scanQR/view'
+    },
     schedule: {
       root: '/user/schedule',
       view: '/user/schedule/view',

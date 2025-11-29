@@ -46,6 +46,7 @@ const SocialMediaManagement = lazy(() => import('./pages/User/Auth/SocialMediaMa
 const TicketManagement = lazy(() => import('./pages/User/Auth/TicketManagement/TicketManagement'))
 const PostEventWithdrawal = lazy(() => import('./pages/User/Auth/My/PostEventWithdrawal'))
 const WithdrawalManagement = lazy(() => import('./pages/Admin/Process/WithdrawalManagement'))
+const ScanQRCode = lazy(() => import('./components/ScanQRCode/ScanQRCode'))
 
 const Loader = () => (
   <div
@@ -562,6 +563,16 @@ export default function useRouteElement() {
                 <SuspenseWrapper>
                   <EventOwnerLayout>
                     <TicketManagement />
+                  </EventOwnerLayout>
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.user.scanQR.view,
+              element: (
+                <SuspenseWrapper>
+                  <EventOwnerLayout>
+                    <ScanQRCode />
                   </EventOwnerLayout>
                 </SuspenseWrapper>
               )

@@ -46,7 +46,7 @@ export interface userRes {
   firstName: string
   lastName: string
   phone: string
-  roles: [string]
+  roles: string[]
   avatar: string
   status: number
   lastLogin: string

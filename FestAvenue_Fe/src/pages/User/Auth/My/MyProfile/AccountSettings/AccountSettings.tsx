@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 import ImageCropper from './ImageCropper/ImageCropper'
-import defaultAvatar from '../../../../../../../public/Images/default-avatar.png'
+import defaultAvatar from '../../../../../../../public/Images/FestDefault.png'
 import { Card, CardContent } from '@/components/ui/card'
 import userApi from '@/apis/user.api'
 import { useUsersStore } from '@/contexts/app.context'

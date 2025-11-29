@@ -134,6 +134,12 @@ const userApi = {
       params: { userId }
     })
     return data?.data
+  },
+  getProfileByEmail: async (mail: string) => {
+    const data = await http.get<APIResponse<userRes>>('/profile', {
+      params: { mail }
+    })
+    return data?.data
   }
 }
 export default userApi
