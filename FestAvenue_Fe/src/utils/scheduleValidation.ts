@@ -58,13 +58,6 @@ export const validateScheduleTitle = (title: string): ValidationResult => {
 
   // Check if title has meaningful words (not just repeating characters)
   const withoutSpaces = trimmed.replace(/\s/g, '')
-  const uniqueChars = new Set(withoutSpaces.toLowerCase())
-  if (uniqueChars.size < 3) {
-    return {
-      isValid: false,
-      error: 'Tiêu đề phải có nội dung có ý nghĩa, không được lặp lại ký tự (ví dụ: "aaa", "111")'
-    }
-  }
 
   // Must have at least 2 words for meaningful title
   const words = trimmed.split(/\s+/).filter((w) => w.length > 0)
@@ -123,8 +116,7 @@ export const validateScheduleDescription = (description: string | undefined): Va
     }
 
     // Check for meaningful content (at least 40% letters)
-    const letters =
-      trimmed.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
+    const letters = trimmed.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
     const totalChars = trimmed.replace(/\s/g, '').length
     if (totalChars > 0 && letters.length / totalChars < 0.4) {
       return {

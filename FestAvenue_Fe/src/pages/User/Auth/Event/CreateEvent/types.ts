@@ -72,17 +72,7 @@ const eventNameValidator = z
       message: 'Tên sự kiện phải chứa ít nhất một chữ cái, không được chỉ toàn số'
     }
   )
-  .refine(
-    (name) => {
-      // Check if name has meaningful words (not just repeating characters)
-      const trimmed = name.trim()
-      const uniqueChars = new Set(trimmed.replace(/\s/g, '').toLowerCase())
-      return uniqueChars.size >= 3 // At least 3 different characters
-    },
-    {
-      message: 'Tên sự kiện phải có nội dung có ý nghĩa, không được lặp lại ký tự (ví dụ: "aaa", "111")'
-    }
-  )
+
   .refine(
     (name) => {
       // Must have at least 2 words for meaningful event name
@@ -161,29 +151,6 @@ const baseEventObjectSchema = z.object({
       },
       {
         message: 'Mô tả phải bắt đầu bằng chữ cái, không được bắt đầu bằng số'
-      }
-    )
-    .refine(
-      (desc) => {
-        // Check for meaningful content (not just numbers)
-        const letters =
-          desc.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
-        const totalChars = desc.replace(/\s/g, '').length
-        return letters.length / totalChars >= 0.4 // At least 40% letters
-      },
-      {
-        message: 'Mô tả phải chứa nội dung có ý nghĩa, không được chỉ là số hoặc ký tự đặc biệt'
-      }
-    )
-    .refine(
-      (desc) => {
-        // Check for repeating patterns (like "111111" or "aaaaaa")
-        const trimmed = desc.trim().replace(/\s/g, '')
-        const uniqueChars = new Set(trimmed.toLowerCase())
-        return uniqueChars.size >= 5 // At least 5 different characters
-      },
-      {
-        message: 'Mô tả phải có nội dung đa dạng, không được lặp lại ký tự (ví dụ: "111111", "aaaaaa")'
       }
     ),
 

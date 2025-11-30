@@ -52,13 +52,61 @@ export interface resModerateContent {
 }
 export interface bodyEventChatBot {
   message: string
-  use_rag: true // mặc định
-  use_advanced_rag: true // mặc định
-  use_query_expansion: true // mặc định
-  use_reranking: false // mặc định
-  top_k: 6 // mặc định
-  temperature: 0.5 // mặc định
   session_id?: string // dùng để check xem user có muốn tiếp tục chat phần chat đó không
+  user_id?: string
+  use_rag?: boolean // default: true
+  enable_tools?: boolean // default: true
+  top_k?: number // default: 3
+  score_threshold?: number // default: 0.5
+  temperature?: number // default: 0.7
+  system_message?: string // optional custom system message
+}
+
+// Scenario Types
+export interface Scenario {
+  scenario_id: string
+  name: string
+  description: string
+  triggers: string[]
+  category: string
+  priority: 'high' | 'normal' | 'low'
+  estimated_duration: string
+}
+
+export interface ScenariosResponse {
+  total: number
+  scenarios: Scenario[]
+}
+
+export interface StartScenarioBody {
+  initial_data?: Record<string, any>
+  session_id?: string
+  user_id?: string
+}
+
+export interface StartScenarioResponse {
+  session_id: string
+  scenario_id: string
+  message: string
+  scenario_active: boolean
+  proactive: boolean
+}
+
+// Session Types
+export interface SessionInfo {
+  session_id: string
+  created_at: string
+  updated_at: string
+  message_count: number
+  user_id?: string
+  metadata?: Record<string, any>
+}
+
+export interface SessionsListResponse {
+  total: number
+  limit: number
+  skip: number
+  sessions: SessionInfo[]
 }
 
 export interface EventAddress {
@@ -136,11 +184,13 @@ export interface ToolCall {
 
 export interface resChatBot {
   response: string
-  context_used: ContextUsed[]
-  timestamp: string
-  rag_stats: RagStats
   session_id: string
-  tool_calls: ToolCall[]
+  mode: 'scenario' | 'rag' // scenario hoặc rag mode
+  scenario_active: boolean
+  timestamp: string
+  context_used?: ContextUsed[]
+  rag_stats?: RagStats
+  tool_calls?: ToolCall[]
 }
 export interface resChatBotHistory {
   session_id: string
