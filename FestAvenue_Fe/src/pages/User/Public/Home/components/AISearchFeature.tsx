@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import BG_FEATURE_1 from '../../../../../../public/Images/Feature1.png'
+import VIDEO_FEATURE_1 from '../../../../../../public/video/Feature2.mp4'
 
 interface Feature {
   title: string
@@ -91,68 +91,51 @@ export default function AISearchFeature() {
   ]
 
   return (
-    <section
-      ref={sectionRef}
-      className='py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden'
-    >
-      <div className='max-w-7xl mx-auto relative z-10'>
-        {/* Header */}
-        <div className='text-center mb-16'>
-          <h2 className='text-5xl md:text-6xl font-bold mb-6 text-gray-900'>
-            Tìm Kiếm Sự Kiện{' '}
-            <span className='text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-400'>Thông Minh</span>
-          </h2>
-          <p className='text-xl leading-relaxed max-w-3xl mx-auto text-gray-700'>
-            Trải nghiệm công nghệ tìm kiếm tiên tiến với AI đa phương thức. Tìm kiếm sự kiện bằng văn bản, hình ảnh hoặc
-            kết hợp cả hai.
-          </p>
-        </div>
+    <section ref={sectionRef} className='relative overflow-hidden min-h-[900px] lg:min-h-[850px]'>
+      {/* Video Background */}
+      <div className='absolute inset-0 w-full h-full'>
+        <video loop autoPlay muted playsInline src={VIDEO_FEATURE_1} className='w-full h-full object-cover' />
+        {/* Dark overlay for better text readability */}
+        <div className='absolute inset-0 bg-gradient-to-r from-[#0a1628]/90 via-[#0a1628]/70 to-[#0a1628]/40'></div>
+      </div>
 
-        {/* Main Content - Image Left, Text Right */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-12 items-center'>
-          {/* Left - Feature Image */}
-          <div ref={imageRef} className='relative'>
-            <div className='relative rounded-3xl overflow-hidden shadow-2xl'>
-              <img src={BG_FEATURE_1} alt='AI Search Feature' className='w-full h-auto object-cover' loading='lazy' />
-              <div className='absolute inset-0 bg-gradient-to-t from-cyan-900/20 to-transparent'></div>
+      <div className='max-w-7xl mx-auto relative z-10 py-24 px-4 sm:px-6 lg:px-8'>
+        {/* Content Layout */}
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[750px] lg:min-h-[700px]'>
+          {/* Left - Header & Features */}
+          <div ref={contentRef} className='space-y-8'>
+            {/* Header */}
+            <div ref={imageRef}>
+              <h2 className='text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white leading-tight'>
+                Tìm Kiếm Sự Kiện{' '}
+                <span className='text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400'>
+                  Thông Minh
+                </span>
+              </h2>
+              <p className='text-lg leading-relaxed text-gray-300 max-w-xl'>
+                Trải nghiệm công nghệ tìm kiếm tiên tiến với AI đa phương thức. Tìm kiếm sự kiện bằng văn bản, hình ảnh
+                hoặc kết hợp cả hai.
+              </p>
             </div>
 
-            {/* Decorative Elements */}
-            <div className='absolute -top-4 -left-4 w-24 h-24 bg-cyan-200 rounded-full blur-2xl opacity-60'></div>
-            <div className='absolute -bottom-4 -right-4 w-32 h-32 bg-blue-200 rounded-full blur-2xl opacity-60'></div>
-          </div>
-
-          {/* Right - Features List */}
-          <div ref={contentRef} className='space-y-6'>
-            {features.map((feature, index) => (
-              <div
-                key={index}
-                className='feature-item group bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-cyan-200'
-              >
-                <div className='flex items-start gap-4'>
-                  {/* Text Content */}
-                  <div className='flex-grow'>
-                    <h3 className='text-xl font-bold mb-2 text-gray-900 group-hover:text-cyan-500 transition-colors duration-300'>
-                      {feature.title}
-                    </h3>
-                    <p className='text-gray-600 leading-relaxed'>{feature.description}</p>
-                  </div>
-
-                  {/* Arrow Icon */}
-                  <div className='flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300'>
-                    <svg
-                      className='w-5 h-5 text-cyan-500 group-hover:translate-x-1 transition-transform duration-300'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'
-                    >
-                      <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M9 5l7 7-7 7' />
-                    </svg>
-                  </div>
+            {/* Features Grid */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+              {features.map((feature, index) => (
+                <div
+                  key={index}
+                  className='feature-item group bg-white/10 backdrop-blur-md rounded-xl p-5 hover:bg-white/20 transition-all duration-300 border border-white/10 hover:border-cyan-400/40 hover:scale-[1.02]'
+                >
+                  <h3 className='text-lg font-bold mb-2 text-white group-hover:text-cyan-400 transition-colors duration-300'>
+                    {feature.title}
+                  </h3>
+                  <p className='text-sm text-gray-400 leading-relaxed'>{feature.description}</p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+
+          {/* Right - Empty space for video to show through */}
+          <div className='hidden lg:block'></div>
         </div>
       </div>
     </section>
