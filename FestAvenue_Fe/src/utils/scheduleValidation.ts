@@ -114,26 +114,6 @@ export const validateScheduleDescription = (description: string | undefined): Va
         error: 'Mô tả phải bắt đầu bằng chữ cái, không được bắt đầu bằng số'
       }
     }
-
-    // Check for meaningful content (at least 40% letters)
-    const letters = trimmed.match(/[a-zA-ZàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]/g) || []
-    const totalChars = trimmed.replace(/\s/g, '').length
-    if (totalChars > 0 && letters.length / totalChars < 0.4) {
-      return {
-        isValid: false,
-        error: 'Mô tả phải chứa nội dung có ý nghĩa, không được chỉ là số hoặc ký tự đặc biệt'
-      }
-    }
-
-    // Check for repeating patterns
-    const withoutSpaces = trimmed.replace(/\s/g, '')
-    const uniqueChars = new Set(withoutSpaces.toLowerCase())
-    if (withoutSpaces.length > 10 && uniqueChars.size < 5) {
-      return {
-        isValid: false,
-        error: 'Mô tả phải có nội dung đa dạng, không được lặp lại ký tự'
-      }
-    }
   }
 
   return { isValid: true }
