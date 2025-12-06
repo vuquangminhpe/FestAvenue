@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useSeatManagement } from '@/pages/User/Auth/TicketManagement/hooks/useSeatManagement'
 import { SeatInteractionManager } from '../classes/SeatInteractionManager'
+import serviceTicketManagementApi from '@/apis/serviceTicketManagement.api'
 
 import type {
   EditTool,
@@ -10,6 +12,7 @@ import type {
   Section,
   ShapeType
 } from '@/types/seat.types'
+import type { TicketsCharForSeatsType } from '@/types/serviceTicketManagement.types'
 
 export const useEditorSeatState = (eventCode: string) => {
   const seatManagerRef = useRef(new SeatInteractionManager())
@@ -30,6 +33,28 @@ export const useEditorSeatState = (eventCode: string) => {
     deleteSeatingChartByEventCode,
     isDeletingByEventCode
   } = useSeatManagement(eventCode)
+
+  // Fetch ticketsForSeats data to show seat booking status
+  const { data: seatMapData, isLoading: isLoadingSeatMap } = useQuery({
+    queryKey: ['seatMap', eventCode],
+    queryFn: () => serviceTicketManagementApi.getSeatMapByEventCode(eventCode),
+    enabled: !!eventCode && hasExistingStructure,
+    staleTime: 10000, // 10 seconds - refresh frequently to get latest status
+    refetchInterval: 30000 // Refetch every 30 seconds
+  })
+
+  // Extract ticketsForSeats from seatMapData
+  const ticketsForSeats: TicketsCharForSeatsType[] = useMemo(() => {
+    return seatMapData?.data?.ticketsForSeats || []
+  }, [seatMapData])
+
+  // Check if a section has any booked/purchased seats (cannot be modified)
+  const getSectionBookingStatus = (sectionId: string) => {
+    const sectionSeats = ticketsForSeats.filter((t) => t.seatIndex.startsWith(sectionId))
+    const hasBookedSeats = sectionSeats.some((t) => t.isSeatLock || t.isPayment)
+    const hasPurchasedSeats = sectionSeats.some((t) => t.isPayment)
+    return { hasBookedSeats, hasPurchasedSeats, bookedCount: sectionSeats.filter((t) => t.isSeatLock || t.isPayment).length }
+  }
 
   const [mode] = useState<'edit'>('edit')
   const [editTool, setEditTool] = useState<EditTool>('select')
@@ -242,6 +267,10 @@ export const useEditorSeatState = (eventCode: string) => {
     hasExistingStructure,
     deleteSeatingChartByEventCode,
     isDeletingByEventCode,
+    // Ticket booking status data
+    ticketsForSeats,
+    isLoadingSeatMap,
+    getSectionBookingStatus,
     mode,
     editTool,
     setEditTool,

@@ -12,3 +12,11 @@ export interface bodyUpdateCategory {
   imageUrl: string
   isActive: boolean
 }
+export interface resAdminStatistics {
+  general: {
+    totalUsers: number
+    totalEvents: number
+    totalTicketsSold: number
+    totalRevenue: number
+  }
+}

@@ -110,6 +110,8 @@ interface PropertiesPanelProps {
   assignTicketToRow: () => void
   generateSeatsForSection: (section: Section, seatStatuses: any) => any
   seatStatuses: any
+  // Check if section can be modified (no booked seats)
+  canModifySection?: (sectionId: string) => boolean
 }
 
 export default function PropertiesPanel({
@@ -160,8 +162,13 @@ export default function PropertiesPanel({
   setBulkRowTicketId,
   assignTicketToRow,
   generateSeatsForSection,
-  seatStatuses
+  seatStatuses,
+  canModifySection
 }: PropertiesPanelProps) {
+  // Check if selected section can be modified
+  const selectedSectionCanBeModified = selectedSection && canModifySection
+    ? canModifySection(selectedSection.id)
+    : true
   return (
     <Card className='w-80 h-full flex flex-col bg-slate-800/60 backdrop-blur-xl border-purple-500/30 shadow-2xl'>
       <CardContent className='flex-1 overflow-y-auto max-h-[800px] p-4 space-y-4'>
@@ -396,31 +403,42 @@ export default function PropertiesPanel({
                   </Button>
                   <Button
                     onClick={() => {
-                      setEditTool('split')
                       if (!selectedSection) {
                         alert('Vui lòng chọn một khu vực trước để chia')
+                        return
                       }
+                      if (!selectedSectionCanBeModified) {
+                        alert('Không thể chia cắt khu vực này vì có ghế đã được đặt/mua')
+                        return
+                      }
+                      setEditTool('split')
                     }}
                     variant={editTool === 'split' ? 'default' : 'outline'}
                     size='sm'
-                    className={editTool === 'split' ? 'bg-yellow-600' : ''}
-                    disabled={!selectedSection}
+                    className={editTool === 'split' ? 'bg-yellow-600' : (!selectedSectionCanBeModified && selectedSection ? 'opacity-50' : '')}
+                    disabled={!selectedSection || !selectedSectionCanBeModified}
+                    title={!selectedSectionCanBeModified ? 'Khu vực có ghế đã đặt/mua không thể chia cắt' : 'Chia cắt khu vực'}
                   >
                     <Scissors className='w-3 h-3 mr-1' />
                     Chia Cắt
                   </Button>
                   <Button
                     onClick={() => {
-                      if (selectedSection) {
-                        startEditingPoints(selectedSection)
-                      } else {
+                      if (!selectedSection) {
                         alert('Vui lòng chọn một khu vực trước để sửa điểm')
+                        return
                       }
+                      if (!selectedSectionCanBeModified) {
+                        alert('Không thể sửa điểm khu vực này vì có ghế đã được đặt/mua')
+                        return
+                      }
+                      startEditingPoints(selectedSection)
                     }}
                     variant={editTool === 'edit-points' ? 'default' : 'outline'}
                     size='sm'
-                    className={editTool === 'edit-points' ? 'bg-teal-600' : ''}
-                    disabled={!selectedSection}
+                    className={editTool === 'edit-points' ? 'bg-teal-600' : (!selectedSectionCanBeModified && selectedSection ? 'opacity-50' : '')}
+                    disabled={!selectedSection || !selectedSectionCanBeModified}
+                    title={!selectedSectionCanBeModified ? 'Khu vực có ghế đã đặt/mua không thể sửa điểm' : 'Sửa điểm khu vực'}
                   >
                     <GitBranch className='w-3 h-3 mr-1' />
                     Sửa Điểm

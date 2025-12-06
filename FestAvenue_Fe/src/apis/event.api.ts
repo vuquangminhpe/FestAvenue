@@ -156,6 +156,12 @@ const eventApis = {
   updateContractByEventCode: async (body: bodyUpdateContract) => {
     const data = await http.post<APIResponse<{ message: string }>>('/event/update-contract-by-event-code', body)
     return data?.data
+  },
+  getPurchaseEventByUserId: async (userId: string) => {
+    const data = await http.get<APIResponse<{ eventCode: string; eventName: string }[]>>(
+      `/event/get-purchase-event-by-user-id/${userId}`
+    )
+    return data?.data
   }
 }
 

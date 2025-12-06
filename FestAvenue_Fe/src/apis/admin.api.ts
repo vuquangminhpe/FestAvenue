@@ -1,4 +1,4 @@
-import type { bodyCreateCategory, bodyUpdateCategory } from '@/types/admin.types'
+import type { bodyCreateCategory, bodyUpdateCategory, resAdminStatistics } from '@/types/admin.types'
 import type { APIResponse } from '@/types/API.types'
 import type { getCategoryActiveRes } from '@/types/categories.types'
 import http from '@/utils/http'
@@ -18,6 +18,10 @@ const adminApi = {
   },
   getAllCategory: async () => {
     const data = await http.get<APIResponse<getCategoryActiveRes[]>>('/admin/category/get-all-categories')
+    return data?.data
+  },
+  getAdminStatistics: async () => {
+    const data = await http.get<APIResponse<resAdminStatistics>>('/admin-dashboard/admin-statistics')
     return data?.data
   }
 }

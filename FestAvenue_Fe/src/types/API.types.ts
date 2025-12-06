@@ -185,7 +185,7 @@ export interface ToolCall {
 export interface resChatBot {
   response: string
   session_id: string
-  mode: 'scenario' | 'rag' // scenario hoặc rag mode
+  mode: 'scenario' | 'rag' | 'rag_with_resume' // scenario, rag, or rag_with_resume (off-topic during scenario)
   scenario_active: boolean
   timestamp: string
   context_used?: ContextUsed[]
@@ -195,6 +195,7 @@ export interface resChatBot {
 export interface resChatBotHistory {
   session_id: string
   message_count: number
+  total_messages: number
   messages: messagesChatBotRole[]
   created_at: string
   updated_at: string

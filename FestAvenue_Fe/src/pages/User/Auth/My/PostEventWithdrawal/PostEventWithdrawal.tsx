@@ -418,8 +418,8 @@ export default function PostEventWithdrawal() {
               <Alert className='bg-blue-50 border-blue-200'>
                 <AlertCircle className='h-4 w-4 text-blue-600' />
                 <AlertDescription className='text-blue-800'>
-                  Vui lòng kiểm tra kỹ thông tin ngân hàng trước khi gửi. Yêu cầu rút tiền sẽ được xử lý trong vòng 7-14
-                  ngày làm việc.
+                  Vui lòng kiểm tra kỹ thông tin ngân hàng trước khi gửi. Yêu cầu rút tiền sẽ được xử lý trong vòng 24
+                  giờ.
                 </AlertDescription>
               </Alert>
 

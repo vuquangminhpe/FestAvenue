@@ -1,19 +1,10 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo, useCallback } from 'react'
 import * as d3 from 'd3'
-import {
-  calculateBounds,
-
-} from '../utils/geometry'
+import { calculateBounds } from '../utils/geometry'
 
 import { getSkin } from '../SkinRegistry'
-import type {
-  EditTool,
-  Point,
-  PointConstraint,
-  SeatMapData,
-  Section,
-  ShapeType
-} from '@/types/seat.types'
+import type { EditTool, Point, PointConstraint, SeatMapData, Section, ShapeType } from '@/types/seat.types'
+import type { TicketsCharForSeatsType } from '@/types/serviceTicketManagement.types'
 import { projectPointToConstraint } from '../utils/shapeTransforms'
 
 // Helper functions
@@ -102,6 +93,9 @@ interface SeatMapCanvasProps {
   pointConstraintRef: React.MutableRefObject<PointConstraint | null>
   editingPointsRef: React.MutableRefObject<{ sectionId: string; points: Point[] } | null>
   selectedShape: ShapeType
+  // Ticket booking status
+  ticketsForSeats?: TicketsCharForSeatsType[]
+  canModifySection?: (sectionId: string) => boolean
 }
 
 export default function SeatMapCanvas({
@@ -143,9 +137,63 @@ export default function SeatMapCanvas({
   handleSeatLockToggle,
   pointConstraintRef,
   editingPointsRef,
-  selectedShape
+  selectedShape,
+  ticketsForSeats = [],
+  canModifySection
 }: SeatMapCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+
+  // Create a map for fast lookup of seat booking info
+  const seatBookingMap = useMemo(() => {
+    const map = new Map<string, TicketsCharForSeatsType>()
+    ticketsForSeats.forEach((ticket) => {
+      map.set(ticket.seatIndex, ticket)
+    })
+    return map
+  }, [ticketsForSeats])
+
+  // Get seat color based on booking status
+  // Colors:
+  // - Dark yellow/Orange (#f59e0b): Seat without ticketId (not assigned yet by event owner)
+  // - Red (#ef4444): Seat is being held (isSeatLock=true && isPayment=false)
+  // - Silver/Gray (#9ca3af): Seat has been purchased (isPayment=true)
+  // - Green (#22c55e): Available seat
+  const getSeatColor = useCallback(
+    (seat: any, section: Section) => {
+      console.log(section)
+
+      // Check if seat has ticketId (assigned by event owner)
+      if (!seat.ticketId) {
+        return '#f59e0b' // Dark yellow/Orange - not assigned yet
+      }
+
+      // Check booking info from ticketsForSeats
+      const bookingInfo = seatBookingMap.get(seat.id)
+
+      if (bookingInfo) {
+        // Seat has been purchased
+        if (bookingInfo.isPayment) {
+          return '#9ca3af' // Silver/Gray - purchased
+        }
+        // Seat is being held (locked but not paid)
+        if (bookingInfo.isSeatLock) {
+          return '#ef4444' // Red - being held
+        }
+      }
+
+      // Check local seat status as fallback
+      const localStatus = seatStatuses.get(seat.id)
+      if (localStatus === 'locked') {
+        return '#6b7280' // Gray for locally locked
+      }
+      if (localStatus === 'occupied') {
+        return '#ef4444' // Red for locally occupied
+      }
+
+      return '#22c55e' // Green - available
+    },
+    [seatBookingMap, seatStatuses]
+  )
 
   useEffect(() => {
     if (!svgRef.current) return
@@ -174,34 +222,44 @@ export default function SeatMapCanvas({
           createShapeSection({ x, y })
         })
       } else if (editTool === 'split' && selectedSection) {
-        // Two-click mode: first click for start point, second click for end point
-        svg.on('click', (event) => {
-          const [x, y] = d3.pointer(event, g.node())
-
-          if (!splitFirstPoint) {
-            setSplitFirstPoint({ x, y })
-            setSplitLine({ start: { x, y }, end: { x, y } })
-          } else {
-            const finalLine = { start: splitFirstPoint, end: { x, y } }
-            setSplitLine(finalLine)
-
-            if (selectedSection) {
-              splitSection(selectedSection, finalLine.start, finalLine.end)
-              setSplitLine(null)
-              setSplitFirstPoint(null)
-            }
-          }
-        })
-
-        svg.on('mousemove', (event) => {
-          if (splitFirstPoint) {
+        // Check if section can be modified before allowing split
+        const sectionCanBeSplit = canModifySection ? canModifySection(selectedSection.id) : true
+        if (!sectionCanBeSplit) {
+          // Section has booked seats, don't allow split - clear handlers
+          svg.on('click', null)
+          svg.on('mousemove', null)
+          svg.on('mousedown', null)
+          svg.on('mouseup', null)
+        } else {
+          // Two-click mode: first click for start point, second click for end point
+          svg.on('click', (event) => {
             const [x, y] = d3.pointer(event, g.node())
-            setSplitLine({ start: splitFirstPoint, end: { x, y } })
-          }
-        })
 
-        svg.on('mousedown', null)
-        svg.on('mouseup', null)
+            if (!splitFirstPoint) {
+              setSplitFirstPoint({ x, y })
+              setSplitLine({ start: { x, y }, end: { x, y } })
+            } else {
+              const finalLine = { start: splitFirstPoint, end: { x, y } }
+              setSplitLine(finalLine)
+
+              if (selectedSection) {
+                splitSection(selectedSection, finalLine.start, finalLine.end)
+                setSplitLine(null)
+                setSplitFirstPoint(null)
+              }
+            }
+          })
+
+          svg.on('mousemove', (event) => {
+            if (splitFirstPoint) {
+              const [x, y] = d3.pointer(event, g.node())
+              setSplitLine({ start: splitFirstPoint, end: { x, y } })
+            }
+          })
+
+          svg.on('mousedown', null)
+          svg.on('mouseup', null)
+        }
       } else {
         svg.on('click', null)
         svg.on('mousedown', null)
@@ -228,7 +286,11 @@ export default function SeatMapCanvas({
     splitFirstPoint,
     editingPoints,
     selectedPointIndex,
-    selectedShape
+    selectedShape,
+    ticketsForSeats,
+    getSeatColor,
+    seatBookingMap,
+    canModifySection
   ])
 
   const handleSvgClick = (event: any) => {
@@ -253,6 +315,11 @@ export default function SeatMapCanvas({
   const handleSectionMouseDown = (event: MouseEvent, sectionId: string) => {
     if (editTool !== 'move') return
     event.stopPropagation()
+
+    // Check if section can be modified (no booked/purchased seats)
+    if (canModifySection && !canModifySection(sectionId)) {
+      return // Cannot move section with booked seats
+    }
 
     const svg = svgRef.current
     if (!svg) return
@@ -427,24 +494,35 @@ export default function SeatMapCanvas({
     }
 
     mapData.sections.forEach((section, index) => {
+      // Check if section can be modified
+      const sectionCanBeModified = canModifySection ? canModifySection(section.id) : true
+
       const sectionGroup = g
         .append('g')
         .attr('class', `section section-${section.id}`)
         .style('opacity', section.layer ? 1 - section.layer * 0.1 : 1)
-        .style('cursor', editTool === 'move' ? 'move' : 'pointer')
+        .style('cursor', sectionCanBeModified ? (editTool === 'move' ? 'move' : 'pointer') : 'not-allowed')
 
       const appliedSkin = section.appearance?.templateId ? getSkin(section.appearance.templateId) : null
       const sectionSafeId = safeId(section.id)
       let fillOpacity = appliedSkin?.zone.opacity ?? 0.3
-      let strokeColor = section.hasSeats === false ? '#A0A0A0' : section.strokeColor || section.color
-      let strokeWidth = selectedSection?.id === section.id ? 3 : 2
+      // Show red border for locked sections (has booked seats)
+      let strokeColor = !sectionCanBeModified
+        ? '#ef4444' // Red border for locked sections
+        : section.hasSeats === false
+        ? '#A0A0A0'
+        : section.strokeColor || section.color
+      let strokeWidth = selectedSection?.id === section.id ? 3 : !sectionCanBeModified ? 3 : 2
       let fillValue =
         section.hasSeats === false ? '#C0C0C0' : section.gradient ? `url(#section-gradient-${index})` : section.color
       let filterId: string | null = null
 
       if (appliedSkin) {
-        strokeColor = appliedSkin.zone.strokeColor
-        strokeWidth = appliedSkin.zone.strokeWidth
+        // Preserve red border for locked sections even with skin
+        if (sectionCanBeModified) {
+          strokeColor = appliedSkin.zone.strokeColor
+        }
+        strokeWidth = !sectionCanBeModified ? 3 : appliedSkin.zone.strokeWidth
         fillOpacity = appliedSkin.zone.opacity ?? 0.85
 
         if (appliedSkin.zone.fillType === 'solid') {
@@ -619,6 +697,21 @@ export default function SeatMapCanvas({
         if (labelSkin?.letterSpacing !== undefined) {
           labelTextElement.style('letter-spacing', `${labelSkin.letterSpacing}px`)
         }
+
+        // Add lock indicator for locked sections (has booked seats)
+        if (!sectionCanBeModified) {
+          labelGroup
+            .append('text')
+            .attr('x', labelX + estimatedWidth / 2 - 5)
+            .attr('y', labelY - labelHeight / 2 - 5)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '14px')
+            .attr('fill', '#ef4444')
+            .attr('pointer-events', 'none')
+            .text('🔒')
+            .append('title')
+            .text('Khu vực này có ghế đã được đặt/mua, không thể chỉnh sửa')
+        }
       }
 
       // Render seats for this section in edit mode
@@ -628,11 +721,14 @@ export default function SeatMapCanvas({
           const seatSkin = appliedSkin?.seat
           const seatSize = seatSkin ? 5 * seatSkin.size : 5
           const seatHoverScale = seatSkin?.hoverScale ?? 1.2
-          const seatFill =
-            status === 'locked' ? '#6b7280' : status === 'occupied' ? '#ef4444' : seatSkin?.fillColor || '#22c55e'
+          // Use new color logic based on booking status
+          const seatFill = getSeatColor(seat, section)
           const seatStroke = seatSkin?.strokeColor || '#fff'
           const seatStrokeWidth = seatSkin?.strokeWidth || 1
           const seatBorderRadius = seatSkin?.borderRadius ?? seatSize * 0.3
+
+          // Get booking info for seat icon
+          const bookingInfo = seatBookingMap.get(seat.id)
 
           const seatGroup = sectionGroup
             .append('g')
@@ -723,8 +819,41 @@ export default function SeatMapCanvas({
             visibleSeat.style('filter', `drop-shadow(0 0 ${seatSkin.shadow.blur}px ${seatSkin.shadow.color})`)
           }
 
-          // Lock icon for locked seats
-          if (status === 'locked') {
+          // Icons for different seat states
+          if (bookingInfo?.isPayment) {
+            // Lock icon for purchased seats
+            seatGroup
+              .append('text')
+              .attr('x', seat.x)
+              .attr('y', seat.y + 1)
+              .attr('text-anchor', 'middle')
+              .attr('font-size', '8px')
+              .attr('fill', 'white')
+              .attr('pointer-events', 'none')
+              .text('🔒')
+          } else if (bookingInfo?.isSeatLock) {
+            // Timer icon for held seats
+            seatGroup
+              .append('text')
+              .attr('x', seat.x)
+              .attr('y', seat.y + 1)
+              .attr('text-anchor', 'middle')
+              .attr('font-size', '8px')
+              .attr('fill', 'white')
+              .attr('pointer-events', 'none')
+              .text('⏳')
+          } else if (!seat.ticketId) {
+            // Warning icon for seats not assigned yet
+            seatGroup
+              .append('text')
+              .attr('x', seat.x)
+              .attr('y', seat.y + 1)
+              .attr('text-anchor', 'middle')
+              .attr('font-size', '8px')
+              .attr('fill', 'white')
+              .attr('pointer-events', 'none')
+              .text('⚠️')
+          } else if (status === 'locked') {
             seatGroup
               .append('text')
               .attr('x', seat.x)
@@ -1049,14 +1178,34 @@ export default function SeatMapCanvas({
   }
 
   return (
-    <svg
-      ref={svgRef}
-      className='w-full h-full'
-      viewBox='0 0 1000 600'
-      style={{
-        cursor:
-          editTool === 'shape' ? 'crosshair' : editTool === 'move' && selectedSection ? 'move' : 'default'
-      }}
-    />
+    <div className='w-full h-full flex flex-col'>
+      <svg
+        ref={svgRef}
+        className='flex-1 w-full'
+        viewBox='0 0 1000 600'
+        style={{
+          cursor: editTool === 'shape' ? 'crosshair' : editTool === 'move' && selectedSection ? 'move' : 'default'
+        }}
+      />
+      {/* Color legend for seats */}
+      <div className='flex items-center justify-center gap-6 py-2 bg-slate-800/80 border-t border-slate-600'>
+        <div className='flex items-center gap-2'>
+          <div className='w-4 h-4 rounded-full bg-green-500' />
+          <span className='text-sm text-white'>Ghế trống</span>
+        </div>
+        <div className='flex items-center gap-2'>
+          <div className='w-4 h-4 rounded-full bg-amber-500' />
+          <span className='text-sm text-white'>Chưa gán vé ⚠️</span>
+        </div>
+        <div className='flex items-center gap-2'>
+          <div className='w-4 h-4 rounded-full bg-red-500' />
+          <span className='text-sm text-white'>Đang giữ ⏳</span>
+        </div>
+        <div className='flex items-center gap-2'>
+          <div className='w-4 h-4 rounded-full bg-gray-400' />
+          <span className='text-sm text-white'>Đã mua 🔒</span>
+        </div>
+      </div>
+    </div>
   )
 }

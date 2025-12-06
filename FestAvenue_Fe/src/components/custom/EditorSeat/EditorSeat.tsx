@@ -1,4 +1,4 @@
-import {  useRef } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -17,6 +17,16 @@ import LabelEditModal from './components/LabelEditModal'
 import TicketAssignmentModal from './components/TicketAssignmentModal'
 import EmailLockModal from './EmailLockModal'
 import { SKIN_REGISTRY } from './SkinRegistry'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { AlertTriangle, Trash2 } from 'lucide-react'
 import type {
   ExtractionResult,
   Point,
@@ -44,6 +54,9 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     hasExistingStructure,
     deleteSeatingChartByEventCode,
     isDeletingByEventCode,
+    // Ticket booking status
+    ticketsForSeats,
+    getSectionBookingStatus,
     mode,
     editTool,
     setEditTool,
@@ -107,6 +120,21 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
   } = useEditorSeatState(eventCode)
 
   const imageInputRef = useRef<HTMLInputElement>(null)
+
+  // State for delete confirmation dialog
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false)
+
+  // Check if any seats have been purchased (cannot delete seat map)
+  const hasPurchasedSeats = useMemo(() => {
+    return ticketsForSeats.some((ticket) => ticket.isPayment)
+  }, [ticketsForSeats])
+
+  // Count purchased and locked seats for display
+  const seatStats = useMemo(() => {
+    const purchased = ticketsForSeats.filter((t) => t.isPayment).length
+    const locked = ticketsForSeats.filter((t) => t.isSeatLock && !t.isPayment).length
+    return { purchased, locked }
+  }, [ticketsForSeats])
 
   // --- Image Import Logic ---
   const extractPolygonsMutation = useMutation({
@@ -661,6 +689,13 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
   }
 
   const deleteSection = (sectionId: string) => {
+    // Check if section has booked/purchased seats
+    const bookingStatus = getSectionBookingStatus(sectionId)
+    if (bookingStatus.hasBookedSeats) {
+      toast.error(`Không thể xóa khu vực này vì có ${bookingStatus.bookedCount} ghế đã được đặt/mua`)
+      return
+    }
+
     if (window.confirm('Bạn có chắc chắn muốn xóa khu vực này?')) {
       setMapData((prev) => ({
         ...prev,
@@ -671,6 +706,12 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       }
       toast.success('Đã xóa khu vực')
     }
+  }
+
+  // Check if a section can be modified (no booked/purchased seats)
+  const canModifySection = (sectionId: string) => {
+    const bookingStatus = getSectionBookingStatus(sectionId)
+    return !bookingStatus.hasBookedSeats
   }
 
   // --- Save & Export ---
@@ -733,19 +774,25 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     }
   }
 
-  const handleDeleteSeatMap = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ sơ đồ ghế? Hành động này không thể hoàn tác.')) {
-      try {
-        await deleteSeatingChartByEventCode(eventCode)
-        setMapData({
-          sections: [],
-          stage: { x: 350, y: 50, width: 300, height: 80 },
-          aisles: []
-        })
-        setSeatStatuses(new Map())
-      } catch (error) {
-        console.error('Failed to delete seat map:', error)
-      }
+  // Open delete confirmation dialog
+  const handleOpenDeleteDialog = () => {
+    setShowDeleteConfirmDialog(true)
+  }
+
+  // Confirm delete seat map
+  const handleConfirmDeleteSeatMap = async () => {
+    try {
+      await deleteSeatingChartByEventCode(eventCode)
+      setMapData({
+        sections: [],
+        stage: { x: 350, y: 50, width: 300, height: 80 },
+        aisles: []
+      })
+      setSeatStatuses(new Map())
+      setShowDeleteConfirmDialog(false)
+      toast.success('Đã xóa sơ đồ ghế thành công')
+    } catch (error) {
+      console.error('Failed to delete seat map:', error)
     }
   }
 
@@ -760,7 +807,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
   }
 
   return (
-    <div className='flex h-[calc(100vh-100px)] gap-4 p-4'>
+    <div className='flex w-full h-[calc(100vh-100px)] gap-4 p-4'>
       {/* Left Sidebar - Properties & Tools */}
       <PropertiesPanel
         mode={mode}
@@ -812,6 +859,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
         assignTicketToRow={assignTicketToRow}
         generateSeatsForSection={generateSeatsForSection}
         seatStatuses={seatStatuses}
+        canModifySection={canModifySection}
       />
 
       {/* Main Canvas Area */}
@@ -825,7 +873,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
             isUpdating={isUpdating}
             isLoadingEvent={isLoadingEvent}
             hasExistingStructure={hasExistingStructure}
-            handleDeleteSeatMap={handleDeleteSeatMap}
+            handleDeleteSeatMap={handleOpenDeleteDialog}
             isDeletingByEventCode={isDeletingByEventCode}
             exportToJSON={exportToJSON}
             mapData={mapData}
@@ -878,6 +926,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
             pointConstraintRef={pointConstraintRef}
             editingPointsRef={editingPointsRef}
             selectedShape={selectedShape}
+            ticketsForSeats={ticketsForSeats}
+            canModifySection={canModifySection}
           />
         </div>
       </div>
@@ -938,6 +988,87 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
           onCancel={() => setEmailLockModal(null)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent className='sm:max-w-md'>
+          <DialogHeader>
+            <DialogTitle className='flex items-center gap-2 text-red-600'>
+              <AlertTriangle className='w-5 h-5' />
+              Xác nhận xóa sơ đồ ghế
+            </DialogTitle>
+            <DialogDescription className='text-left'>
+              {hasPurchasedSeats ? (
+                <div className='space-y-3'>
+                  <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
+                    <p className='text-red-700 font-medium'>
+                      Không thể xóa sơ đồ ghế!
+                    </p>
+                    <p className='text-red-600 text-sm mt-1'>
+                      Đã có người dùng mua vé, bạn không thể xóa các ghế ngồi.
+                    </p>
+                  </div>
+                  <div className='text-sm text-gray-600'>
+                    <p>Thống kê vé:</p>
+                    <ul className='list-disc list-inside mt-1 ml-2'>
+                      <li className='text-gray-500'>Đã mua: <span className='font-medium text-gray-700'>{seatStats.purchased} ghế</span></li>
+                      {seatStats.locked > 0 && (
+                        <li className='text-gray-500'>Đang giữ: <span className='font-medium text-gray-700'>{seatStats.locked} ghế</span></li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className='space-y-3'>
+                  <p>
+                    Bạn có chắc chắn muốn xóa toàn bộ sơ đồ ghế?
+                  </p>
+                  <div className='p-3 bg-amber-50 border border-amber-200 rounded-lg'>
+                    <p className='text-amber-700 text-sm font-medium'>
+                      ⚠️ Hành động này không thể hoàn tác!
+                    </p>
+                    <p className='text-amber-600 text-sm mt-1'>
+                      Tất cả các khu vực và ghế ngồi sẽ bị xóa vĩnh viễn.
+                    </p>
+                  </div>
+                  {seatStats.locked > 0 && (
+                    <div className='p-3 bg-blue-50 border border-blue-200 rounded-lg'>
+                      <p className='text-blue-700 text-sm'>
+                        Lưu ý: Có {seatStats.locked} ghế đang được giữ, sẽ được giải phóng khi xóa.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className='flex gap-2 sm:gap-0'>
+            <Button
+              variant='outline'
+              onClick={() => setShowDeleteConfirmDialog(false)}
+            >
+              Hủy
+            </Button>
+            {!hasPurchasedSeats && (
+              <Button
+                variant='destructive'
+                onClick={handleConfirmDeleteSeatMap}
+                disabled={isDeletingByEventCode}
+                className='bg-red-600 hover:bg-red-700'
+              >
+                {isDeletingByEventCode ? (
+                  <>Đang xóa...</>
+                ) : (
+                  <>
+                    <Trash2 className='w-4 h-4 mr-2' />
+                    Xóa sơ đồ ghế
+                  </>
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

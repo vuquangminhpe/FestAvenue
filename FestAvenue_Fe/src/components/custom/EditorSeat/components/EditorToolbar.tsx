@@ -34,7 +34,7 @@ export default function EditorToolbar({
       {/* Primary Actions */}
       <div className='flex flex-col gap-2 bg-slate-900/95 backdrop-blur-xl p-3 rounded-xl border border-purple-500/30 shadow-2xl'>
         {hasExistingStructure ? (
-          <PermissionGuard action="Cập nhật sơ đồ">
+          <PermissionGuard action='Cập nhật sơ đồ'>
             <Button
               onClick={handleSaveSeatingChart}
               disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
@@ -55,7 +55,7 @@ export default function EditorToolbar({
             </Button>
           </PermissionGuard>
         ) : (
-          <PermissionGuard action="Lưu sơ đồ">
+          <PermissionGuard action='Lưu sơ đồ'>
             <Button
               onClick={handleSaveSeatingChart}
               disabled={isCreating || isUpdating || isLoadingEvent || mapData.sections.length === 0}
@@ -78,7 +78,7 @@ export default function EditorToolbar({
         )}
 
         {hasExistingStructure && (
-          <PermissionGuard action="Xóa sơ đồ ghế">
+          <PermissionGuard action='Xóa sơ đồ ghế'>
             <Button
               onClick={handleDeleteSeatMap}
               disabled={isDeletingByEventCode}
@@ -101,7 +101,7 @@ export default function EditorToolbar({
         )}
 
         {/* Export Button */}
-        <PermissionGuard action="Xuất JSON" hideWithoutPermission>
+        <PermissionGuard action='Xuất JSON' hideWithoutPermission>
           <Button
             onClick={exportToJSON}
             disabled={mapData.sections.length === 0}
@@ -112,14 +112,6 @@ export default function EditorToolbar({
             Xuất JSON
           </Button>
         </PermissionGuard>
-
-        {/* Capacity Display */}
-        {!isLoadingEvent && capacity > 0 && (
-          <div className='px-3 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-semibold text-center'>
-            <div className='text-[10px] opacity-90 uppercase tracking-wider mb-1'>Sức chứa sự kiện</div>
-            <div className='text-lg font-bold'>{capacity.toLocaleString()}</div>
-          </div>
-        )}
       </div>
 
       {/* Capacity Info Badge */}
