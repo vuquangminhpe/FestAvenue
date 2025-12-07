@@ -1,25 +1,99 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, MessageCircle, Search, Wifi, WifiOff, ImagePlus, X, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import {
+  Send,
+  MessageCircle,
+  Search,
+  Wifi,
+  WifiOff,
+  ImagePlus,
+  X,
+  Trash2,
+  Edit2,
+  Check,
+  MoreHorizontal
+} from 'lucide-react'
 import { gsap } from 'gsap'
 import * as signalR from '@microsoft/signalr'
 import { useUsersStore } from '@/contexts/app.context'
 import { getAccessTokenFromLS } from '@/utils/auth'
 import userApi from '@/apis/user.api'
-import organizationApi from '@/apis/organization.api'
+import chatApi from '@/apis/chat.api'
 import { formatTime, generateNameId } from '@/utils/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import type { SignalRMessage, ChatMessage, ChatMessagesResponse } from '@/types/chat.types'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from '@/components/ui/alert-dialog'
+import type {
+  NewMessageReceived,
+  MessageUpdated,
+  MessageDeleted,
+  EventGroup,
+  resChatMessage,
+  resChatPaging
+} from '@/types/ChatMessage.types'
 import { toast } from 'sonner'
+
+interface Message {
+  id: string
+  groupChatId: string
+  senderId: string
+  message: string
+  senderName: string
+  avatar?: string
+  createdAt: Date
+  isCurrentUser?: boolean
+  isUrl?: boolean
+}
+
+const MESSAGE_PAGE_SIZE = 20
+const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i
+
+const isImageUrl = (value: string) => {
+  if (!value?.startsWith('http')) return false
+  const urlWithoutParams = value.split('?')[0]
+  return IMAGE_REGEX.test(urlWithoutParams)
+}
+
+const parseMessageDate = (value?: string | Date | null) => {
+  if (!value) return new Date()
+  const parsed = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+const buildHistoryMessage = (message: resChatMessage, currentUserId?: string): Message => ({
+  id: message.id,
+  groupChatId: message.groupChatId,
+  senderId: message.senderId,
+  senderName: message.senderName,
+  message: message.message,
+  avatar: message.avatar || undefined,
+  createdAt: parseMessageDate(message.createdAt),
+  isCurrentUser: message.senderId === currentUserId,
+  isUrl: isImageUrl(message.message)
+})
+
+const buildMessageSignature = (message: Message) => {
+  const timestamp =
+    message.createdAt instanceof Date ? message.createdAt.getTime() : new Date(message.createdAt).getTime()
+  return `${message.groupChatId}::${message.senderId}::${timestamp}::${message.message}`
+}
 
 export default function StaffMessages() {
   const userProfile = useUsersStore().isProfile
   const queryClient = useQueryClient()
   const [connection, setConnection] = useState<signalR.HubConnection | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const [realtimeMessages, setRealtimeMessages] = useState<SignalRMessage[]>([])
+  const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([])
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -29,20 +103,21 @@ export default function StaffMessages() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
-  const [totalPages, setTotalPages] = useState<number>(1)
-  const [click, setClick] = useState(false)
+  const [isNearBottom, setIsNearBottom] = useState(true)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageContent, setEditingMessageContent] = useState('')
+  const [messageActionOpenId, setMessageActionOpenId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
+  const [isDeletingMessage, setIsDeletingMessage] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const loadPreviousRef = useRef<HTMLDivElement>(null)
-  const observerRef = useRef<IntersectionObserver | null>(null)
-  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map())
-  const animatedMessages = useRef<Set<string>>(new Set())
-  const lastMessageCount = useRef<number>(0)
-  const shouldAutoScroll = useRef<boolean>(true)
-  const isInitialLoad = useRef<boolean>(true)
+  const loadOlderRef = useRef<HTMLDivElement>(null)
+  const connectionRef = useRef<signalR.HubConnection | null>(null)
+  const selectedChatIdRef = useRef<string | null>(null)
+  const shouldForceScrollRef = useRef(false)
 
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
@@ -53,38 +128,6 @@ export default function StaffMessages() {
       console.error('Upload error:', error)
       toast.error('Upload ảnh thất bại')
       setIsUploadingImage(false)
-    }
-  })
-
-  const updateGroupChatStatusAcceptedMutation = useMutation({
-    mutationFn: organizationApi.updateGroupChatStatusAccepted,
-    onSuccess: () => {
-      toast.success('Đã chấp nhận yêu cầu thành công!')
-    },
-    onError: (error: any) => {
-      toast.error(error?.data?.message || 'Không thể chấp nhận yêu cầu')
-    }
-  })
-
-  const updateGroupChatStatusRejectedMutation = useMutation({
-    mutationFn: organizationApi.updateGroupChatStatusRejected,
-    onSuccess: () => {
-      toast.success('Đã từ chối yêu cầu thành công!')
-    },
-    onError: (error: any) => {
-      toast.error(error?.data?.message || 'Không thể từ chối yêu cầu')
-    }
-  })
-
-  const deletedGroupChatOrganizationMutation = useMutation({
-    mutationFn: (groupChatId: string) => userApi.deletedGroupChatOrganization(groupChatId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['group-chats'] })
-      toast.success('Đã xóa group chat thành công!')
-      setSelectedChatId(null)
-    },
-    onError: (error: any) => {
-      toast.error(error?.data?.message || 'Không thể xóa group chat')
     }
   })
 
@@ -112,9 +155,19 @@ export default function StaffMessages() {
     }
   }, [sidebarVisible, isMobile])
 
-  // SignalR Connection - same as MyMessages
+  // Update ref when selectedChatId changes
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChatId
+    if (selectedChatId) {
+      shouldForceScrollRef.current = true
+    }
+  }, [selectedChatId])
+
+  // SignalR Connection - using chatmessagehub like MyMessages
   useEffect(() => {
     if (!userProfile?.id) return
+
+    let activeConnection: signalR.HubConnection | null = null
 
     const initConnection = async () => {
       try {
@@ -125,48 +178,58 @@ export default function StaffMessages() {
         }
 
         const newConnection = new signalR.HubConnectionBuilder()
-          .withUrl('https://hoalacrent.io.vn/chathub', {
-            accessTokenFactory: () => token
+          .withUrl('https://hoalacrent.io.vn/chatmessagehub', {
+            accessTokenFactory: () => getAccessTokenFromLS() || ''
           })
-          .configureLogging(signalR.LogLevel.Information)
+          .withAutomaticReconnect()
           .build()
 
-        newConnection.on('ReceiveGroupMessage', (response: any) => {
-          const newMessage: SignalRMessage = {
-            id: response.id || `signalr-${Date.now()}-${Math.random()}`,
-            groupChatId: response.groupChatId,
-            senderId: response.senderId,
-            message: response.message,
-            senderName: response.senderName || 'Unknown',
-            avatar: response.avatar,
-            sentAt: new Date(response.sentAt || new Date()),
-            isCurrentUser: response.senderId === userProfile?.id
+        newConnection.on('NewMessageReceived', (data: NewMessageReceived) => {
+          const derivedId = data.id || `${data.groupChatId}-${Date.now()}`
+          const normalized: Message = {
+            id: derivedId,
+            groupChatId: data.groupChatId,
+            senderId: data.senderId,
+            message: data.message,
+            senderName: data.senderName,
+            avatar: data.avatar || undefined,
+            createdAt: parseMessageDate(data.createdAt),
+            isCurrentUser: data.senderId === userProfile?.id,
+            isUrl: data.isUrl
           }
 
-          // Enhanced duplicate detection for images
           setRealtimeMessages((prev) => {
-            const isImageMessage =
-              newMessage.message.startsWith('http') &&
-              (newMessage.message.includes('.jpg') ||
-                newMessage.message.includes('.png') ||
-                newMessage.message.includes('.jpeg') ||
-                newMessage.message.includes('.gif') ||
-                newMessage.message.includes('.webp'))
-
-            const exists = prev.some((msg) => {
-              const isSameUser = msg.senderId === newMessage.senderId
-              const isSameMessage = msg.message === newMessage.message
-
-              // For image messages, use larger time tolerance due to upload delay
-              const timeLimit = isImageMessage ? 15000 : 5000 // 15s for images, 5s for text
-              const isSameTime = Math.abs(msg.sentAt.getTime() - newMessage.sentAt.getTime()) < timeLimit
-
-              return isSameMessage && isSameUser && isSameTime
+            const signature = buildMessageSignature(normalized)
+            let replaced = false
+            const updated = prev.map((msg) => {
+              if (buildMessageSignature(msg) === signature) {
+                replaced = true
+                if (!msg.id && normalized.id) return normalized
+                if (normalized.createdAt.getTime() >= msg.createdAt.getTime()) return normalized
+              }
+              return msg
             })
 
-            if (exists) return prev
-            return [...prev, newMessage]
+            if (replaced) return updated
+            return [...updated, normalized]
           })
+
+          shouldForceScrollRef.current = true
+          queryClient.invalidateQueries({ queryKey: ['staff-chat-messages', data.groupChatId] })
+        })
+
+        newConnection.on('MessageUpdated', (data: MessageUpdated) => {
+          setRealtimeMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === data.messageId
+                ? { ...msg, message: data.newContent, createdAt: parseMessageDate(data.updatedAt || msg.createdAt) }
+                : msg
+            )
+          )
+        })
+
+        newConnection.on('MessageDeleted', (data: MessageDeleted) => {
+          setRealtimeMessages((prev) => prev.filter((msg) => msg.id !== data.messageId))
         })
 
         newConnection.onclose(() => {
@@ -179,11 +242,26 @@ export default function StaffMessages() {
 
         newConnection.onreconnected(() => {
           setIsConnected(true)
+          if (selectedChatIdRef.current) {
+            newConnection.invoke('JoinChatGroup', selectedChatIdRef.current).catch((error) => console.error(error))
+            newConnection.invoke('MarkMessagesAsRead', selectedChatIdRef.current).catch((error) => console.error(error))
+          }
         })
 
         await newConnection.start()
+        activeConnection = newConnection
+        connectionRef.current = newConnection
         setIsConnected(true)
         setConnection(newConnection)
+
+        // Call StaffOnline to register staff online status
+        console.log('[StaffMessages] Calling StaffOnline...', { userId: userProfile?.id })
+        try {
+          await newConnection.invoke('StaffOnline')
+          console.log('[StaffMessages] StaffOnline success - Staff is now online')
+        } catch (staffOnlineError) {
+          console.error('[StaffMessages] StaffOnline error:', staffOnlineError)
+        }
       } catch (error) {
         console.error('SignalR connection error:', error)
       }
@@ -192,134 +270,117 @@ export default function StaffMessages() {
     initConnection()
 
     return () => {
-      if (connection) {
-        connection.off('ReceiveGroupMessage')
-        connection.stop()
+      if (activeConnection) {
+        activeConnection.off('NewMessageReceived')
+        activeConnection.off('MessageUpdated')
+        activeConnection.off('MessageDeleted')
+        activeConnection.stop()
       }
     }
-  }, [userProfile?.id])
+  }, [userProfile?.id, queryClient])
 
   const { data: groupChatsData, isLoading: isLoadingChats } = useQuery({
-    queryKey: ['group-chats'],
-    queryFn: userApi.getGroupChats,
+    queryKey: ['staff-group-chats', userProfile?.id],
+    queryFn: async () => {
+      const response = await chatApi.GroupChat.getGroupChatByUserId(userProfile?.id || '')
+      return response
+    },
+    enabled: !!userProfile?.id,
     staleTime: 5 * 60 * 1000
   })
 
   const filteredChats = useMemo(() => {
-    if (!groupChatsData?.data || !searchTerm) return groupChatsData?.data || []
-    return groupChatsData.data.filter((chat) => chat.groupChatName.toLowerCase().includes(searchTerm.toLowerCase()))
+    const chats = (groupChatsData as EventGroup[] | undefined) ?? []
+    if (!searchTerm.trim()) return chats
+    return chats.filter((chat) => chat.name.toLowerCase().includes(searchTerm.toLowerCase()))
   }, [groupChatsData, searchTerm])
 
   const selectedChat = useMemo(() => {
-    return groupChatsData?.data?.find((chat) => chat.groupChatId === selectedChatId)
-  }, [groupChatsData, selectedChatId])
+    return filteredChats?.find((chat) => chat.id === selectedChatId)
+  }, [filteredChats, selectedChatId])
 
-  // Fetch initial data to get totalPages
-  useEffect(() => {
-    async function fetchInitialData() {
-      if (selectedChatId) {
-        try {
-          const response = (await userApi.getChatMessagesWithPagging({
-            groupChatId: selectedChatId,
-            pageSize: 20,
-            page: 1
-          })) as any
-          setTotalPages(response.data.totalPages)
-        } catch (error) {
-          console.error('Error fetching initial chat data:', error)
+  // Fetch messages with pagination
+  const {
+    data: pagedMessages,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingMessages
+  } = useInfiniteQuery<resChatPaging>({
+    queryKey: ['staff-chat-messages', selectedChatId],
+    queryFn: async ({ pageParam }) => {
+      if (!selectedChatId) throw new Error('No chat selected')
+      const currentPage = typeof pageParam === 'number' ? pageParam : 1
+      const response = await chatApi.ChatMessage.getMessagesWithPagging({
+        groupChatId: selectedChatId,
+        page: currentPage,
+        pageSize: MESSAGE_PAGE_SIZE
+      })
+      if (!response) {
+        return {
+          chatMessages: [],
+          currentPage,
+          totalPages: currentPage,
+          pageSize: MESSAGE_PAGE_SIZE
         }
       }
-    }
-
-    if (selectedChatId) {
-      fetchInitialData()
-    }
-  }, [selectedChatId])
-
-  const {
-    data: chatData,
-    fetchPreviousPage,
-    hasPreviousPage,
-    isFetchingPreviousPage,
-    isLoading: isLoadingMessages
-  } = useInfiniteQuery({
-    queryKey: ['chat-messages', selectedChatId, totalPages],
-    queryFn: async ({ pageParam = Number(totalPages) }) => {
-      if (!selectedChatId) throw new Error('No chat selected')
-
-      const res = (await userApi.getChatMessagesWithPagging({
-        groupChatId: selectedChatId,
-        pageSize: 10,
-        page: pageParam
-      })) as any
-      return res.data as ChatMessagesResponse
+      return response
     },
-    getPreviousPageParam: (firstPage: ChatMessagesResponse) => {
-      if (click && firstPage.currentPage < firstPage.totalPages) {
-        return firstPage.currentPage + 1
-      }
-      return undefined
+    getNextPageParam: (lastPage) => {
+      return lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : undefined
     },
-    getNextPageParam: () => undefined,
+    enabled: !!selectedChatId,
     initialPageParam: 1,
-    enabled: !!selectedChatId && !!totalPages,
-    staleTime: 5 * 60 * 1000,
-    select: (data) => ({
-      pages: [...data.pages],
-      pageParams: [...data.pageParams]
-    })
+    staleTime: 60 * 1000
   })
 
-  const allMessages = useMemo(() => {
-    const fetchedMessages = chatData?.pages?.flatMap((page: ChatMessagesResponse) => page?.chatMessages) ?? []
-    const currentChatRealtimeMessages = realtimeMessages.filter((msg) => msg.groupChatId === selectedChatId)
+  const historyMessages = pagedMessages?.pages.flatMap((page: resChatPaging) => page.chatMessages ?? []) ?? []
 
-    // Convert realtime messages to ChatMessage format
-    const convertedRealtimeMessages: ChatMessage[] = currentChatRealtimeMessages.map((msg) => ({
-      id: msg.id || `temp-${Date.now()}-${Math.random()}`,
-      groupChatId: msg.groupChatId,
-      senderId: msg.senderId,
-      senderName: msg.senderName,
-      avatar: msg.avatar || '',
-      message: msg.message,
-      createdAt: msg.sentAt.toISOString(),
-      createAtNumbers: msg.sentAt.getTime(),
-      updatedAt: null,
-      updateAtNumbers: null
-    }))
+  const normalizedHistory = useMemo(() => {
+    return historyMessages.map((message) => buildHistoryMessage(message, userProfile?.id))
+  }, [historyMessages, userProfile?.id])
 
-    // Combine and remove duplicates based on message content, sender and timestamp
-    const allMessages = [...fetchedMessages, ...convertedRealtimeMessages]
-    const uniqueMessages = allMessages.reduce((acc: ChatMessage[], current) => {
-      const duplicate = acc.find(
-        (msg) =>
-          msg.message === current.message &&
-          msg.senderId === current.senderId &&
-          Math.abs(new Date(msg.createdAt).getTime() - new Date(current.createdAt).getTime()) < 5000 // 5 seconds tolerance
-      )
-      if (!duplicate) {
-        acc.push(current)
+  const combinedMessages = useMemo(() => {
+    if (!selectedChatId) return []
+    const relevantRealtime = realtimeMessages.filter((msg) => msg.groupChatId === selectedChatId)
+    const merged = [...normalizedHistory, ...relevantRealtime]
+    const dedup = new Map<string, Message>()
+
+    merged.forEach((msg) => {
+      const key = buildMessageSignature(msg)
+      const existing = dedup.get(key)
+      if (!existing) {
+        dedup.set(key, msg)
+        return
       }
-      return acc
-    }, [])
 
-    return uniqueMessages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-  }, [chatData, realtimeMessages, selectedChatId])
+      if (!existing.id && msg.id) {
+        dedup.set(key, msg)
+        return
+      }
 
-  // Staff action handlers
-  const handleAcceptRequest = (groupChatId: string) => {
-    updateGroupChatStatusAcceptedMutation.mutate(groupChatId)
-  }
+      if (msg.createdAt.getTime() > existing.createdAt.getTime()) {
+        dedup.set(key, msg)
+      }
+    })
 
-  const handleRejectRequest = (groupChatId: string) => {
-    updateGroupChatStatusRejectedMutation.mutate(groupChatId)
-  }
+    return Array.from(dedup.values()).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }, [normalizedHistory, realtimeMessages, selectedChatId])
 
-  const handleDeleteGroupChat = (groupChatId: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa group chat này?')) {
-      deletedGroupChatOrganizationMutation.mutateAsync(groupChatId)
+  // Join chat group when selecting
+  useEffect(() => {
+    if (selectedChatId && connection && isConnected) {
+      connection.invoke('JoinChatGroup', selectedChatId).catch((error) => console.error(error))
+      connection.invoke('MarkMessagesAsRead', selectedChatId).catch((error) => console.error(error))
     }
-  }
+  }, [connection, isConnected, selectedChatId])
+
+  // Reset realtime messages when changing chat
+  useEffect(() => {
+    if (selectedChatId) {
+      setRealtimeMessages([])
+    }
+  }, [selectedChatId])
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -338,152 +399,159 @@ export default function StaffMessages() {
     setImagePreview(null)
   }
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: {
-      message: string
-      senderId: string
-      senderName: string
-      avatar: string | null
-      groupChatId: string
-      isImage?: boolean
-    }) => {
-      if (!connection || !isConnected) {
-        throw new Error('SignalR connection not established')
-      }
-
-      return connection.invoke('SendMessage', messageData)
-    },
-    onSuccess: () => {
-      setMessageInput('')
-      setSelectedImage(null)
-      setImagePreview(null)
-      setIsUploadingImage(false)
-    },
-    onError: (error) => {
-      console.error('Error sending message:', error)
-      setIsUploadingImage(false)
-    }
-  })
-
   const handleSendMessage = async () => {
-    if ((!messageInput.trim() && !selectedImage) || !selectedChatId || !userProfile) return
+    if ((!messageInput.trim() && !selectedImage) || !selectedChatId || !userProfile || !connection || !isConnected)
+      return
 
     try {
-      let imageUrl = null
-      let currentAvatar = userProfile.avatar
+      let messageContent = messageInput.trim()
+      let isUrl = false
 
       if (selectedImage) {
         setIsUploadingImage(true)
         const uploadResult = await uploadsImagesMutation.mutateAsync(selectedImage)
-        imageUrl = uploadResult.data || uploadResult
-
-        if (imageUrl && !userProfile.avatar) {
-          currentAvatar = imageUrl as any
-        }
+        messageContent = (uploadResult.data || uploadResult) as any
+        isUrl = true
       }
 
-      const messageData = {
-        message: selectedImage ? imageUrl || 'Image' : messageInput.trim(),
-        senderId: userProfile.id,
-        senderName: `${userProfile.firstName} ${userProfile.lastName}`.trim(),
-        avatar: currentAvatar,
-        groupChatId: selectedChatId,
-        isImage: !!selectedImage
-      }
+      await connection.invoke('SendMessage', {
+        GroupChatId: selectedChatId,
+        Message: messageContent,
+        IsUrl: isUrl
+      })
 
-      sendMessageMutation.mutate(messageData as any)
-    } catch (error) {
+      shouldForceScrollRef.current = true
+      setMessageInput('')
+      setSelectedImage(null)
+      setImagePreview(null)
+      setIsUploadingImage(false)
+    } catch (error: any) {
       console.error('Error handling message send:', error)
       setIsUploadingImage(false)
       toast.error('Gửi tin nhắn thất bại')
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSendMessage()
+  const handleEditMessage = (message: Message) => {
+    setEditingMessageId(message.id)
+    setEditingMessageContent(message.message)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingMessageId || !editingMessageContent.trim() || !connection || !isConnected) return
+
+    try {
+      await connection.invoke('UpdateMessage', {
+        messageId: editingMessageId,
+        newContent: editingMessageContent
+      })
+      setEditingMessageId(null)
+      setEditingMessageContent('')
+    } catch (error) {
+      console.error('Error updating message:', error)
+      toast.error('Cập nhật tin nhắn thất bại')
     }
   }
 
-  const handleObserver = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const target = entries[0]
-      if (target.isIntersecting && hasPreviousPage && !isFetchingPreviousPage) {
-        const currentScrollHeight = chatContainerRef.current?.scrollHeight || 0
-        fetchPreviousPage().then(() => {
-          requestAnimationFrame(() => {
-            if (chatContainerRef.current) {
-              const newScrollHeight = chatContainerRef.current.scrollHeight
-              chatContainerRef.current.scrollTop = newScrollHeight - currentScrollHeight
-            }
-          })
-        })
+  const handleCancelEdit = () => {
+    setEditingMessageId(null)
+    setEditingMessageContent('')
+  }
+
+  const handleDeleteMessage = (message: Message) => {
+    setDeleteTarget(message)
+  }
+
+  const confirmDeleteMessage = async () => {
+    if (!deleteTarget || !connection || !isConnected) return
+    try {
+      setIsDeletingMessage(true)
+      await connection.invoke('DeleteMessage', deleteTarget.id)
+      setDeleteTarget(null)
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      toast.error('Xóa tin nhắn thất bại')
+    } finally {
+      setIsDeletingMessage(false)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      if (editingMessageId) {
+        handleSaveEdit()
+      } else {
+        handleSendMessage()
       }
-    },
-    [fetchPreviousPage, hasPreviousPage, isFetchingPreviousPage]
-  )
+    }
+  }
 
+  // Auto scroll to bottom
   useEffect(() => {
-    const element = loadPreviousRef.current
-    if (element && selectedChatId) {
-      observerRef.current = new IntersectionObserver(handleObserver, {
-        threshold: 0.5,
-        rootMargin: '50px'
-      })
-      observerRef.current.observe(element)
-    }
-    return () => {
-      if (observerRef.current) observerRef.current.disconnect()
-    }
-  }, [handleObserver, selectedChatId])
+    if (!combinedMessages.length) return
+    const container = chatContainerRef.current
+    if (!container) return
 
-  // Handle scroll behavior - simplified and more reliable auto-scrolling
+    if (isNearBottom || shouldForceScrollRef.current) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: shouldForceScrollRef.current || combinedMessages.length < 5 ? 'auto' : 'smooth'
+      })
+      shouldForceScrollRef.current = false
+    }
+  }, [combinedMessages, isNearBottom])
+
+  // Infinite scroll: Load older messages when scrolling to top
+  useEffect(() => {
+    if (!chatContainerRef.current || !selectedChatId) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          const container = chatContainerRef.current
+          const previousHeight = container?.scrollHeight || 0
+          fetchNextPage().then(() => {
+            requestAnimationFrame(() => {
+              if (container) {
+                const newHeight = container.scrollHeight
+                container.scrollTop = newHeight - previousHeight + container.scrollTop
+              }
+            })
+          })
+        }
+      },
+      {
+        root: chatContainerRef.current,
+        threshold: 0.1
+      }
+    )
+
+    if (loadOlderRef.current) {
+      observer.observe(loadOlderRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, selectedChatId])
+
+  // Handle scroll detection
   useEffect(() => {
     const container = chatContainerRef.current
-    if (!container || !messagesEndRef.current || isFetchingPreviousPage) return
+    if (!container) return
 
-    // Check if this is a new message (not just a re-render)
-    const currentMessageCount = allMessages.length
-    const isNewMessage = currentMessageCount > lastMessageCount.current
-    lastMessageCount.current = currentMessageCount
-
-    // Auto-scroll for new messages when user is near bottom or on initial load
-    if ((isNewMessage || isInitialLoad.current) && allMessages.length > 0) {
-      const container = chatContainerRef.current
-      const isNearBottom = container
-        ? container.scrollHeight - container.scrollTop - container.clientHeight < 100
-        : true
-
-      // Auto-scroll if user is near bottom, it's initial load, or it's user's own message
-      const lastMessage = allMessages[allMessages.length - 1]
-      const isOwnMessage = lastMessage?.senderId === userProfile?.id
-
-      if (isInitialLoad.current || isNearBottom || isOwnMessage) {
-        const scrollBehavior = isInitialLoad.current ? 'auto' : 'smooth'
-        setTimeout(
-          () => {
-            messagesEndRef.current?.scrollIntoView({ behavior: scrollBehavior })
-          },
-          isInitialLoad.current ? 100 : 150
-        )
-      }
+    const handleScroll = () => {
+      const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120
+      setIsNearBottom(nearBottom)
     }
 
-    // Mark initial load as complete after first render
-    if (isInitialLoad.current && allMessages.length > 0) {
-      isInitialLoad.current = false
-    }
-  }, [allMessages.length, isFetchingPreviousPage, userProfile?.id])
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
 
-  const handleChatSelect = (chatId: string, chatName: string) => {
-    setSelectedChatId(chatId)
-    isInitialLoad.current = true
-    shouldAutoScroll.current = true
-    lastMessageCount.current = 0
-    animatedMessages.current.clear()
-    generateNameId({ name: chatName, id: chatId })
-
+  const handleChatSelect = (chat: EventGroup) => {
+    setSelectedChatId(chat.id)
+    generateNameId({ name: chat.name, id: chat.id })
     if (isMobile) {
       setSidebarVisible(false)
     }
@@ -491,6 +559,40 @@ export default function StaffMessages() {
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible)
+  }
+
+  const renderMessageContent = (message: Message) => {
+    if (editingMessageId === message.id) {
+      return (
+        <div className='flex items-center space-x-2'>
+          <input
+            type='text'
+            value={editingMessageContent}
+            onChange={(e) => setEditingMessageContent(e.target.value)}
+            onKeyPress={handleKeyPress as any}
+            className='text-sm px-2 py-1 rounded text-gray-900 border border-gray-300 flex-1'
+          />
+          <button onClick={handleSaveEdit} className='text-green-600 hover:text-green-700'>
+            <Check className='w-4 h-4' />
+          </button>
+          <button onClick={handleCancelEdit} className='text-gray-600 hover:text-gray-700'>
+            <X className='w-4 h-4' />
+          </button>
+        </div>
+      )
+    }
+
+    if (message.isUrl || isImageUrl(message.message)) {
+      return (
+        <img
+          src={message.message}
+          alt='Shared content'
+          className='max-w-full h-auto rounded-lg'
+          style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
+        />
+      )
+    }
+    return <p className='text-sm leading-relaxed whitespace-pre-wrap break-words'>{message.message}</p>
   }
 
   return (
@@ -567,11 +669,11 @@ export default function StaffMessages() {
               </div>
             ) : (
               filteredChats.map((chat) => (
-                <div key={chat.groupChatId} className='border-b border-gray-100'>
+                <div key={chat.id} className='border-b border-gray-100'>
                   <button
-                    onClick={() => handleChatSelect(chat.groupChatId, chat.groupChatName)}
+                    onClick={() => handleChatSelect(chat)}
                     className={`w-full p-4 hover:bg-gray-50 transition-colors text-left ${
-                      selectedChatId === chat.groupChatId
+                      selectedChatId === chat.id
                         ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-400'
                         : ''
                     }`}
@@ -579,20 +681,18 @@ export default function StaffMessages() {
                     <div className='flex items-center space-x-3'>
                       <div className='relative'>
                         <Avatar className='w-12 h-12 rounded-full object-cover'>
-                          <AvatarImage src={chat.avatarGroupUrl || chat.groupChatName} />
-                          <AvatarFallback>{chat.groupChatName.slice(0, 3)}</AvatarFallback>
+                          <AvatarImage src={chat.avatar || chat.name} />
+                          <AvatarFallback>{chat.name.slice(0, 3)}</AvatarFallback>
                         </Avatar>
                         <div className='absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white'></div>
                       </div>
 
                       <div className='flex-1 min-w-0'>
                         <div className='flex items-center justify-between'>
-                          <h3 className='font-semibold text-gray-900 truncate'>{chat.groupChatName}</h3>
-                          <span className='text-xs text-gray-500'>{formatTime(new Date(chat.chatMessage.sentAt))}</span>
+                          <h3 className='font-semibold text-gray-900 truncate'>{chat.name}</h3>
+                          <span className='text-xs text-gray-500'>{formatTime(new Date(chat.createdAt))}</span>
                         </div>
-                        <p className='text-sm text-gray-600 truncate mt-1'>
-                          {chat.chatMessage.senderName}: {chat.chatMessage.content}
-                        </p>
+                        <p className='text-sm text-gray-600 truncate mt-1'>{chat.members.length} thành viên</p>
                       </div>
                     </div>
                   </button>
@@ -612,95 +712,31 @@ export default function StaffMessages() {
               <div className='flex items-center justify-between'>
                 <div className='flex items-center space-x-3'>
                   <Avatar className='w-10 h-10 rounded-full object-cover'>
-                    <AvatarImage src={selectedChat.avatarGroupUrl || selectedChat.groupChatName} />
-                    <AvatarFallback>{selectedChat.groupChatName.slice(0, 3)}</AvatarFallback>
+                    <AvatarImage src={selectedChat.avatar || selectedChat.name} />
+                    <AvatarFallback>{selectedChat.name.slice(0, 3)}</AvatarFallback>
                   </Avatar>
-                  <div className='font-semibold'>{selectedChat.groupChatName}</div>
-                </div>
-
-                {/* Staff Controls in Header */}
-                <div className='flex items-center gap-2'>
-                  <div className='text-sm text-blue-600 font-medium mr-3'>Staff Mode</div>
-                  <Button
-                    size='sm'
-                    onClick={() => handleAcceptRequest(selectedChat.groupChatId)}
-                    disabled={updateGroupChatStatusAcceptedMutation.isPending}
-                    className='bg-green-500 hover:bg-green-600 text-white text-xs'
-                  >
-                    {updateGroupChatStatusAcceptedMutation.isPending ? (
-                      <div className='w-3 h-3 border border-white border-t-transparent rounded-full animate-spin' />
-                    ) : (
-                      <CheckCircle className='w-3 h-3' />
-                    )}
-                    Accept
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='destructive'
-                    onClick={() => handleRejectRequest(selectedChat.groupChatId)}
-                    disabled={updateGroupChatStatusRejectedMutation.isPending}
-                    className='text-xs'
-                  >
-                    {updateGroupChatStatusRejectedMutation.isPending ? (
-                      <div className='w-3 h-3 border border-white border-t-transparent rounded-full animate-spin' />
-                    ) : (
-                      <XCircle className='w-3 h-3' />
-                    )}
-                    Reject
-                  </Button>
-                  <Button
-                    size='sm'
-                    variant='outline'
-                    onClick={() => handleDeleteGroupChat(selectedChat.groupChatId)}
-                    disabled={deletedGroupChatOrganizationMutation.isPending}
-                    className='text-xs border-red-200 text-red-600 hover:bg-red-50'
-                  >
-                    {deletedGroupChatOrganizationMutation.isPending ? (
-                      <div className='w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin' />
-                    ) : (
-                      <Trash2 className='w-3 h-3' />
-                    )}
-                    Delete
-                  </Button>
+                  <div>
+                    <div className='font-semibold'>{selectedChat.name}</div>
+                    <p className='text-xs text-gray-500'>{selectedChat.members.length} thành viên</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Messages Container */}
-            <div
-              ref={chatContainerRef}
-              className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50'
-              onScroll={() => {
-                // Track user manual scrolling - simplified logic
-                const container = chatContainerRef.current
-                if (container) {
-                  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50
-                  shouldAutoScroll.current = isAtBottom
-                }
-              }}
-            >
-              {/* Show button only when at page 1 and click is false */}
-              {chatData?.pages && chatData.pages.length === 1 && !click && (
-                <div className='flex justify-center py-4 relative z-10'>
-                  <button
-                    onClick={() => {
-                      setClick(true)
-                    }}
-                    className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg cursor-pointer'
-                  >
-                    Bạn có muốn tải tin nhắn cũ hay không?
-                  </button>
+            <div ref={chatContainerRef} className='flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50'>
+              {/* Infinite scroll trigger */}
+              <div ref={loadOlderRef} className='h-1' />
+
+              {/* Loading older messages indicator */}
+              {isFetchingNextPage && hasNextPage && (
+                <div className='flex justify-center py-2'>
+                  <div className='flex items-center space-x-2 text-xs text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm'>
+                    <div className='animate-spin w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full' />
+                    <span>Đang tải tin nhắn cũ...</span>
+                  </div>
                 </div>
               )}
-
-              {/* Load previous messages trigger */}
-              <div ref={loadPreviousRef} className='h-1'>
-                {isFetchingPreviousPage && (
-                  <div className='flex justify-center py-2'>
-                    <div className='animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full'></div>
-                  </div>
-                )}
-              </div>
 
               {/* Messages */}
               {isLoadingMessages ? (
@@ -708,74 +744,92 @@ export default function StaffMessages() {
                   <div className='animate-spin w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full'></div>
                 </div>
               ) : (
-                allMessages.map((message) => {
-                  const messageKey = message.id
-                  return (
-                    <div
-                      key={message.id}
-                      ref={(el) => {
-                        if (el && !animatedMessages.current.has(messageKey)) {
-                          messageRefs.current.set(messageKey, el)
-                          animatedMessages.current.add(messageKey)
-                          gsap.fromTo(
-                            el,
-                            { opacity: 0, y: 20 },
-                            { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
-                          )
-                        }
-                      }}
-                      className={`flex items-start space-x-3 ${
-                        message.senderId === userProfile?.id ? 'flex-row-reverse space-x-reverse' : ''
-                      }`}
-                    >
-                      <img
-                        src={
-                          message.avatar ||
-                          `https://ui-avatars.com/api/?name=${message.senderName}&background=06b6d4&color=fff`
-                        }
-                        alt={message.senderName}
-                        className='w-8 h-8 rounded-full object-cover'
-                      />
+                combinedMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex items-start space-x-3 group ${
+                      message.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
+                    }`}
+                  >
+                    <img
+                      src={
+                        message.avatar ||
+                        `https://ui-avatars.com/api/?name=${message.senderName}&background=3b82f6&color=fff`
+                      }
+                      alt={message.senderName}
+                      className='w-8 h-8 rounded-full object-cover flex-shrink-0'
+                    />
+
+                    <div className={`max-w-[70%] ${message.isCurrentUser ? 'items-end' : 'items-start'}`}>
+                      {/* Sender name and timestamp */}
+                      <div
+                        className={`flex items-center space-x-2 mb-1 ${
+                          message.isCurrentUser ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        <span className='text-sm font-medium text-gray-700'>{message.senderName}</span>
+                        <span className='text-xs text-gray-500'>{formatTime(message.createdAt)}</span>
+                      </div>
 
                       <div
-                        className={`max-w-[70%] ${message.senderId === userProfile?.id ? 'items-end' : 'items-start'}`}
+                        className={`relative flex items-start gap-2 ${
+                          message.isCurrentUser ? 'justify-end' : 'justify-start'
+                        }`}
                       >
-                        <div
-                          className={`flex items-center space-x-2 mb-1 ${
-                            message.senderId === userProfile?.id ? 'justify-end' : 'justify-start'
-                          }`}
-                        >
-                          <span className='text-sm font-medium text-gray-700'>{message.senderName}</span>
-                          <span className='text-xs text-gray-500'>{formatTime(new Date(message.createdAt))}</span>
-                        </div>
-
+                        {message.isCurrentUser && editingMessageId !== message.id && (
+                          <Popover
+                            open={messageActionOpenId === message.id}
+                            onOpenChange={(open) => setMessageActionOpenId(open ? message.id : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <button
+                                type='button'
+                                className='opacity-0 group-hover:opacity-100 p-1 rounded-full text-gray-500 hover:text-gray-900 hover:bg-white border border-transparent hover:border-gray-200 shadow-sm bg-white/70'
+                              >
+                                <MoreHorizontal className='w-4 h-4' />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align='end' className='w-32 p-1 text-xs'>
+                              {!message.isUrl && (
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    handleEditMessage(message)
+                                    setMessageActionOpenId(null)
+                                  }}
+                                  className='flex w-full items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-100 text-left'
+                                >
+                                  <Edit2 className='w-3 h-3' />
+                                  Sửa
+                                </button>
+                              )}
+                              <button
+                                type='button'
+                                onClick={() => {
+                                  handleDeleteMessage(message)
+                                  setMessageActionOpenId(null)
+                                }}
+                                className='flex w-full items-center gap-2 px-2 py-1.5 rounded text-red-600 hover:bg-red-50 text-left'
+                              >
+                                <Trash2 className='w-3 h-3' />
+                                Xóa
+                              </button>
+                            </PopoverContent>
+                          </Popover>
+                        )}
                         <div
                           className={`px-4 py-2 rounded-lg max-w-full break-words ${
-                            message.senderId === userProfile?.id
-                              ? 'bg-gradient-to-r from-blue-400 to-blue-300 text-white rounded-br-sm'
-                              : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200'
+                            message.isCurrentUser
+                              ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white'
+                              : 'bg-white text-gray-900 border border-gray-200'
                           }`}
                         >
-                          {message.message.startsWith('http') &&
-                          (message.message.includes('.jpg') ||
-                            message.message.includes('.png') ||
-                            message.message.includes('.jpeg') ||
-                            message.message.includes('.gif') ||
-                            message.message.includes('.webp')) ? (
-                            <img
-                              src={message.message}
-                              alt='Shared image'
-                              className='max-w-full h-auto rounded-lg'
-                              style={{ maxWidth: '300px', maxHeight: '300px', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <p className='text-sm leading-relaxed whitespace-pre-wrap'>{message.message}</p>
-                          )}
+                          {renderMessageContent(message)}
                         </div>
                       </div>
                     </div>
-                  )
-                })
+                  </div>
+                ))
               )}
 
               <div ref={messagesEndRef} />
@@ -819,9 +873,9 @@ export default function StaffMessages() {
                         ? 'Thêm mô tả cho ảnh (tùy chọn)...'
                         : isConnected
                         ? 'Nhập tin nhắn...'
-                        : 'Connecting...'
+                        : 'Đang kết nối...'
                     }
-                    disabled={!isConnected || sendMessageMutation.isPending || isUploadingImage}
+                    disabled={!isConnected || isUploadingImage}
                     className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all'
                   />
                 </div>
@@ -834,10 +888,10 @@ export default function StaffMessages() {
                       accept='image/*'
                       onChange={handleImageSelect}
                       className='hidden'
-                      id='image-upload'
+                      id='staff-image-upload'
                     />
                     <label
-                      htmlFor='image-upload'
+                      htmlFor='staff-image-upload'
                       className='p-2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer'
                     >
                       <ImagePlus className='w-5 h-5' />
@@ -847,15 +901,10 @@ export default function StaffMessages() {
                   {/* Send Button */}
                   <button
                     onClick={handleSendMessage}
-                    disabled={
-                      (!messageInput.trim() && !selectedImage) ||
-                      !isConnected ||
-                      sendMessageMutation.isPending ||
-                      isUploadingImage
-                    }
+                    disabled={(!messageInput.trim() && !selectedImage) || !isConnected || isUploadingImage}
                     className='px-4 py-2 bg-gradient-to-r from-blue-400 to-blue-600 text-white rounded-lg hover:from-blue-500 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2'
                   >
-                    {sendMessageMutation.isPending || isUploadingImage ? (
+                    {isUploadingImage ? (
                       <div className='animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full'></div>
                     ) : (
                       <Send className='w-4 h-4' />
@@ -877,6 +926,37 @@ export default function StaffMessages() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xóa tin nhắn?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.message ? (
+                <span>
+                  Bạn có chắc chắn muốn xóa tin nhắn "{deleteTarget.message}"? Thao tác này không thể hoàn tác.
+                </span>
+              ) : (
+                'Bạn có chắc chắn muốn xóa tin nhắn này? Thao tác này không thể hoàn tác.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)} disabled={isDeletingMessage}>
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteMessage} disabled={isDeletingMessage}>
+              {isDeletingMessage ? 'Đang xóa...' : 'Xóa'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
