@@ -1,5 +1,10 @@
 import type { APIResponse } from '@/types/API.types'
-import type { bodyGetMessagesFilterPaging, EventGroup, resChatPaging } from '@/types/ChatMessage.types'
+import type {
+  bodyGetMessagesFilterPaging,
+  EventGroup,
+  resChatPaging,
+  resChatWithStaff
+} from '@/types/ChatMessage.types'
 import type {
   bodyAddMemberInGroup,
   bodyCreateEventCode,
@@ -48,7 +53,9 @@ const GroupChat = {
   },
   // add group support
   addGroupSupport: async (userId: string) => {
-    const data = await http.post<APIResponse<{ message: string }>>('/group-chat/add-group-support', userId)
+    const data = await http.post<APIResponse<resChatWithStaff>>('/group-chat/add-group-support', undefined, {
+      params: { userId }
+    })
     return data?.data
   }
 }

@@ -131,3 +131,20 @@ export interface resChatPaging {
   totalPages: number
   pageSize: number
 }
+export interface ChatMember {
+  userId: string
+  email: string | null
+  fullName: string
+  avatar: string | null
+  isAdmin: boolean
+}
+
+export interface resChatWithStaff {
+  name: string
+  avatar: string | null
+  members: ChatMember[]
+  eventCode: string | null
+  id: string
+  createdAt: string
+  updatedAt: string | null
+}
