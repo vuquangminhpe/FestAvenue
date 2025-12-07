@@ -45,6 +45,11 @@ const GroupChat = {
   updateGroupChat: async (body: bodyUpdateGroupChat) => {
     const data = await http.put<APIResponse<{ message: string }>>('/group-chat/update', body)
     return data?.data
+  },
+  // add group support
+  addGroupSupport: async (userId: string) => {
+    const data = await http.post<APIResponse<{ message: string }>>('/group-chat/add-group-support', userId)
+    return data?.data
   }
 }
 

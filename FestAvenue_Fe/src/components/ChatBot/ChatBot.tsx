@@ -18,7 +18,7 @@ interface Message {
 }
 
 // Agent Chat API base URL
-const AGENT_CHAT_URL = 'https://minhvtt-ChatbotRAG.hf.space/agent/chat'
+const AGENT_CHAT_URL = 'https://minh9972t12-Chatbot-test.hf.space/agent/chat'
 
 // Session key includes user ID for multi-user support
 const getChatbotSessionKey = (userId?: string) => {
@@ -27,10 +27,10 @@ const getChatbotSessionKey = (userId?: string) => {
 
 // Suggestion bubbles for users WITHOUT purchased events (Sales mode)
 const SALES_SUGGESTION_BUBBLES = [
-  { text: '🎯 Tìm sự kiện phù hợp với tôi', message: 'Tìm event phù hợp với tôi' },
-  { text: '🔥 Có sự kiện hot nào cuối tuần này?', message: 'Có event hot nào cuối tuần này?' },
-  { text: '🎵 Tìm show nhạc gần đây', message: 'Tìm show nhạc gần đây' },
-  { text: '💰 Sự kiện có giá vé dưới 500k', message: 'Tìm event có giá vé dưới 500k' }
+  { text: 'Tìm sự kiện phù hợp với tôi', message: 'Tìm event phù hợp với tôi' },
+  { text: 'Có sự kiện hot nào cuối tuần này?', message: 'Có event hot nào cuối tuần này?' },
+  { text: 'Tìm show nhạc gần đây', message: 'Tìm show nhạc gần đây' },
+  { text: 'Sự kiện có giá vé dưới 500k', message: 'Tìm event có giá vé dưới 500k' }
 ]
 
 // Format markdown text to React elements

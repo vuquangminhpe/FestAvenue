@@ -76,11 +76,7 @@ const Footer = () => {
           <div>
             <h3 className='text-base font-semibold text-gray-800 mb-4'>Hỗ trợ</h3>
             <ul className='space-y-2'>
-              <li>
-                <a href='/help' className='text-sm text-gray-600 hover:text-cyan-600 transition-colors'>
-                  Trung tâm trợ giúp
-                </a>
-              </li>
+             
               <li>
                 <a href='/terms' className='text-sm text-gray-600 hover:text-cyan-600 transition-colors'>
                   Điều khoản dịch vụ

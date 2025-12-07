@@ -101,13 +101,7 @@ export default function Header() {
                   >
                     Tạo sự kiện
                   </Link>
-                  <Link
-                    to='/help'
-                    className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200 flex items-center space-x-1'
-                  >
-                    <HelpCircle className='h-4 w-4' />
-                    <span>Trợ giúp</span>
-                  </Link>
+
                   <div className='w-px h-6 bg-gray-300 mx-2' />
                   <Link
                     to={path.auth.login}
@@ -142,13 +136,6 @@ export default function Header() {
                   >
                     <Heart className='h-4 w-4' />
                     <span className='hidden xl:inline'>Yêu thích</span>
-                  </Link>
-                  <Link
-                    to='/help'
-                    className='px-4 py-2 text-gray-700 hover:text-cyan-600 font-medium rounded-lg hover:bg-gray-50 transition-all duration-200 flex items-center space-x-1'
-                  >
-                    <HelpCircle className='h-4 w-4' />
-                    <span className='hidden xl:inline'>Trợ giúp</span>
                   </Link>
 
                   {/* Organization trigger button - Only show if no organization and notification is hidden */}
@@ -200,13 +187,7 @@ export default function Header() {
                           >
                             Sự kiện của tôi
                           </Link>
-                          <Link
-                            to='/settings'
-                            className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors'
-                            onClick={() => setIsUserMenuOpen(false)}
-                          >
-                            Cài đặt
-                          </Link>
+
                           <div className='border-t border-gray-100 my-1' />
                           <button
                             onClick={handleLogout}
@@ -266,14 +247,7 @@ export default function Header() {
                   >
                     Tạo sự kiện
                   </Link>
-                  <Link
-                    to='/help'
-                    className='flex items-center space-x-2 px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <HelpCircle className='h-4 w-4' />
-                    <span>Trợ giúp</span>
-                  </Link>
+
                   <div className='border-t border-gray-100 my-2' />
                   <Link
                     to={path.auth.login}
@@ -330,14 +304,6 @@ export default function Header() {
                     <Heart className='h-4 w-4' />
                     <span>Yêu thích</span>
                   </Link>
-                  <Link
-                    to='/help'
-                    className='flex items-center space-x-2 px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors font-medium'
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <HelpCircle className='h-4 w-4' />
-                    <span>Trợ giúp</span>
-                  </Link>
 
                   {/* Mobile Organization trigger button */}
                   {!showOrgNotification && (
@@ -368,13 +334,7 @@ export default function Header() {
                   >
                     Sự kiện của tôi
                   </Link>
-                  <Link
-                    to='/settings'
-                    className='block px-4 py-3 text-gray-700 hover:text-cyan-600 hover:bg-gray-50 rounded-lg transition-colors'
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Cài đặt
-                  </Link>
+
                   <button
                     onClick={() => {
                       handleLogout()
