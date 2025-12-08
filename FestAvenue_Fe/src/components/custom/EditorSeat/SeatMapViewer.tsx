@@ -676,6 +676,27 @@ export default function SeatMapViewer({
             seatGroup.select('circle.timer-circle').remove()
             seatGroup.select('text.timer-text').remove()
           }
+
+          // Update or add lock icon for paid seats
+          const existingLockIcon = seatGroup.select('text.lock-icon')
+          if (seatInfo?.isPayment) {
+            if (existingLockIcon.empty()) {
+              // Create lock icon
+              seatGroup
+                .append('text')
+                .attr('class', 'lock-icon')
+                .attr('x', seat.x)
+                .attr('y', seat.y + 1)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '8px')
+                .attr('fill', 'white')
+                .attr('pointer-events', 'none')
+                .text('🔒')
+            }
+          } else {
+            // Remove lock icon if seat is no longer paid
+            existingLockIcon.remove()
+          }
         })
       })
     },
@@ -1033,6 +1054,7 @@ export default function SeatMapViewer({
         if (seatInfo?.isPayment) {
           hitboxGroup
             .append('text')
+            .attr('class', 'lock-icon')
             .attr('x', seat.x)
             .attr('y', seat.y + 1)
             .attr('text-anchor', 'middle')

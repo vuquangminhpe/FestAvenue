@@ -179,7 +179,8 @@ export const EventStatusValues = {
   Reject: 4,
   Canceled: 5,
   PendingContract: 8,
-  RejectedContract: 9
+  RejectedContract: 9,
+  Ended: 6
 } as const
 
 export type EventStatusValue = (typeof EventStatusValues)[keyof typeof EventStatusValues]

@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import VietQRBanking from '@/components/custom/QR/QRSection'
-import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Gift } from 'lucide-react'
+import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Gift, MousePointer, Info } from 'lucide-react'
 import path from '@/constants/path'
 import type { Ticket as TicketType } from '@/types/serviceTicketManagement.types'
 
@@ -924,6 +924,33 @@ export default function SeatMapViewerPage() {
           </div>
         </div>
       )}
+
+      {/* User Guidance */}
+      <div className='max-w-7xl mx-auto px-4 pt-6'>
+        <Alert className='bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200'>
+          <Info className='w-5 h-5 text-blue-600' />
+          <AlertDescription className='ml-2'>
+            <div className='flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-700'>
+              <div className='flex items-center gap-2'>
+                <MousePointer className='w-4 h-4 text-blue-500' />
+                <span><strong>Chọn ghế:</strong> Click vào ghế màu xanh lá để chọn</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <span className='w-3 h-3 rounded-full bg-orange-400'></span>
+                <span><strong>Bỏ chọn:</strong> Click lại ghế màu cam để bỏ chọn</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <span className='w-3 h-3 rounded-full bg-blue-500'></span>
+                <span><strong>Hủy giữ ghế:</strong> Click vào ghế xanh dương của bạn để hủy</span>
+              </div>
+              <div className='flex items-center gap-2'>
+                <RefreshCw className='w-4 h-4 text-gray-500' />
+                <span><strong>Phóng to/thu nhỏ:</strong> Cuộn chuột hoặc pinch trên màn hình cảm ứng</span>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      </div>
 
       {/* Seat Map */}
       <div className='w-full mx-auto px-4 py-8'>

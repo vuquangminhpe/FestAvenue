@@ -24,7 +24,8 @@ import {
   Edit,
   ExternalLink,
   Upload,
-  FileText
+  FileText,
+  CalendarX
 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -89,6 +90,12 @@ const statusConfig = {
     color: 'bg-orange-100 text-orange-700 border-orange-300',
     icon: AlertCircle,
     description: 'Hợp đồng bị từ chối, cần upload lại'
+  },
+  [EventStatusValues.Ended]: {
+    label: 'Sự kiện đã kết thúc',
+    color: 'bg-slate-100 text-slate-700 border-slate-300',
+    icon: CalendarX,
+    description: 'Sự kiện đã kết thúc'
   }
 }
 
