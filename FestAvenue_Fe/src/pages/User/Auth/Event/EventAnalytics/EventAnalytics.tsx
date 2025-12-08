@@ -8,7 +8,6 @@ import {
   Share2,
   CheckCircle,
   Calendar,
-  Search,
   UserCheck,
   Clock,
   AlertCircle
@@ -22,7 +21,6 @@ import ViewsChart from './components/ViewsChart'
 import KeywordSearchChart from './components/KeywordSearchChart'
 import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
 import TaskCompletionChart from './components/TaskCompletionChart'
-import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
 import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'

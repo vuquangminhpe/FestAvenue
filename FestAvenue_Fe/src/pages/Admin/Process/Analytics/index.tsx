@@ -201,7 +201,6 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>1,500</div>
-            <p className='text-xs text-muted-foreground'>+20% so với tháng trước</p>
           </CardContent>
         </Card>
         <Card>
@@ -211,7 +210,6 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>140</div>
-            <p className='text-xs text-muted-foreground'>+12% so với tháng trước</p>
           </CardContent>
         </Card>
         <Card>
@@ -221,7 +219,6 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>3,200</div>
-            <p className='text-xs text-muted-foreground'>+15% so với tháng trước</p>
           </CardContent>
         </Card>
         <Card>
@@ -231,18 +228,16 @@ const Analytics = () => {
           </CardHeader>
           <CardContent>
             <div className='text-2xl font-bold'>320M VNĐ</div>
-            <p className='text-xs text-muted-foreground'>+18% so với tháng trước</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Detailed Analytics */}
       <Tabs defaultValue='users' className='space-y-4'>
-        <TabsList className='grid w-full grid-cols-4 lg:w-auto lg:inline-grid'>
+        <TabsList className='grid w-full grid-cols-3 lg:w-auto lg:inline-grid'>
           <TabsTrigger value='users'>Người dùng & Nhân viên</TabsTrigger>
           <TabsTrigger value='events'>Sự kiện & Loại hình</TabsTrigger>
           <TabsTrigger value='revenue'>Doanh thu & Top sự kiện</TabsTrigger>
-          <TabsTrigger value='keywords'>Từ khóa tìm kiếm</TabsTrigger>
         </TabsList>
 
         <TabsContent value='users' className='space-y-4'>
