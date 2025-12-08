@@ -514,6 +514,17 @@ function applyCommonRefinements<T extends typeof baseEventObjectSchema>(schema: 
           path: ['endTicketSaleTime']
         }
       )
+      .refine(
+        (data) => {
+          const saleEnd = new Date(data.endTicketSaleTime)
+          const eventStart = new Date(data.startTimeEventTime)
+          return saleEnd <= eventStart
+        },
+        {
+          message: 'Thời gian kết thúc bán vé phải trước hoặc bằng thời điểm bắt đầu sự kiện',
+          path: ['endTicketSaleTime']
+        }
+      )
 
       // 3. EventTime validation - must be after TicketSaleTime starts
       .refine(

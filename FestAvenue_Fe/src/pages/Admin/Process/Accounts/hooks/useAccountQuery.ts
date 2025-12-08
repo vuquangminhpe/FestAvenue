@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import adminApi from '@/apis/admin.api'
-import type { bodyGetAllUserFilter, resAdminGetAllUser } from '@/types/admin.types'
+import type { bodyGetAllUserFilter } from '@/types/admin.types'
 import type { bodyUpdateStaff } from '@/types/API.types'
 
 export const ACCOUNT_QUERY_KEYS = {

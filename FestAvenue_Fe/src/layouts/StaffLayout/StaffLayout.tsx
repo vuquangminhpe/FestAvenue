@@ -1,6 +1,6 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
-import { MessageCircle, Menu, X, Users, Settings, LogOut, Calendar } from 'lucide-react'
+import { MessageCircle, Menu, X, Users, LogOut, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useStaffStore } from '@/contexts/app.context'
 import { useQuery } from '@tanstack/react-query'

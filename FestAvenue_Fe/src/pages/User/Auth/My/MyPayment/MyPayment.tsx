@@ -7,12 +7,10 @@ import { gsap } from 'gsap'
 import {
   Calendar,
   DollarSign,
-  Filter,
   CreditCard,
   CheckCircle,
   Receipt,
   Package,
-  Search,
   RefreshCw,
   TrendingUp,
   Eye,
@@ -23,9 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form'
+
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 import userApi from '@/apis/user.api'
@@ -45,19 +41,6 @@ const filterSchema = z.object({
 })
 
 type FilterFormData = z.infer<typeof filterSchema>
-
-const statusOptions = [
-  { value: 'all', label: 'Tất cả trạng thái' },
-  { value: '1', label: 'Chưa kích hoạt' },
-  { value: '2', label: 'Cho phép quét' },
-  { value: '3', label: 'Đã quét' }
-]
-
-const orderByOptions = [
-  { value: 'createdAt', label: 'Ngày tạo mới nhất' },
-  { value: 'amount', label: 'Số tiền cao nhất' },
-  { value: 'transactionDate', label: 'Ngày giao dịch mới nhất' }
-]
 
 export default function MyPayment() {
   const [pageIndex, setPageIndex] = useState(0)
@@ -174,24 +157,6 @@ export default function MyPayment() {
       hour: '2-digit',
       minute: '2-digit'
     })
-  }
-
-  const handleSearch = (data: FilterFormData) => {
-    setPageIndex(0)
-    console.log(data)
-  }
-
-  const resetFilters = () => {
-    form.reset({
-      status: 'all',
-      transactionFromDate: '',
-      transactionToDate: '',
-      createdFromDate: '',
-      createdToDate: '',
-      orderBy: 'createdAt',
-      pageSize: 20
-    })
-    setPageIndex(0)
   }
 
   const handleViewDetails = (payment: getPaymentForUserData) => {

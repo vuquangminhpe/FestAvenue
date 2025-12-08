@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, X, Minus, Bot, Loader2, Trash2, LogIn, Plus } from 'lucide-react'
+import { Send, X, Minus, Bot, Loader2, LogIn, Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
 import { formatTime } from '@/utils/utils'

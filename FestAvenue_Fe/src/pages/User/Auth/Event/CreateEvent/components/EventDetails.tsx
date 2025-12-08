@@ -84,12 +84,15 @@ export function EventDetails({ form }: EventDetailsProps) {
 
   useEffect(() => {
     if (eventStart) {
-      // When event start changes, re-validate event end
+      // When event start changes, re-validate ticket sale end and event end
+      if (ticketSaleEnd) {
+        form.trigger('endTicketSaleTime')
+      }
       if (eventEnd) {
         form.trigger('endTimeEventTime')
       }
     }
-  }, [eventStart, eventEnd, form])
+  }, [eventStart, ticketSaleEnd, eventEnd, form])
 
   return (
     <div className='space-y-6'>
