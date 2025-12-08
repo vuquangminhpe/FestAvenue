@@ -29,24 +29,23 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
     }).format(amount)
   }
 
-  // Generate QR data with eventCode, seatIndex, and email
-  const getQRData = () => {
-    const firstSeat = ticketData.seats[0]
-    if (!firstSeat) return null
+  const seats = ticketData?.seats || []
+
+  // Generate QR data for each seat
+  const getQRDataForSeat = (seat: (typeof seats)[0]) => {
+    if (!seat) return null
 
     const qrPayload = {
       eventCode: ticketData.event.eventCode,
-      seatIndex: firstSeat.seatIndex,
+      seatIndex: seat.seatIndex,
       email: ticketData.user.email
     }
 
     return JSON.stringify(qrPayload)
   }
 
-  const finalQRData = getQRData()
-
-  const handleDownloadQR = () => {
-    const svg = document.querySelector('#event-ticket-qr svg') as SVGElement
+  const handleDownloadQR = (seatIndex: string, qrId: string) => {
+    const svg = document.querySelector(`#${qrId} svg`) as SVGElement
     if (svg) {
       const svgData = new XMLSerializer().serializeToString(svg)
       const canvas = document.createElement('canvas')
@@ -66,7 +65,7 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
         const url = canvas.toDataURL('image/png')
         const link = document.createElement('a')
         link.href = url
-        link.download = `event-ticket-${ticketData.event.eventCode}.png`
+        link.download = `ticket-${ticketData.event.eventCode}-${seatIndex.split('-').slice(-1)[0]}.png`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -76,7 +75,7 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
     }
   }
 
-  const firstSeat = ticketData.seats[0]
+  const firstSeat = seats.length > 0 ? seats[0] : null
   const transactionDateTime = firstSeat?.paymentTime ? formatDateTime(firstSeat.paymentTime) : { date: '', time: '' }
 
   return (
@@ -102,39 +101,71 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
 
         {/* Main Content Grid */}
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-          {/* QR Code Section */}
+          {/* QR Codes Section - All Seats */}
           <div className='lg:col-span-1'>
-            <div
-              className='bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-xl border border-gray-200 text-center shadow-inner'
-              id='event-ticket-qr'
-            >
-              {finalQRData ? (
-                <>
-                  <div className='bg-white p-4 rounded-lg inline-block shadow-md'>
-                    <QRCode
-                      value={finalQRData}
-                      size={220}
-                      level='H'
-                      className='mx-auto'
-                      bgColor='#FFFFFF'
-                      fgColor='#000000'
-                    />
-                  </div>
-                  <div className='mt-4 p-3 bg-white rounded-lg border border-gray-200'>
-                    <p className='text-xs text-gray-500 mb-1'>QR Data:</p>
-                    <div className='text-xs font-mono text-gray-700 break-all max-h-20 overflow-y-auto'>
-                      {JSON.parse(finalQRData).eventCode} | {JSON.parse(finalQRData).seatIndex.split('-').slice(-1)[0]}
+            <div className='space-y-4'>
+              <h4 className='text-sm font-semibold text-gray-700'>Mã QR của bạn ({seats.length} vé)</h4>
+              <div className='max-h-[400px] overflow-y-auto space-y-4 pr-2'>
+                {seats.length > 0 ? (
+                  seats.map((seat, index) => {
+                    const qrData = getQRDataForSeat(seat)
+                    const qrId = `qr-seat-${index}`
+                    return (
+                      <div
+                        key={seat.seatIndex}
+                        className='bg-gradient-to-br from-gray-50 to-gray-100 p-4 rounded-xl border border-gray-200 text-center shadow-inner'
+                        id={qrId}
+                      >
+                        {qrData ? (
+                          <>
+                            <div className='bg-white p-3 rounded-lg inline-block shadow-md'>
+                              <QRCode
+                                value={qrData}
+                                size={160}
+                                level='H'
+                                className='mx-auto'
+                                bgColor='#FFFFFF'
+                                fgColor='#000000'
+                              />
+                            </div>
+                            <div className='mt-3 p-2 bg-white rounded-lg border border-gray-200'>
+                              <p className='text-xs text-gray-500 mb-1'>
+                                Ghế:{' '}
+                                <span className='font-semibold text-cyan-600'>
+                                  {seat.seatIndex.split('-').slice(-1)[0]}
+                                </span>
+                              </p>
+                              <p className='text-xs text-gray-500'>
+                                Loại vé: <span className='font-medium'>{seat.ticketName}</span>
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDownloadQR(seat.seatIndex, qrId)}
+                              className='mt-2 flex items-center justify-center gap-1 px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white text-xs rounded-lg transition-all w-full'
+                            >
+                              <Download className='h-3 w-3' />
+                              Tải QR
+                            </button>
+                          </>
+                        ) : (
+                          <div className='h-40 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded-lg'>
+                            <div className='text-center'>
+                              <p className='text-red-600 text-sm font-medium'>Không có dữ liệu</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className='h-64 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded-lg'>
+                    <div className='text-center'>
+                      <p className='text-red-600 text-sm font-medium'>Không có dữ liệu vé</p>
+                      <p className='text-red-500 text-xs mt-1'>Không thể tạo QR code</p>
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className='h-64 flex items-center justify-center bg-red-50 border-2 border-red-200 rounded-lg'>
-                  <div className='text-center'>
-                    <p className='text-red-600 text-sm font-medium'>Không có dữ liệu vé</p>
-                    <p className='text-red-500 text-xs mt-1'>Không thể tạo QR code</p>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
@@ -181,15 +212,15 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
                   <Ticket className='h-4 w-4 text-purple-600' />
                   <p className='text-sm font-medium text-gray-700'>Số lượng ghế</p>
                 </div>
-                <p className='text-2xl font-bold text-purple-600'>{ticketData.seats.length}</p>
+                <p className='text-2xl font-bold text-purple-600'>{seats.length}</p>
                 <div className='mt-2 flex flex-wrap gap-1'>
-                  {ticketData.seats.slice(0, 5).map((seat, idx) => (
+                  {seats.slice(0, 5).map((seat, idx) => (
                     <span key={idx} className='text-xs bg-purple-100 px-2 py-1 rounded'>
                       {seat.ticketName}
                     </span>
                   ))}
-                  {ticketData.seats.length > 5 && (
-                    <span className='text-xs bg-purple-100 px-2 py-1 rounded'>+{ticketData.seats.length - 5}</span>
+                  {seats.length > 5 && (
+                    <span className='text-xs bg-purple-100 px-2 py-1 rounded'>+{seats.length - 5}</span>
                   )}
                 </div>
               </div>
@@ -243,7 +274,7 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
         </div>
 
         {/* Seats Details Table */}
-        {ticketData.seats.length > 0 && (
+        {seats.length > 0 && (
           <div className='mt-6'>
             <h4 className='text-sm font-semibold text-gray-700 mb-3'>Chi tiết ghế</h4>
             <div className='overflow-x-auto'>
@@ -259,8 +290,7 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
                   </tr>
                 </thead>
                 <tbody>
-                  {ticketData.seats.map((seat, index) => {
-                    console.log(seat)
+                  {seats.map((seat, index) => {
                     return (
                       <tr key={seat.seatIndex} className='border-b hover:bg-gray-50'>
                         <td className='p-2'>{index + 1}</td>
@@ -298,20 +328,8 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className='mt-6 flex flex-col sm:flex-row gap-3 justify-center'>
-          <button
-            onClick={handleDownloadQR}
-            disabled={!finalQRData}
-            className='flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium'
-          >
-            <Download className='h-5 w-5' />
-            Tải mã QR
-          </button>
-        </div>
-
         {/* Instructions */}
-        <div className='mt-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl'>
+        <div className='mt-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-xl'>
           <div className='flex items-start gap-3'>
             <div className='p-2 bg-amber-100 rounded-lg'>
               <Ticket className='h-5 w-5 text-amber-600' />
@@ -319,7 +337,8 @@ const EventTicketQRSection: React.FC<EventTicketQRSectionProps> = ({ ticketData,
             <div>
               <p className='text-amber-900 text-sm font-semibold mb-1'>Hướng dẫn sử dụng</p>
               <p className='text-amber-800 text-sm'>
-                Vui lòng xuất trình mã QR này tại cổng vào sự kiện để nhân viên quét và xác nhận vé của bạn.
+                Mỗi ghế sẽ có một mã QR riêng. Vui lòng xuất trình mã QR tương ứng tại cổng vào sự kiện để nhân viên
+                quét và xác nhận vé của bạn.
               </p>
             </div>
           </div>

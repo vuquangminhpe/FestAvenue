@@ -2,90 +2,70 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { UserPlus } from 'lucide-react'
-import { toast } from 'sonner'
+import { UserPlus, Loader2, Mail, AlertCircle } from 'lucide-react'
+import { useAccountQuery } from '../hooks/useAccountQuery'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 const CreateAccount = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'user'
-  })
+  const [email, setEmail] = useState('')
+  const { createStaffMutation } = useAccountQuery()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Simulate API call
-    toast('Tạo tài khoản thành công')
+    if (!email.trim()) return
 
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'user'
+    createStaffMutation.mutate(email, {
+      onSuccess: () => {
+        setEmail('')
+      }
     })
+  }
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   }
 
   return (
     <form onSubmit={handleSubmit} className='space-y-6 max-w-2xl'>
+      <Alert>
+        <AlertCircle className='h-4 w-4' />
+        <AlertDescription>
+          Tạo tài khoản Staff mới. Hệ thống sẽ gửi email xác nhận và mật khẩu tạm thời đến địa chỉ email được cung cấp.
+        </AlertDescription>
+      </Alert>
+
       <div className='grid gap-4'>
         <div className='space-y-2'>
-          <Label htmlFor='name'>Họ và tên</Label>
-          <Input
-            id='name'
-            placeholder='Nhập họ và tên'
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className='space-y-2'>
           <Label htmlFor='email'>Email</Label>
-          <Input
-            id='email'
-            type='email'
-            placeholder='Nhập email'
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className='space-y-2'>
-          <Label htmlFor='password'>Mật khẩu</Label>
-          <Input
-            id='password'
-            type='password'
-            placeholder='Nhập mật khẩu'
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className='space-y-2'>
-          <Label htmlFor='role'>Vai trò</Label>
-          <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='user'>User</SelectItem>
-              <SelectItem value='staff'>Staff</SelectItem>
-              <SelectItem value='organizer'>Organizer</SelectItem>
-              <SelectItem value='admin'>Admin</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className='relative'>
+            <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+            <Input
+              id='email'
+              type='email'
+              placeholder='Nhập email của staff'
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className='pl-10'
+              required
+              disabled={createStaffMutation.isPending}
+            />
+          </div>
+          <p className='text-sm text-gray-500'>Email này sẽ được sử dụng để đăng nhập vào hệ thống</p>
         </div>
       </div>
 
-      <Button type='submit' className='gap-2'>
-        <UserPlus className='w-4 h-4' />
-        Tạo tài khoản
+      <Button
+        type='submit'
+        className='gap-2'
+        disabled={createStaffMutation.isPending || !email.trim() || !isValidEmail(email)}
+      >
+        {createStaffMutation.isPending ? (
+          <Loader2 className='w-4 h-4 animate-spin' />
+        ) : (
+          <UserPlus className='w-4 h-4' />
+        )}
+        {createStaffMutation.isPending ? 'Đang tạo...' : 'Tạo tài khoản Staff'}
       </Button>
     </form>
   )

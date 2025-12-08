@@ -64,6 +64,13 @@ export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
   const deleteTicketMutation = useDeleteTicket()
 
   const tickets = ticketsData?.data?.result || []
+  const pagination = ticketsData?.pagination
+  const totalPages = pagination?.totalPageCount || 1
+
+  // Reset pageIndex về 1 khi search hoặc filters thay đổi
+  useEffect(() => {
+    setPageIndex(1)
+  }, [searchQuery, filters.priceFrom, filters.priceTo, filters.isPublic, filters.sortBy, filters.sortOrder])
 
   // Entrance animation
   useEffect(() => {
@@ -112,6 +119,7 @@ export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
       sortOrder: 'desc'
     })
     setSearchQuery('')
+    setPageIndex(1) // Reset về trang 1 khi xóa bộ lọc
   }
 
   const handleCloseAddModal = () => {
@@ -169,6 +177,12 @@ export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
       <div className='flex items-center justify-between py-4'>
         <p className='text-sm text-gray-600'>
           Hiển thị <span className='font-semibold text-gray-900'>{tickets.length}</span> vé
+          {pagination?.totalRecordCount ? (
+            <span>
+              {' '}
+              / Tổng <span className='font-semibold text-gray-900'>{pagination.totalRecordCount}</span> vé
+            </span>
+          ) : null}
           {searchQuery && ' (đã lọc)'}
         </p>
         {isFetching && <Loader2 className='w-4 h-4 animate-spin text-cyan-400' />}
@@ -184,25 +198,56 @@ export default function TicketConfig({ ticketPackageId }: TicketConfigProps) {
         />
       </div>
 
-      {/* Pagination Placeholder */}
-      {tickets.length > 0 && (
+      {/* Pagination */}
+      {tickets.length > 0 && totalPages > 0 && (
         <div className='flex items-center justify-center gap-2 py-6'>
           <Button variant='outline' size='sm' disabled={pageIndex === 1} onClick={() => setPageIndex(pageIndex - 1)}>
-            &lt;&lt; Prev
+            Trước đó
           </Button>
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((page) => (
-            <Button
-              key={page}
-              variant={page === pageIndex ? 'default' : 'outline'}
-              size='sm'
-              className={page === pageIndex ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
-              onClick={() => setPageIndex(page)}
-            >
-              {page}
-            </Button>
-          ))}
-          <Button variant='outline' size='sm' onClick={() => setPageIndex(pageIndex + 1)}>
-            Next &gt;&gt;
+
+          <div className='flex items-center gap-1'>
+            {(() => {
+              const pages: (number | string)[] = []
+
+              if (totalPages <= 5) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i)
+              } else {
+                if (pageIndex <= 3) {
+                  pages.push(1, 2, 3, 4, '...', totalPages)
+                } else if (pageIndex >= totalPages - 2) {
+                  pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages)
+                } else {
+                  pages.push(1, '...', pageIndex - 1, pageIndex, pageIndex + 1, '...', totalPages)
+                }
+              }
+
+              return pages.map((page, idx) =>
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className='px-2 text-gray-400'>
+                    ...
+                  </span>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={pageIndex === page ? 'default' : 'outline'}
+                    size='sm'
+                    className={pageIndex === page ? 'bg-cyan-500 hover:bg-cyan-600' : ''}
+                    onClick={() => setPageIndex(page as number)}
+                  >
+                    {page}
+                  </Button>
+                )
+              )
+            })()}
+          </div>
+
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={pageIndex === totalPages}
+            onClick={() => setPageIndex(pageIndex + 1)}
+          >
+            Tiếp theo
           </Button>
         </div>
       )}

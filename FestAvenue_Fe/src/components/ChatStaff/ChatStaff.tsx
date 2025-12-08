@@ -47,18 +47,14 @@ export default function ChatStaff() {
   }
 
   return (
-    <div className='fixed bottom-6 right-6 z-50'>
+    <div className='fixed bottom-24 right-6 z-50'>
       <button
         onClick={handleConnectStaff}
         disabled={isConnecting}
         className='relative bg-gradient-to-r from-teal-400 to-cyan-300 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-4 border-2 border-white hover:scale-110 disabled:opacity-70 disabled:hover:scale-100'
         title='Liên hệ hỗ trợ'
       >
-        {isConnecting ? (
-          <Loader2 className='w-6 h-6 animate-spin' />
-        ) : (
-          <Headphones className='w-6 h-6' />
-        )}
+        {isConnecting ? <Loader2 className='w-6 h-6 animate-spin' /> : <Headphones className='w-6 h-6' />}
         <div className='absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse' />
       </button>
     </div>

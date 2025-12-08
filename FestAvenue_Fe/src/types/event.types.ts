@@ -473,3 +473,12 @@ export interface bodyApproveContractForStaff {
   eventVersionId: string
   message: string
 }
+export interface bodyGetAllUserByStaff {
+  searchKey?: string
+  userStatuses: number[]
+  pagination: {
+    pageIndex: number
+    isPaging: boolean
+    pageSize: number
+  }
+}

@@ -50,9 +50,20 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
 
   const eventConstraints: EventConstraints | undefined = useMemo(() => {
     if (!eventData) return undefined
+
+    const saleStartRaw = (eventData as any).startTicketSaleTime ?? eventData.startEventLifecycleTime
+    const saleEndRaw = (eventData as any).endTicketSaleTime ?? eventData.endEventLifecycleTime
+
+    const saleStart = saleStartRaw ? new Date(saleStartRaw as string) : undefined
+    const saleEnd = saleEndRaw ? new Date(saleEndRaw as string) : undefined
+
+    if (!saleStart || !saleEnd) {
+      return undefined
+    }
+
     return {
-      lifecycleStart: new Date(eventData.startEventLifecycleTime as string),
-      lifecycleEnd: new Date(eventData.endEventLifecycleTime as string),
+      lifecycleStart: saleStart,
+      lifecycleEnd: saleEnd,
       capacity: eventData.capacity || 1000000
     }
   }, [eventData])
@@ -174,6 +185,17 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className='space-y-6 mt-4'>
+          {eventConstraints && (
+            <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-1'>
+              <p className='text-sm font-semibold text-blue-900'>Thời gian mở bán vé:</p>
+              <p className='text-sm text-blue-700'>Từ: {eventConstraints.lifecycleStart.toLocaleString('vi-VN')}</p>
+              <p className='text-sm text-blue-700'>Đến: {eventConstraints.lifecycleEnd.toLocaleString('vi-VN')}</p>
+              <p className='text-sm text-blue-700'>
+                Sức chứa tối đa: {eventConstraints.capacity.toLocaleString('vi-VN')}
+              </p>
+            </div>
+          )}
+
           {/* Ticket Name */}
           <div className='space-y-2'>
             <Label htmlFor='update-name' className='text-sm font-semibold text-gray-700'>

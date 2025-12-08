@@ -35,10 +35,11 @@ const StaffLayout = lazy(() => import('./layouts/StaffLayout'))
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'))
 const StaffMessages = lazy(() => import('./pages/Staff/Process/Messages'))
 const StaffEventManagement = lazy(() => import('./pages/Staff/Process/EventManagement'))
+const StaffUserManagement = lazy(() => import('./pages/Staff/Process/UserManagement'))
 const Dashboard = lazy(() => import('./pages/Admin/Process/Dashboard'))
 const Category = lazy(() => import('./pages/Admin/Process/Category'))
 const Packages = lazy(() => import('./pages/Admin/Process/Packages'))
-const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts'))
+const AccountManagement = lazy(() => import('./pages/Admin/Process/Accounts/AccountManagement'))
 const Analytics = lazy(() => import('./pages/Admin/Process/Analytics'))
 const SeatMapViewerPage = lazy(() => import('./pages/User/Auth/TicketManagement/SeatMapViewerPage'))
 const UserManagementInEvents = lazy(() => import('./pages/User/Process/UserManagementInEvents/UserManagementInEvent'))
@@ -617,6 +618,14 @@ export default function useRouteElement() {
               element: (
                 <SuspenseWrapper>
                   <StaffEventManagement />
+                </SuspenseWrapper>
+              )
+            },
+            {
+              path: path.staff.users,
+              element: (
+                <SuspenseWrapper>
+                  <StaffUserManagement />
                 </SuspenseWrapper>
               )
             }

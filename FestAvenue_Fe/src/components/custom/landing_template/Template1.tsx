@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -6,6 +6,7 @@ import type { LandingTemplateProps, SocialMediaImage } from './types'
 import CommentModal from './CommentModal'
 import ShareDialog from './ShareDialog'
 import { Button } from '@/components/ui/button'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 import { Heart, MessageCircle, Share2, MapPin, Calendar } from 'lucide-react'
 import { generateNameId } from '@/utils/utils'
 import path from '@/constants/path'
@@ -17,6 +18,8 @@ export default function Template1(props: LandingTemplateProps) {
   const { postId } = useParams()
 
   const eventCode = postId?.split('eC')[1]
+  // Extract actual postSocialMediaId from URL params (format: id-name-authorName)
+  const currentPostId = postId?.split('-')[0]
 
   const containerRef = useRef<HTMLDivElement>(null)
   const bannerRef = useRef<HTMLDivElement>(null)
@@ -25,6 +28,11 @@ export default function Template1(props: LandingTemplateProps) {
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false)
 
   const { data: latestPosts = [] } = useTop5LatestPostByEventCode(eventCode)
+
+  // Filter out current post from related posts
+  const filteredRelatedPosts = useMemo(() => {
+    return latestPosts.filter((post) => post.postSocialMediaId !== currentPostId)
+  }, [latestPosts, currentPostId])
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -145,7 +153,7 @@ export default function Template1(props: LandingTemplateProps) {
                 Đăng Ký Ngay
               </Button>
               <ShareDialog title={props.title} description={props.description}>
-                <Button size='lg' variant='outline' className='border-white text-white hover:bg-white/10'>
+                <Button size='lg' variant='outline' className='border-white text-black hover:bg-white/10'>
                   <Share2 className='w-5 h-5 mr-2' />
                   Chia Sẻ
                 </Button>
@@ -214,51 +222,64 @@ export default function Template1(props: LandingTemplateProps) {
       </div>
 
       {/* Related Events */}
-      <div className='related-events-section bg-gray-50 py-16'>
-        <div className='max-w-7xl mx-auto px-8'>
-          <h2 className='text-4xl font-bold mb-12 text-gray-900'>Bài Đăng Liên Quan</h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
-            {latestPosts.map((post) => {
-              const nameId = generateNameId({
-                name: post.title,
-                id: post.postSocialMediaId,
-                id_2: post.authorName
-              })
-              return (
-                <Link
-                  key={post.postSocialMediaId}
-                  to={`${path.user.event.social_media_detail_base}/${nameId}`}
-                  className='related-event group block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300'
-                >
-                  <img src={post.bannerPostUrl} alt={post.title} className='w-full h-48 object-cover' />
-                  <div className='p-6'>
-                    <h3 className='text-xl font-semibold mb-2 group-hover:text-purple-600 transition-colors'>
-                      {post.title}
-                    </h3>
-                    <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{post.description}</p>
-                    <div className='space-y-1 text-gray-600'>
-                      <p className='flex items-center gap-2'>
-                        <Calendar className='w-4 h-4' />
-                        {new Date(post.publishDate).toLocaleDateString('vi-VN')}
-                      </p>
-                      <div className='flex items-center gap-4 text-sm'>
-                        <span className='flex items-center gap-1'>
-                          <Heart className='w-4 h-4' />
-                          {post.totalReactions}
-                        </span>
-                        <span className='flex items-center gap-1'>
-                          <MessageCircle className='w-4 h-4' />
-                          {post.totalComments}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
+      {filteredRelatedPosts.length > 0 && (
+        <div className='related-events-section bg-gray-50 py-16'>
+          <div className='max-w-7xl mx-auto px-8'>
+            <h2 className='text-4xl font-bold mb-12 text-gray-900'>Bài Đăng Liên Quan</h2>
+            <Carousel
+              opts={{
+                align: 'start',
+                loop: true
+              }}
+              className='w-full'
+            >
+              <CarouselContent className='-ml-4'>
+                {filteredRelatedPosts.map((post) => {
+                  const nameId = generateNameId({
+                    name: post.title,
+                    id: post.postSocialMediaId,
+                    id_2: post.authorName
+                  })
+                  return (
+                    <CarouselItem key={post.postSocialMediaId} className='pl-4 md:basis-1/2 lg:basis-1/3'>
+                      <Link
+                        to={`${path.user.event.social_media_detail_base}/${nameId}`}
+                        className='related-event group block bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 h-full'
+                      >
+                        <img src={post.bannerPostUrl} alt={post.title} className='w-full h-48 object-cover' />
+                        <div className='p-6'>
+                          <h3 className='text-xl font-semibold mb-2 group-hover:text-purple-600 transition-colors'>
+                            {post.title}
+                          </h3>
+                          <p className='text-sm text-gray-600 mb-3 line-clamp-2'>{post.description}</p>
+                          <div className='space-y-1 text-gray-600'>
+                            <p className='flex items-center gap-2'>
+                              <Calendar className='w-4 h-4' />
+                              {new Date(post.publishDate).toLocaleDateString('vi-VN')}
+                            </p>
+                            <div className='flex items-center gap-4 text-sm'>
+                              <span className='flex items-center gap-1'>
+                                <Heart className='w-4 h-4' />
+                                {post.totalReactions}
+                              </span>
+                              <span className='flex items-center gap-1'>
+                                <MessageCircle className='w-4 h-4' />
+                                {post.totalComments}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </CarouselItem>
+                  )
+                })}
+              </CarouselContent>
+              <CarouselPrevious className='left-0 -translate-x-1/2' />
+              <CarouselNext className='right-0 translate-x-1/2' />
+            </Carousel>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Social Links */}
       <div className='bg-white py-16'>

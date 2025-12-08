@@ -1,9 +1,11 @@
+import type { resAdminGetAllUser } from '@/types/admin.types'
 import type { APIResponse } from '@/types/API.types'
 import type {
   bodyAcceptRequestWithDrawal,
   bodyApproveContractForStaff,
   bodyApproveEventForStaff,
   bodyCreateWithDrawal,
+  bodyGetAllUserByStaff,
   bodyGetListReqDrawalByAdmin,
   bodyRejectRequestWithDrawal,
   bodySearchEvent,
@@ -22,6 +24,7 @@ import type {
   WithdrawalRequestItem
 } from '@/types/event.types'
 import type { ResponseEventDashBoardGeneral } from '@/types/eventDashboard.types'
+import type { top5latestRes } from '@/types/serviceSocialMedia.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
   eventId: string
@@ -162,6 +165,18 @@ const eventApis = {
       `/event/get-purchase-event-by-user-id/${userId}`
     )
     return data?.data
+  },
+  getPurchaseIsCheckFeedBack: async (userId: string) => {
+    const data = await http.get<APIResponse<{ eventCode: string; eventName: string }[]>>(
+      `https://minh9972t12-Chatbot-test.hf.space/feedback/events/${userId}`
+    )
+    return data?.data
+  },
+  getRelatedPostByPostId: async (postId: string) => {
+    const data = await http.get<APIResponse<top5latestRes[]>>('/post-social-media/get-relate-post-by-post-id', {
+      params: { postId }
+    })
+    return data?.data
   }
 }
 
@@ -187,6 +202,10 @@ const staffEventApis = {
   },
   rejectContractForStaff: async (body: bodyApproveContractForStaff) => {
     const data = await http.post<APIResponse<{ messages: string }>>('/event/reject-contract-event', body)
+    return data?.data
+  },
+  getAllUserByStaff: async (body: bodyGetAllUserByStaff) => {
+    const data = await http.post<APIResponse<{ result: resAdminGetAllUser }>>('/staff/user/filter-paging', body)
     return data?.data
   }
 }

@@ -62,12 +62,6 @@ const StaffLayout = ({ children }: StaffLayoutProps) => {
       icon: Users,
       path: path.staff.users,
       description: ''
-    },
-    {
-      label: 'Cài đặt hệ thống',
-      icon: Settings,
-      path: path.staff.settings,
-      description: ''
     }
   ]
 

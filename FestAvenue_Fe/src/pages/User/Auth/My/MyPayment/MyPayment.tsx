@@ -103,7 +103,8 @@ export default function MyPayment() {
     enabled: !!user?.isProfile?.id
   })
 
-  const payments = paymentsQuery?.data?.data || []
+  // Filter out payments with no seats
+  const payments = (paymentsQuery?.data?.data || []).filter((payment) => payment?.seats && payment.seats.length > 0)
 
   // GSAP Animations
   useEffect(() => {
@@ -146,6 +147,7 @@ export default function MyPayment() {
       )
     }
   }, [payments])
+  console.log(payments)
 
   // Calculate statistics
   const stats = {
@@ -153,7 +155,7 @@ export default function MyPayment() {
     totalAmount: payments.reduce((sum, payment) => sum + payment.amount, 0),
     successful: payments.filter((p) => p.seats?.some((seat) => seat.seatStatus === SeatStatus.Scanned)).length,
     successfulAmount: payments
-      .filter((p) => p.seats.some((seat) => seat.seatStatus === SeatStatus.Scanned))
+      .filter((p) => p?.seats?.some((seat) => seat.seatStatus === SeatStatus.Scanned))
       .reduce((sum, payment) => sum + payment.amount, 0)
   }
 
@@ -280,172 +282,6 @@ export default function MyPayment() {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className='border-cyan-200'>
-        <CardHeader>
-          <CardTitle className='text-lg flex items-center gap-2'>
-            <Filter className='w-5 h-5' />
-            Bộ lọc tìm kiếm
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSearch)} className='space-y-6'>
-              {/* Basic Filters */}
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                <FormField
-                  control={form.control}
-                  name='status'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trạng thái</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder='Chọn trạng thái' />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {statusOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='orderBy'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sắp xếp theo</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {orderByOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name='pageSize'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Số bản ghi</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value?.toString()}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value='10'>10</SelectItem>
-                          <SelectItem value='20'>20</SelectItem>
-                          <SelectItem value='50'>50</SelectItem>
-                          <SelectItem value='100'>100</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Date Range Filters */}
-              <div className='space-y-4'>
-                <h4 className='text-sm font-medium text-gray-700 border-b pb-2'>Lọc theo ngày</h4>
-
-                {/* Transaction Date Range */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <FormField
-                    control={form.control}
-                    name='transactionFromDate'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Từ ngày giao dịch</FormLabel>
-                        <FormControl>
-                          <Input type='date' {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='transactionToDate'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Đến ngày giao dịch</FormLabel>
-                        <FormControl>
-                          <Input type='date' {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Created Date Range */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                  <FormField
-                    control={form.control}
-                    name='createdFromDate'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Từ ngày tạo</FormLabel>
-                        <FormControl>
-                          <Input type='date' {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name='createdToDate'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Đến ngày tạo</FormLabel>
-                        <FormControl>
-                          <Input type='date' {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className='flex gap-3'>
-                <Button
-                  type='submit'
-                  disabled={paymentsQuery.isLoading}
-                  className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
-                >
-                  <Search className='w-4 h-4 mr-2' />
-                  Tìm kiếm
-                </Button>
-                <Button type='button' variant='outline' onClick={resetFilters}>
-                  Đặt lại
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
-
       {/* Payment List */}
       <Card>
         <CardHeader>
@@ -483,7 +319,8 @@ export default function MyPayment() {
           ) : (
             <div ref={tableRef} className='space-y-3'>
               {payments.map((payment: getPaymentForUserData, index) => {
-                const firstSeat = payment.seats[0]
+                const seats = payment?.seats || []
+                const firstSeat = seats.length > 0 ? seats[0] : null
                 return (
                   <div
                     key={`${payment.event.eventCode}-${index}`}
@@ -521,7 +358,7 @@ export default function MyPayment() {
 
                           <div className='flex items-center gap-1 text-blue-600'>
                             <Ticket className='w-3 h-3' />
-                            {payment.seats.length} ghế
+                            {seats.length} ghế
                           </div>
                         </div>
                       </div>

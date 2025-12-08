@@ -204,3 +204,10 @@ export interface messagesChatBotRole {
   role: 'user' | 'assistant' //mặc định chỉ có 2 role này để phân biệt
   content: string
 }
+export interface bodyUpdateStaff {
+  staffId: string
+  firstName: string
+  lastName: string
+  phone: string
+  newPassword: string
+}

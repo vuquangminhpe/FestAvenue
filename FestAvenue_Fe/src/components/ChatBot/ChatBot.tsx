@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Send, X, Minus, Bot, Loader2, Trash2, LogIn } from 'lucide-react'
+import { Send, X, Minus, Bot, Loader2, Trash2, LogIn, Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
 import { formatTime } from '@/utils/utils'
@@ -167,7 +167,6 @@ export default function ChatBot() {
   const inputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const currentMessageRef = useRef('')
-
   // Fetch purchased events for logged-in user
   const { data: purchasedEventData, isLoading: isLoadingPurchased } = useQuery({
     queryKey: ['purchased-event', userId],
@@ -175,8 +174,21 @@ export default function ChatBot() {
     enabled: isAuth && !!userId
   })
 
-  // Determine if user has purchased events
-  const hasPurchasedEvents = purchasedEventData?.data && purchasedEventData.data.length > 0
+  // Fetch list of events that user already submitted feedback
+  const { data: feedbackedEventsData } = useQuery({
+    queryKey: ['feedbacked-events', userId],
+    queryFn: () => eventApis.getPurchaseIsCheckFeedBack(userId!),
+    enabled: isAuth && !!userId
+  })
+
+  // Filter out events that already have feedback
+  const feedbackedEventCodes = (feedbackedEventsData as any)?.events.map((e: any) => e.eventCode) || []
+  const eventsNeedingFeedback =
+    purchasedEventData?.data?.filter((event) => !feedbackedEventCodes.includes(event.eventCode)) || []
+
+  // Only show feedback mode if there are events that need feedback
+  // If all purchased events have been feedbacked, hasPurchasedEvents = false -> hide feedback bubbles
+  const hasPurchasedEvents = eventsNeedingFeedback.length > 0
 
   // Auto-open chatbot after 3 seconds for new visitors (no purchased events)
   useEffect(() => {
@@ -191,14 +203,9 @@ export default function ChatBot() {
     }
   }, [hasAutoOpened, hasPurchasedEvents, isLoadingPurchased])
 
-  // Set chat mode based on purchased events
-  useEffect(() => {
-    if (hasPurchasedEvents) {
-      setChatMode('feedback')
-    } else {
-      setChatMode('sales')
-    }
-  }, [hasPurchasedEvents])
+  // NOTE: Removed auto-change chatMode based on hasPurchasedEvents
+  // Mode should only change when user explicitly clicks a bubble or starts new chat
+  // This ensures consistent mode throughout the conversation session
 
   // Load session from localStorage on mount or when user changes
   useEffect(() => {
@@ -408,9 +415,11 @@ export default function ChatBot() {
     [sessionId, userId, chatMode, saveSessionId]
   )
 
-  // Handle suggestion bubble click
+  // Handle suggestion bubble click - set mode and keep it for the session
   const handleBubbleClick = (message: string, mode?: 'sales' | 'feedback') => {
-    handleAgentChat(message, mode || chatMode)
+    const selectedMode = mode || chatMode
+    setChatMode(selectedMode) // Lock this mode for the session
+    handleAgentChat(message, selectedMode)
   }
 
   // Handle send message
@@ -437,9 +446,10 @@ export default function ChatBot() {
     setMessages([])
     setSessionId(null)
     setShowSuggestionBubbles(true)
+    setChatMode('sales') // Reset to default mode for new conversation
     const sessionKey = getChatbotSessionKey(userId)
     localStorage.removeItem(sessionKey)
-    toast.success('Đã xóa lịch sử chat')
+    toast.success('Đã tạo cuộc trò chuyện mới')
   }
 
   const handleToggleOpen = () => {
@@ -524,16 +534,15 @@ export default function ChatBot() {
           </div>
         </div>
         <div className='flex items-center space-x-1'>
-          {messages.length > 0 && (
-            <button
-              onClick={handleClearChat}
-              disabled={isStreaming}
-              className='text-white hover:bg-white/20 rounded-full p-1'
-              title='Xóa lịch sử chat'
-            >
-              <Trash2 className='w-4 h-4' />
-            </button>
-          )}
+          {/* New chat button */}
+          <button
+            onClick={handleClearChat}
+            disabled={isStreaming}
+            className='text-white hover:bg-white/20 rounded-full p-1'
+            title='Tạo cuộc trò chuyện mới'
+          >
+            <Plus className='w-4 h-4' />
+          </button>
           <button onClick={handleMinimize} className='text-white hover:bg-white/20 rounded-full p-1'>
             <Minus className='w-4 h-4' />
           </button>
@@ -576,17 +585,19 @@ export default function ChatBot() {
               <div className='flex-1 flex flex-col justify-end space-y-2 pb-2'>
                 <p className='text-xs text-gray-500 text-center mb-1'>Chọn một chủ đề bên dưới:</p>
 
-                {/* Show feedback bubble if user has purchased events */}
-                {hasPurchasedEvents && purchasedEventData?.data && (
-                  <button
-                    onClick={() => handleBubbleClick('Hello', 'feedback')}
-                    disabled={isStreaming}
-                    className='w-full text-left px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg text-sm text-amber-800 hover:from-amber-100 hover:to-orange-100 transition-all duration-200 flex items-center gap-2'
-                  >
-                    <span className='text-base'>⭐</span>
-                    <span>Chia sẻ cảm nhận về "{purchasedEventData.data[0].eventName}"</span>
-                  </button>
-                )}
+                {/* Show feedback bubbles for all events that need feedback */}
+                {hasPurchasedEvents &&
+                  eventsNeedingFeedback.map((event) => (
+                    <button
+                      key={event.eventCode}
+                      onClick={() => handleBubbleClick(`Tôi muốn feedback cho sự kiện ${event.eventName}`, 'feedback')}
+                      disabled={isStreaming}
+                      className='w-full text-left px-3 py-2 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg text-sm text-amber-800 hover:from-amber-100 hover:to-orange-100 transition-all duration-200 flex items-center gap-2'
+                    >
+                      <span className='text-base'>⭐</span>
+                      <span>Chia sẻ cảm nhận về "{event.eventName}"</span>
+                    </button>
+                  ))}
 
                 {/* Sales suggestion bubbles */}
                 {SALES_SUGGESTION_BUBBLES.map((bubble, index) => (
