@@ -122,9 +122,98 @@ const CarouselBannerOptimized: React.FC = () => {
   // Show loading state
   if (isLoading || items.length === 0) {
     return (
-      <div className='relative h-screen w-full overflow-hidden bg-black flex items-center justify-center'>
-        <div className='text-white text-xl'>Đang tải sự kiện...</div>
-      </div>
+      <>
+        <style>{`
+          @keyframes shimmer {
+            0% {
+              background-position: -1000px 0;
+            }
+            100% {
+              background-position: 1000px 0;
+            }
+          }
+
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+
+          @keyframes spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .shimmer {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(
+              to right,
+              rgba(255, 255, 255, 0) 0%,
+              rgba(255, 255, 255, 0.05) 20%,
+              rgba(255, 255, 255, 0.1) 40%,
+              rgba(255, 255, 255, 0.05) 60%,
+              rgba(255, 255, 255, 0) 100%
+            );
+            background-size: 1000px 100%;
+          }
+
+          .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+        `}</style>
+        <div className='relative h-screen w-full overflow-hidden bg-gradient-to-br from-gray-900 via-black to-gray-900'>
+          {/* Animated background */}
+          <div className='absolute inset-0 overflow-hidden'>
+            <div className='absolute w-full h-full bg-gradient-to-r from-orange-500/10 via-red-500/10 to-orange-500/10 animate-pulse' />
+            <div className='shimmer absolute inset-0' />
+          </div>
+
+          {/* Loading content */}
+          <div className='relative z-10 flex flex-col items-center justify-center h-full px-4'>
+            {/* Spinner */}
+            <div className='relative mb-8'>
+              <div className='w-20 h-20 border-4 border-orange-500/20 rounded-full' />
+              <div
+                className='absolute top-0 left-0 w-20 h-20 border-4 border-transparent border-t-orange-500 rounded-full animate-spin'
+                style={{ animation: 'spin 1s linear infinite' }}
+              />
+            </div>
+
+            {/* Text */}
+            <div className='text-center space-y-3'>
+              {' '}
+              <div className='flex items-center justify-center gap-1'>
+                <div className='w-2 h-2 bg-orange-500 rounded-full animate-bounce' style={{ animationDelay: '0ms' }} />
+                <div
+                  className='w-2 h-2 bg-orange-500 rounded-full animate-bounce'
+                  style={{ animationDelay: '150ms' }}
+                />
+                <div
+                  className='w-2 h-2 bg-orange-500 rounded-full animate-bounce'
+                  style={{ animationDelay: '300ms' }}
+                />
+              </div>
+            </div>
+
+            {/* Skeleton preview */}
+            <div className='mt-12 w-full max-w-4xl space-y-4'>
+              <div className='h-8 bg-white/10 rounded-lg shimmer pulse-animation' style={{ width: '60%' }} />
+              <div className='h-12 bg-white/10 rounded-lg shimmer pulse-animation' style={{ width: '80%' }} />
+              <div className='h-6 bg-white/10 rounded-lg shimmer pulse-animation' style={{ width: '70%' }} />
+            </div>
+          </div>
+
+          {/* Bottom decorative elements */}
+          <div className='absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/50 to-transparent' />
+        </div>
+      </>
     )
   }
 

@@ -7,7 +7,6 @@ import { generateNameId } from '@/utils/utils'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { eventApis } from '@/apis/event.api'
 import { toast } from 'react-hot-toast'
-import { useState, useEffect } from 'react'
 
 interface EventCardProps {
   event: ReqFilterOwnerEvent
@@ -16,27 +15,15 @@ interface EventCardProps {
 
 export default function EventCard({ event, priority = false }: EventCardProps) {
   const queryClient = useQueryClient()
-  const [isFollowing, setIsFollowing] = useState(event.isFollowed || false)
-
-  // Sync isFollowing with event.isFollowed when it changes
-  useEffect(() => {
-    if (event.isFollowed !== undefined) {
-      setIsFollowing(event.isFollowed)
-    }
-  }, [event.isFollowed])
 
   // Follow/Unfollow mutation
   const followMutation = useMutation({
     mutationFn: (eventCode: string) => eventApis.followOrUnfollowEvent(eventCode),
-    onSuccess: (data) => {
-      if (data?.data) {
-        setIsFollowing(data.data.isFollowing)
-        queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
-        queryClient.invalidateQueries({ queryKey: ['aiSearchEvents'] })
-        queryClient.invalidateQueries({ queryKey: ['normalSearchEvents'] })
-        queryClient.invalidateQueries({ queryKey: ['top20FeaturedEvents'] })
-        toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['favoriteEvents'] })
+      queryClient.invalidateQueries({ queryKey: ['aiSearchEvents'] })
+      queryClient.invalidateQueries({ queryKey: ['normalSearchEvents'] })
+      queryClient.invalidateQueries({ queryKey: ['top20FeaturedEvents'] })
     },
     onError: () => {
       toast.error('Không thể thực hiện thao tác')
@@ -94,7 +81,7 @@ export default function EventCard({ event, priority = false }: EventCardProps) {
         >
           <Heart
             className={`w-5 h-5 transition-colors ${
-              isFollowing ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'
+              event.isFollowed ? 'text-red-500 fill-red-500' : 'text-gray-600 hover:text-red-500'
             }`}
           />
         </button>
