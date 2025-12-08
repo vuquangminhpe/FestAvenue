@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import VietQRBanking from '@/components/custom/QR/QRSection'
-import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Gift, MousePointer, Info } from 'lucide-react'
+import { Clock, ShoppingCart, X, CheckCircle2, RefreshCw, ArrowLeft, Gift, MousePointer, Info, Eye } from 'lucide-react'
 import path from '@/constants/path'
 import type { Ticket as TicketType } from '@/types/serviceTicketManagement.types'
 
@@ -79,6 +79,7 @@ export default function SeatMapViewerPage() {
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   const [seatCountdowns, setSeatCountdowns] = useState<Map<string, number>>(new Map())
+  const [highlightedTicketId, setHighlightedTicketId] = useState<string | null>(null)
 
   const connectionRef = useRef<signalR.HubConnection | null>(null)
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -739,13 +740,34 @@ export default function SeatMapViewerPage() {
                 ? ticketsData.data.map((ticket: TicketType) => (
                     <div
                       key={ticket.id}
-                      className='w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(25%-0.75rem)] group relative backdrop-blur-md bg-white/80 rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-cyan-200/50 shadow-sm hover:shadow-lg hover:shadow-cyan-500/20'
+                      onClick={() => setHighlightedTicketId(highlightedTicketId === ticket.id ? null : ticket.id)}
+                      className={`w-full sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(25%-0.75rem)] group relative backdrop-blur-md bg-white/80 rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 cursor-pointer ${
+                        highlightedTicketId === ticket.id
+                          ? 'border-2 border-cyan-500 shadow-lg shadow-cyan-500/30 ring-2 ring-cyan-400/50'
+                          : 'border border-cyan-200/50 shadow-sm hover:shadow-lg hover:shadow-cyan-500/20'
+                      }`}
                     >
+                      {/* Selected indicator */}
+                      {highlightedTicketId === ticket.id && (
+                        <div className='absolute top-2 right-2 z-10 bg-cyan-500 text-white px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 animate-pulse'>
+                          <Eye className='w-3 h-3' />
+                          Đang xem trên map
+                        </div>
+                      )}
+
                       {/* Cyan gradient glow on hover */}
-                      <div className='absolute inset-0 bg-gradient-to-br from-cyan-500/0 via-blue-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:via-blue-500/5 group-hover:to-cyan-500/5 transition-all duration-300 pointer-events-none'></div>
+                      <div className={`absolute inset-0 transition-all duration-300 pointer-events-none ${
+                        highlightedTicketId === ticket.id
+                          ? 'bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-cyan-500/10'
+                          : 'bg-gradient-to-br from-cyan-500/0 via-blue-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:via-blue-500/5 group-hover:to-cyan-500/5'
+                      }`}></div>
 
                       {/* Top accent line */}
-                      <div className='h-0.5 bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400'></div>
+                      <div className={`h-0.5 ${
+                        highlightedTicketId === ticket.id
+                          ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 h-1'
+                          : 'bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400'
+                      }`}></div>
 
                       <div className='p-4 relative'>
                         {/* Compact Header - Single Row */}
@@ -947,6 +969,10 @@ export default function SeatMapViewerPage() {
                 <RefreshCw className='w-4 h-4 text-gray-500' />
                 <span><strong>Phóng to/thu nhỏ:</strong> Cuộn chuột hoặc pinch trên màn hình cảm ứng</span>
               </div>
+              <div className='flex items-center gap-2'>
+                <Eye className='w-4 h-4 text-cyan-500' />
+                <span><strong>Xem theo loại vé:</strong> Click vào loại vé để highlight ghế tương ứng trên map</span>
+              </div>
             </div>
           </AlertDescription>
         </Alert>
@@ -957,6 +983,45 @@ export default function SeatMapViewerPage() {
         <div className='grid grid-cols-1 xl:grid-cols-4 gap-6'>
           {/* Seat Map Viewer */}
           <div className='xl:col-span-3 h-[calc(100vh-12rem)]'>
+            {/* Ticket Filter Selector */}
+            {!isLoadingTickets && ticketsData?.data && (
+              <div className='mb-4 p-3 bg-white rounded-lg border border-cyan-200 shadow-sm'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <Eye className='w-4 h-4 text-cyan-600' />
+                  <span className='text-sm font-semibold text-gray-700'>Xem ghế theo loại vé:</span>
+                  {highlightedTicketId && (
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='ml-auto text-xs text-gray-500 hover:text-gray-700'
+                      onClick={() => setHighlightedTicketId(null)}
+                    >
+                      <X className='w-3 h-3 mr-1' />
+                      Bỏ lọc
+                    </Button>
+                  )}
+                </div>
+                <div className='flex flex-wrap gap-2'>
+                  {(Array.isArray(ticketsData.data) ? ticketsData.data : [ticketsData.data]).map((ticket: TicketType) => (
+                    <button
+                      key={ticket.id}
+                      onClick={() => setHighlightedTicketId(highlightedTicketId === ticket.id ? null : ticket.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                        highlightedTicketId === ticket.id
+                          ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400/50'
+                          : 'bg-gray-100 text-gray-700 hover:bg-cyan-100 hover:text-cyan-700'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${highlightedTicketId === ticket.id ? 'bg-white animate-pulse' : 'bg-cyan-400'}`}></span>
+                      {ticket.name}
+                      <span className='text-[10px] opacity-75'>
+                        ({ticket.isFree ? 'Miễn phí' : formatCurrency(ticket.price)})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <SeatMapViewer
               mapData={mapData}
               initialSeatStatuses={seatStatuses}
@@ -966,6 +1031,7 @@ export default function SeatMapViewerPage() {
               ticketsForSeats={ticketsForSeats}
               userEmail={userProfile?.email}
               selectedSeats={selectedSeats}
+              highlightedTicketId={highlightedTicketId}
             />
           </div>
 

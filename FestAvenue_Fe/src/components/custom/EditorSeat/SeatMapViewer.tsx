@@ -218,6 +218,7 @@ interface SeatMapViewerProps {
   ticketsForSeats?: any[]
   userEmail?: string
   selectedSeats?: Set<string>
+  highlightedTicketId?: string | null
 }
 
 export default function SeatMapViewer({
@@ -229,7 +230,8 @@ export default function SeatMapViewer({
   showControls = true,
   ticketsForSeats = [],
   userEmail,
-  selectedSeats = new Set()
+  selectedSeats = new Set(),
+  highlightedTicketId = null
 }: SeatMapViewerProps) {
   const deriveInitialSeatStatuses = useCallback(
     () => buildInitialSeatStatusMap(mapData, initialSeatStatuses),
@@ -697,6 +699,30 @@ export default function SeatMapViewer({
             // Remove lock icon if seat is no longer paid
             existingLockIcon.remove()
           }
+
+          // Update or add highlight ring for filtered ticket (only for unlocked seats)
+          const existingHighlight = seatGroup.select('circle.highlight-ring')
+          const isLocked = seatInfo?.isSeatLock || seatInfo?.isPayment
+          const isHighlighted = highlightedTicketId && seat.ticketId === highlightedTicketId && !isLocked
+
+          if (isHighlighted) {
+            if (existingHighlight.empty()) {
+              // Create highlight ring with pulsing animation
+              seatGroup
+                .insert('circle', ':first-child')
+                .attr('class', 'highlight-ring')
+                .attr('cx', seat.x)
+                .attr('cy', seat.y)
+                .attr('r', 12)
+                .attr('fill', 'none')
+                .attr('stroke', '#06b6d4')
+                .attr('stroke-width', 3)
+                .attr('pointer-events', 'none')
+                .style('animation', 'pulse-ring 1.5s ease-in-out infinite')
+            }
+          } else {
+            existingHighlight.remove()
+          }
         })
       })
     },
@@ -711,7 +737,8 @@ export default function SeatMapViewer({
       selectedSeats,
       isSeatClickable,
       readonly,
-      handleQuickSeatToggle
+      handleQuickSeatToggle,
+      highlightedTicketId
     ]
   )
 
@@ -733,6 +760,20 @@ export default function SeatMapViewer({
 
     const g = svg.append('g').attr('class', 'main-group')
     const defs = g.append('defs')
+
+    // Add CSS animation for highlight ring
+    defs
+      .append('style')
+      .text(`
+        @keyframes pulse-ring {
+          0% { stroke-opacity: 1; r: 10; }
+          50% { stroke-opacity: 0.5; r: 14; }
+          100% { stroke-opacity: 1; r: 10; }
+        }
+        .highlight-ring {
+          animation: pulse-ring 1.5s ease-in-out infinite;
+        }
+      `)
 
     // Enable zoom and save transform state
     const zoom = d3
@@ -1135,7 +1176,7 @@ export default function SeatMapViewer({
 
     const svg = d3.select(svgRef.current)
     updateSeatsOnly(svg)
-  }, [seatStatuses, stableTicketsForSeats, seatCountdowns, selectedSeats, updateSeatsOnly])
+  }, [seatStatuses, stableTicketsForSeats, seatCountdowns, selectedSeats, updateSeatsOnly, highlightedTicketId])
 
   return (
     <div className='w-full h-full'>
