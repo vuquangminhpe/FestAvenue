@@ -31,7 +31,6 @@ export default function TaskCompletionChart({ data }: TaskCompletionChartProps) 
             <ListChecks className='w-5 h-5 text-blue-600' />
             Tiến độ hoàn thành task
           </h3>
-          <p className='text-sm text-gray-600 mt-1'>Theo dõi trạng thái task theo thời gian</p>
         </div>
       </div>
 

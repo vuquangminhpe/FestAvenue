@@ -8,7 +8,6 @@ import {
   Share2,
   CheckCircle,
   Calendar,
-  Download,
   Search,
   UserCheck,
   Clock,
@@ -22,7 +21,6 @@ import RevenueChart from './components/RevenueChart'
 import ViewsChart from './components/ViewsChart'
 import KeywordSearchChart from './components/KeywordSearchChart'
 import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
-import StaffPerformanceChart from './components/StaffPerformanceChart'
 import TaskCompletionChart from './components/TaskCompletionChart'
 import StaffRankingTable from './components/StaffRankingTable'
 import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
@@ -118,8 +116,7 @@ export default function EventAnalyticsDashboard() {
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
     { id: 'staff', label: 'Nhân sự', icon: UserCheck },
-    { id: 'social', label: 'Social Media', icon: Share2 },
-    { id: 'keywords', label: 'Từ khóa', icon: Search }
+    { id: 'social', label: 'Bài đăng truyền thông', icon: Share2 }
   ] as const
 
   return (
@@ -169,10 +166,6 @@ export default function EventAnalyticsDashboard() {
                 {summary.eventName}
               </p>
             </div>
-            <Button className='bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 gap-2'>
-              <Download className='w-4 h-4' />
-              Xuất báo cáo
-            </Button>
           </div>
 
           {/* Tabs Navigation */}
@@ -208,7 +201,6 @@ export default function EventAnalyticsDashboard() {
                   <StatCard
                     title='Tổng người tham gia'
                     value={dataDashboardEventGeneral?.eventSummary?.totalParticipants ?? 0}
-                    change={12.5}
                     icon={Users}
                     iconColor='#22d3ee'
                     iconBg='#ecfeff'
@@ -217,7 +209,6 @@ export default function EventAnalyticsDashboard() {
                   <StatCard
                     title='Doanh thu'
                     value={formatCurrency(dataDashboardEventGeneral?.eventSummary?.totalRevenue ?? 0)}
-                    change={23.8}
                     icon={DollarSign}
                     iconColor='#10b981'
                     iconBg='#d1fae5'
@@ -226,7 +217,6 @@ export default function EventAnalyticsDashboard() {
                   <StatCard
                     title='Lượt xem sự kiện'
                     value={dataDashboardEventGeneral?.eventSummary?.totalViews ?? 0}
-                    change={18.2}
                     icon={Eye}
                     iconColor='#3b82f6'
                     iconBg='#dbeafe'
@@ -258,28 +248,7 @@ export default function EventAnalyticsDashboard() {
                     iconBg='#cffafe'
                   />
                 </div>
-                {/* Event Summary */}
-                <div className='bg-white rounded-xl shadow-sm border border-gray-100 p-6'>
-                  <h3 className='text-lg font-bold text-gray-900 mb-4'>Tổng quan sự kiện</h3>
-                  <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                    <div>
-                      <p className='text-sm text-gray-600 mb-1'>Ngày diễn ra</p>
-                      <p className='text-base font-semibold text-gray-900'>
-                        {new Date(summary.eventDate).toLocaleDateString('vi-VN')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className='text-sm text-gray-600 mb-1'>Ngày bán vé cao nhất</p>
-                      <p className='text-base font-semibold text-gray-900'>
-                        {new Date(summary.peakSalesDate).toLocaleDateString('vi-VN')}
-                      </p>
-                    </div>
-                    <div>
-                      <p className='text-sm text-gray-600 mb-1'>Tổng chi phí</p>
-                      <p className='text-base font-semibold text-gray-900'>{formatCurrency(summary.totalExpenses)}</p>
-                    </div>
-                  </div>
-                </div>
+
                 {/* Người tham gia + Bán vé (Flex) */}
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
                   <ParticipantsChart data={participants} />
@@ -420,16 +389,7 @@ export default function EventAnalyticsDashboard() {
 
                     {/* Staff Performance */}
                     <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                      <StaffPerformanceChart data={dataStaffStatistics.staffPerformance} />
-                      <div className='space-y-6'>
-                        <StaffRankingTable
-                          data={dataStaffStatistics.staffPerformance.map((staff, index) => ({
-                            rank: index + 1,
-                            staff: staff,
-                            change: 0 // API không trả về change, set mặc định = 0
-                          }))}
-                        />
-                      </div>
+                      <div className='space-y-6'></div>
                     </div>
                   </>
                 ) : (

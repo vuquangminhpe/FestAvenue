@@ -146,7 +146,7 @@ const eventApis = {
   },
   getDashBoardEventGeneralByEventCode: async (eventCode: string) => {
     const data = await http.get<APIResponse<ResponseEventDashBoardGeneral>>(
-      `/general-statistics?EventCode=${eventCode}`
+      `/event-dashboard/general-statistics?EventCode=${eventCode}`
     )
     return data?.data
   },
