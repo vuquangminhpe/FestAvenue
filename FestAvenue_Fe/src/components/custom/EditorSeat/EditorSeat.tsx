@@ -1,11 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import {
-  calculateBounds,
-  getPolygonColor,
-  lineIntersection
-} from './utils/geometry'
+import { calculateBounds, getPolygonColor, lineIntersection } from './utils/geometry'
 import { generateShapePath } from './utils/shapes'
 import { generateSeatsForSection } from './utils/seats'
 import { SECTION_TEMPLATES, generateSectionFromTemplate } from './utils/templates'
@@ -27,11 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Trash2 } from 'lucide-react'
-import type {
-  ExtractionResult,
-  Point,
-  Section,
-} from '@/types/seat.types'
+import type { ExtractionResult, Point, Section } from '@/types/seat.types'
 
 const generateId = () => `section-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
@@ -141,7 +133,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/extract-seats/', {
+      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/gradio_api/call/extract_seats', {
         method: 'POST',
         body: formData
       })
@@ -262,9 +254,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       price: 0,
       bounds: calculateBounds(points),
       labelPosition: center,
-      gradient: colorPicker.useGradient
-        ? { from: colorPicker.gradientFrom, to: colorPicker.gradientTo }
-        : undefined,
+      gradient: colorPicker.useGradient ? { from: colorPicker.gradientFrom, to: colorPicker.gradientTo } : undefined,
       hasSeats: sectionConfig.hasSeats,
       customSeatCount: sectionConfig.customSeatCount
     }
@@ -301,9 +291,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       price: 0,
       bounds,
       labelPosition: center,
-      gradient: colorPicker.useGradient
-        ? { from: colorPicker.gradientFrom, to: colorPicker.gradientTo }
-        : undefined,
+      gradient: colorPicker.useGradient ? { from: colorPicker.gradientFrom, to: colorPicker.gradientTo } : undefined,
       hasSeats: sectionConfig.hasSeats,
       customSeatCount: sectionConfig.customSeatCount
     }
@@ -462,7 +450,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
 
     setSelectedTemplateId(templateId)
     const center = { x: 500, y: 300 } // Center of canvas
-    
+
     const generatedSection = generateSectionFromTemplate(templateId, {
       centerX: center.x,
       centerY: center.y,
@@ -1001,9 +989,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
               {hasPurchasedSeats ? (
                 <div className='space-y-3'>
                   <div className='p-3 bg-red-50 border border-red-200 rounded-lg'>
-                    <p className='text-red-700 font-medium'>
-                      Không thể xóa sơ đồ ghế!
-                    </p>
+                    <p className='text-red-700 font-medium'>Không thể xóa sơ đồ ghế!</p>
                     <p className='text-red-600 text-sm mt-1'>
                       Đã có người dùng mua vé, bạn không thể xóa các ghế ngồi.
                     </p>
@@ -1011,25 +997,23 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
                   <div className='text-sm text-gray-600'>
                     <p>Thống kê vé:</p>
                     <ul className='list-disc list-inside mt-1 ml-2'>
-                      <li className='text-gray-500'>Đã mua: <span className='font-medium text-gray-700'>{seatStats.purchased} ghế</span></li>
+                      <li className='text-gray-500'>
+                        Đã mua: <span className='font-medium text-gray-700'>{seatStats.purchased} ghế</span>
+                      </li>
                       {seatStats.locked > 0 && (
-                        <li className='text-gray-500'>Đang giữ: <span className='font-medium text-gray-700'>{seatStats.locked} ghế</span></li>
+                        <li className='text-gray-500'>
+                          Đang giữ: <span className='font-medium text-gray-700'>{seatStats.locked} ghế</span>
+                        </li>
                       )}
                     </ul>
                   </div>
                 </div>
               ) : (
                 <div className='space-y-3'>
-                  <p>
-                    Bạn có chắc chắn muốn xóa toàn bộ sơ đồ ghế?
-                  </p>
+                  <p>Bạn có chắc chắn muốn xóa toàn bộ sơ đồ ghế?</p>
                   <div className='p-3 bg-amber-50 border border-amber-200 rounded-lg'>
-                    <p className='text-amber-700 text-sm font-medium'>
-                      ⚠️ Hành động này không thể hoàn tác!
-                    </p>
-                    <p className='text-amber-600 text-sm mt-1'>
-                      Tất cả các khu vực và ghế ngồi sẽ bị xóa vĩnh viễn.
-                    </p>
+                    <p className='text-amber-700 text-sm font-medium'>⚠️ Hành động này không thể hoàn tác!</p>
+                    <p className='text-amber-600 text-sm mt-1'>Tất cả các khu vực và ghế ngồi sẽ bị xóa vĩnh viễn.</p>
                   </div>
                   {seatStats.locked > 0 && (
                     <div className='p-3 bg-blue-50 border border-blue-200 rounded-lg'>
@@ -1043,10 +1027,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className='flex gap-2 sm:gap-0'>
-            <Button
-              variant='outline'
-              onClick={() => setShowDeleteConfirmDialog(false)}
-            >
+            <Button variant='outline' onClick={() => setShowDeleteConfirmDialog(false)}>
               Hủy
             </Button>
             {!hasPurchasedSeats && (
