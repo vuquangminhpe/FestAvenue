@@ -133,7 +133,7 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     mutationFn: async (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/extract_seats', {
+      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/extract-seats/', {
         method: 'POST',
         body: formData
       })

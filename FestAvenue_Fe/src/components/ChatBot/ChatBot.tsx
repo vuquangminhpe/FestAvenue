@@ -29,8 +29,7 @@ const getChatbotSessionKey = (userId?: string) => {
 const SALES_SUGGESTION_BUBBLES = [
   { text: 'Tìm sự kiện phù hợp với tôi', message: 'Tìm event phù hợp với tôi' },
   { text: 'Có sự kiện hot nào cuối tuần này?', message: 'Có event hot nào cuối tuần này?' },
-  { text: 'Tìm show nhạc gần đây', message: 'Tìm show nhạc gần đây' },
-  { text: 'Sự kiện có giá vé dưới 500k', message: 'Tìm event có giá vé dưới 500k' }
+  { text: 'Tìm show nhạc gần đây', message: 'Tìm show nhạc gần đây' }
 ]
 
 // Format markdown text to React elements
