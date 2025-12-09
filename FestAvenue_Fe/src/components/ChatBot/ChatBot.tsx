@@ -18,7 +18,7 @@ interface Message {
 }
 
 // Agent Chat API base URL
-const AGENT_CHAT_URL = 'https://minh9972t12-Chatbot-test.hf.space/agent/chat'
+const AGENT_CHAT_URL = 'https://minhvtt-ChatbotRAG.hf.space/agent/chat'
 
 // Session key includes user ID for multi-user support
 const getChatbotSessionKey = (userId?: string) => {
