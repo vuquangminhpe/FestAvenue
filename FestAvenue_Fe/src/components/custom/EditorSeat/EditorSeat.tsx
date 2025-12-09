@@ -131,14 +131,78 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
   // --- Image Import Logic ---
   const extractPolygonsMutation = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      const response = await fetch('https://minhvtt-pylogyn-detect.hf.space/extract_seats', {
-        method: 'POST',
-        body: formData
+      // Step 1: Convert file to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
       })
-      if (!response.ok) throw new Error('Failed to extract polygons')
-      return response.json() as Promise<ExtractionResult>
+
+      // Step 2: POST to initiate the extraction (returns event_id)
+      const initResponse = await fetch('https://minhvtt-pylogyn-detect.hf.space/gradio_api/call/extract_seats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          data: [
+            { url: base64 }, // input_image as ImageData object with base64 data URI
+            true, // use_background_removal
+            true, // use_clustering
+            sectionConfig.rows || 20 // n_clusters
+          ]
+        })
+      })
+
+      if (!initResponse.ok) throw new Error('Failed to initiate extraction')
+      const { event_id } = await initResponse.json()
+
+      if (!event_id) throw new Error('No event_id received from API')
+
+      // Step 3: Poll the SSE endpoint to get the actual result
+      const resultResponse = await fetch(
+        `https://minhvtt-pylogyn-detect.hf.space/gradio_api/call/extract_seats/${event_id}`
+      )
+
+      if (!resultResponse.ok) throw new Error('Failed to get extraction result')
+
+      // Read the SSE stream and parse the result
+      const text = await resultResponse.text()
+
+      // SSE format: multiple lines with "event: ..." and "data: ..."
+      // We need to find the "complete" event and parse its data
+      const lines = text.split('\n')
+      let resultData: ExtractionResult | null = null
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (line.startsWith('event: complete')) {
+          // Next line should be "data: ..."
+          const dataLine = lines[i + 1]
+          if (dataLine && dataLine.startsWith('data: ')) {
+            const jsonStr = dataLine.slice(6) // Remove "data: " prefix
+            const parsed = JSON.parse(jsonStr)
+            // Gradio returns array in format [result], get first element
+            // The result itself is a JSON string that needs parsing
+            const extractionResultStr = Array.isArray(parsed) ? parsed[0] : parsed
+            resultData = typeof extractionResultStr === 'string' ? JSON.parse(extractionResultStr) : extractionResultStr
+            break
+          }
+        } else if (line.startsWith('event: error')) {
+          const dataLine = lines[i + 1]
+          if (dataLine && dataLine.startsWith('data: ')) {
+            const errorData = JSON.parse(dataLine.slice(6))
+            throw new Error(errorData.message || 'Extraction failed')
+          }
+        }
+      }
+
+      if (!resultData) {
+        throw new Error('No result data received from extraction')
+      }
+
+      return resultData
     },
     onSuccess: (data) => {
       const newSections: Section[] = data.polygons.map((poly, index) => {
