@@ -3,8 +3,12 @@ export interface ResponseEventDashBoardGeneral {
   participantAnalysis?: ParticipantAnalysis[]
   ticketSalesAnalysis?: TicketSalesAnalysis[]
   viewAnalysis?: ViewAnalysis[]
+  revenueAnalysis: RevenueAnalysisType[]
 }
-
+export interface RevenueAnalysisType {
+  date: string
+  revenue: number
+}
 export interface EventSummary {
   totalParticipants: number
   totalRevenue: number

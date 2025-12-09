@@ -2,8 +2,8 @@ import type {
   bodyCreateCategory,
   bodyGetAllUserFilter,
   bodyUpdateCategory,
-  resAdminGetAllUser,
-  resAdminStatistics
+  DashboardData,
+  resAdminGetAllUser
 } from '@/types/admin.types'
 import type { APIResponse, bodyUpdateStaff } from '@/types/API.types'
 import type { getCategoryActiveRes } from '@/types/categories.types'
@@ -27,7 +27,7 @@ const adminApi = {
     return data?.data
   },
   getAdminStatistics: async () => {
-    const data = await http.get<APIResponse<resAdminStatistics>>('/admin-dashboard/admin-statistics')
+    const data = await http.get<APIResponse<DashboardData>>('/admin-dashboard/admin-statistics')
     return data?.data
   },
   getAllUserFilter: async (body: bodyGetAllUserFilter) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   TrendingUp,
@@ -16,13 +16,10 @@ import { Button } from '../../../../../components/ui/button'
 import StatCard from './components/StatCard'
 import ParticipantsChart from './components/ParticipantsChart'
 import TicketSalesChart from './components/TicketSalesChart'
-import RevenueChart from './components/RevenueChart'
 import ViewsChart from './components/ViewsChart'
-import KeywordSearchChart from './components/KeywordSearchChart'
+import RevenueChart from './components/RevenueChart'
 import { SocialMediaPostsChart } from './components/SocialMediaPostsChart'
 import TaskCompletionChart from './components/TaskCompletionChart'
-import { eventAnalyticsService } from '../../../../../services/eventAnalytics.service'
-import type { EventAnalytics } from '../../../../../types/eventAnalytics.types'
 import { getIdFromNameId } from '@/utils/utils'
 import {
   useGetDashboardEventGeneral,
@@ -32,16 +29,7 @@ import {
 import { PermissionGuard } from '@/components/guards'
 import path from '@/constants/path'
 
-type TabType =
-  | 'overview'
-  | 'participants'
-  | 'tickets'
-  | 'revenue'
-  | 'checkin'
-  | 'views'
-  | 'social'
-  | 'keywords'
-  | 'staff'
+type TabType = 'overview' | 'staff' | 'social'
 
 export default function EventAnalyticsDashboard() {
   const navigate = useNavigate()
@@ -49,35 +37,17 @@ export default function EventAnalyticsDashboard() {
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventCode = getIdFromNameId(nameId)
 
-  // Check if user is event owner (only event owners can see analytics)
-
-  const [analytics, setAnalytics] = useState<EventAnalytics | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('overview')
 
-  // Fetch data from APIs
-  const { data: dataDashboardEventGeneral } = useGetDashboardEventGeneral(eventCode)
+  // Fetch data from APIs using TanStack Query
+  const { data: dataDashboardEventGeneral, isLoading } = useGetDashboardEventGeneral(eventCode)
   const { data: dataStaffStatistics, isLoading: isLoadingStaff } = useGetStaffStatistics(eventCode)
   const { data: dataSocialMediaStatistics, isLoading: isLoadingSocial } = useGetSocialMediaPostStatistics(eventCode)
 
   const participants = dataDashboardEventGeneral?.participantAnalysis ?? []
   const ticketSalesAnalysis = dataDashboardEventGeneral?.ticketSalesAnalysis ?? []
-
-  useEffect(() => {
-    loadAnalytics()
-  }, [])
-
-  const loadAnalytics = async () => {
-    setIsLoading(true)
-    try {
-      const data = await eventAnalyticsService.getEventAnalytics('evt_001')
-      setAnalytics(data)
-    } catch (error) {
-      console.error('Failed to load analytics:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const viewAnalysis = dataDashboardEventGeneral?.viewAnalysis ?? []
+  const revenueAnalysis = dataDashboardEventGeneral?.revenueAnalysis ?? []
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -99,7 +69,7 @@ export default function EventAnalyticsDashboard() {
     )
   }
 
-  if (!analytics) {
+  if (!dataDashboardEventGeneral) {
     return (
       <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-purple-50 flex items-center justify-center'>
         <div className='text-center'>
@@ -108,8 +78,6 @@ export default function EventAnalyticsDashboard() {
       </div>
     )
   }
-
-  const { summary } = analytics
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan', icon: TrendingUp },
@@ -161,7 +129,7 @@ export default function EventAnalyticsDashboard() {
               </h1>
               <p className='text-gray-600 mt-2 flex items-center gap-2'>
                 <Calendar className='w-4 h-4' />
-                {summary.eventName}
+                Thống kê tổng quan
               </p>
             </div>
           </div>
@@ -253,25 +221,13 @@ export default function EventAnalyticsDashboard() {
                   <TicketSalesChart data={ticketSalesAnalysis} />
                 </div>
 
-                {/* Doanh thu + Lượt xem (Flex) */}
+                {/* Doanh thu + Lượt xem */}
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-                  <RevenueChart data={analytics.revenue} />
-                  <ViewsChart data={analytics.eventViews} />
+                  <RevenueChart data={revenueAnalysis} />
+                  <ViewsChart data={viewAnalysis} />
                 </div>
               </>
             )}
-
-            {/* Participants Tab */}
-            {activeTab === 'participants' && <ParticipantsChart data={participants} />}
-
-            {/* Tickets Tab */}
-            {activeTab === 'tickets' && <TicketSalesChart data={ticketSalesAnalysis} />}
-
-            {/* Revenue Tab */}
-            {activeTab === 'revenue' && <RevenueChart data={analytics.revenue} />}
-
-            {/* Views Tab */}
-            {activeTab === 'views' && <ViewsChart data={analytics.eventViews} />}
 
             {/* Social Media Tab */}
             {activeTab === 'social' && (
@@ -324,9 +280,6 @@ export default function EventAnalyticsDashboard() {
                 )}
               </>
             )}
-
-            {/* Keywords Tab */}
-            {activeTab === 'keywords' && <KeywordSearchChart data={analytics.keywordSearch} />}
 
             {/* Staff Tab */}
             {activeTab === 'staff' && (

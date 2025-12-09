@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { mockRevenueData } from '@/utils/mockData'
 import {
   Select,
   SelectContent,
@@ -8,14 +7,25 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import type { MonthlyRevenue } from '@/types/admin.types'
 
-const RevenueAnalytics = () => {
+interface RevenueAnalyticsProps {
+  data: MonthlyRevenue[]
+}
+
+const RevenueAnalytics = ({ data }: RevenueAnalyticsProps) => {
   const [timeRange, setTimeRange] = useState('all')
 
-  const filteredData = mockRevenueData.filter((item) => {
+  // Transform data to match chart format
+  const transformedData = data.map((item) => ({
+    date: item.date,
+    value: item.value
+  }))
+
+  const filteredData = transformedData.filter((item) => {
     if (timeRange === 'all') return true
-    if (timeRange === '3months') return mockRevenueData.indexOf(item) >= mockRevenueData.length - 3
-    if (timeRange === '6months') return mockRevenueData.indexOf(item) >= mockRevenueData.length - 6
+    if (timeRange === '3months') return transformedData.indexOf(item) >= transformedData.length - 3
+    if (timeRange === '6months') return transformedData.indexOf(item) >= transformedData.length - 6
     return true
   })
 

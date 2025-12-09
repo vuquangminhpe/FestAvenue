@@ -34,15 +34,14 @@ export default function StatCard({
 
   useEffect(() => {
     if (valueRef.current && typeof value === 'number') {
-      gsap.from(valueRef.current, {
-        textContent: 0,
+      const obj = { val: 0 }
+      gsap.to(obj, {
+        val: value,
         duration: 1.5,
         ease: 'power1.inOut',
-        snap: { textContent: 1 },
-        onUpdate: function () {
+        onUpdate: () => {
           if (valueRef.current) {
-            const currentValue = Math.ceil(Number(this.targets()[0].textContent))
-            valueRef.current.textContent = currentValue.toLocaleString()
+            valueRef.current.textContent = Math.ceil(obj.val).toLocaleString()
           }
         }
       })

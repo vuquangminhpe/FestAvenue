@@ -12,13 +12,58 @@ export interface bodyUpdateCategory {
   imageUrl: string
   isActive: boolean
 }
-export interface resAdminStatistics {
-  general: {
-    totalUsers: number
-    totalEvents: number
-    totalTicketsSold: number
-    totalRevenue: number
+export interface DashboardData {
+  general: General
+  registeredUser: RegisteredUser[]
+  staffMember: StaffMember[]
+  eventCreated: EventCreated[]
+  eventByCategory: EventByCategory[]
+  eventCategoryByMonth: EventCategoryByMonth[]
+  monthlyRevenue: MonthlyRevenue[]
+}
+
+export interface General {
+  totalUsers: number
+  totalEvents: number
+  totalTicketsSold: number
+  totalRevenue: number
+}
+
+export interface RegisteredUser {
+  date: string // ISO date
+  total: number
+}
+
+export interface StaffMember {
+  id: string
+  name: string
+  email: string
+  roleId: string
+  roleName: string
+  avatar: string
+}
+
+export interface EventCreated {
+  date: string // ISO date
+  total: number
+}
+
+export interface EventByCategory {
+  type: string
+  count: number
+  percentage: number
+}
+
+export interface EventCategoryByMonth {
+  date: string // yyyy-mm
+  categoryCounts: {
+    [category: string]: number // dynamic keys: "Văn hoá", "Giải trí", ...
   }
+}
+
+export interface MonthlyRevenue {
+  date: string // yyyy-mm
+  value: number
 }
 
 export interface resAdminGetAllUser {

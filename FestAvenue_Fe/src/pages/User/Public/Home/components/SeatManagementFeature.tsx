@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Box } from 'lucide-react'
 import BG_FEATURE_2 from '../../../../../../public/Images/Feature2.png'
-
+import Home_1 from '../../../../../../public/Images/Home_1.png'
+import Home_2 from '../../../../../../public/Images/Home_2.png'
+import Home_3 from '../../../../../../public/Images/Home_3.png'
 interface Feature {
   image: string
   title: string
@@ -54,20 +56,20 @@ export default function SeatManagementFeature() {
 
   const features: Feature[] = [
     {
-      image: 'https://images.unsplash.com/photo-1535378917042-10a22c95931a?w=600&h=600',
+      image: Home_1,
       title: 'AI Phát Hiện Tự Động',
       description:
         'Upload ảnh hoặc video sơ đồ ghế, AI sẽ tự động phát hiện và tạo cấu trúc ghế ngồi chính xác với công nghệ machine learning tiên tiến.'
     },
     {
-      image: 'https://images.unsplash.com/photo-1581291518857-4e27b48ff24e?w=600&h=600',
+      image: Home_2,
       title: 'Chỉnh Sửa Kéo Thả',
       description:
         'Giao diện trực quan với công cụ vẽ đa dạng: polygon, hình tròn, tam giác, ngôi sao và nhiều hơn nữa để thiết kế sơ đồ ghế chuyên nghiệp.'
     },
 
     {
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=600',
+      image: Home_3,
       title: 'Tích Hợp Loại Vé',
       description:
         'Liên kết từng khu vực ghế với các loại vé khác nhau, quản lý giá và số lượng dễ dàng với hệ thống tự động và thông minh.'

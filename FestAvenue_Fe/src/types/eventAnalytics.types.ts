@@ -112,6 +112,7 @@ export interface EventAnalytics {
   participants: ParticipantAnalysis[]
   ticketSales: TicketSalesAnalysis[]
   revenue: RevenueAnalysis[]
+  viewAnalysis: ViewAnalysisType[]
   checkIn: CheckInAnalysis[]
   eventViews: ViewAnalysis[]
   socialMediaPosts: SocialMediaPost[]
@@ -120,7 +121,10 @@ export interface EventAnalytics {
   taskStatus: TaskStatusAnalysis[]
   staffRanking: StaffRanking[]
 }
-
+export interface ViewAnalysisType {
+  date: string
+  views: number
+}
 export interface AnalyticsFilter {
   dateRange: {
     from: Date

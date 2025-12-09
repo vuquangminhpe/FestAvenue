@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { mockRegisteredUsers } from '@/utils/mockData'
 import {
   Select,
   SelectContent,
@@ -8,14 +7,25 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
+import type { RegisteredUser } from '@/types/admin.types'
 
-const UserAnalytics = () => {
+interface UserAnalyticsProps {
+  data: RegisteredUser[]
+}
+
+const UserAnalytics = ({ data }: UserAnalyticsProps) => {
   const [timeRange, setTimeRange] = useState('all')
 
-  const filteredData = mockRegisteredUsers.filter((item) => {
+  // Transform data to match chart format
+  const transformedData = data.map((item) => ({
+    date: item.date,
+    value: item.total
+  }))
+
+  const filteredData = transformedData.filter((item) => {
     if (timeRange === 'all') return true
-    if (timeRange === '3months') return mockRegisteredUsers.indexOf(item) >= mockRegisteredUsers.length - 3
-    if (timeRange === '6months') return mockRegisteredUsers.indexOf(item) >= mockRegisteredUsers.length - 6
+    if (timeRange === '3months') return transformedData.indexOf(item) >= transformedData.length - 3
+    if (timeRange === '6months') return transformedData.indexOf(item) >= transformedData.length - 6
     return true
   })
 
@@ -60,13 +70,20 @@ const UserAnalytics = () => {
         </div>
         <div className='text-center'>
           <p className='text-2xl font-bold text-blue-600'>
-            +{filteredData[filteredData.length - 1]?.value - filteredData[0]?.value || 0}
+            +{(filteredData[filteredData.length - 1]?.value || 0) - (filteredData[0]?.value || 0)}
           </p>
           <p className='text-sm text-gray-500'>Tăng trưởng</p>
         </div>
         <div className='text-center'>
           <p className='text-2xl font-bold text-green-600'>
-            {Math.round(((filteredData[filteredData.length - 1]?.value - filteredData[0]?.value) / filteredData[0]?.value) * 100) || 0}%
+            {filteredData[0]?.value
+              ? Math.round(
+                  (((filteredData[filteredData.length - 1]?.value || 0) - filteredData[0]?.value) /
+                    filteredData[0]?.value) *
+                    100
+                )
+              : 0}
+            %
           </p>
           <p className='text-sm text-gray-500'>% Tăng</p>
         </div>

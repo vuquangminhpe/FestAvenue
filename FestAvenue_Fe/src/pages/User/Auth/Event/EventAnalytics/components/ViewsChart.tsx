@@ -1,13 +1,15 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import type { ViewAnalysis } from '../../../../../../types/eventAnalytics.types'
+import type { ViewAnalysisType } from '../../../../../../types/eventAnalytics.types'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 
 interface ViewsChartProps {
-  data: ViewAnalysis[]
+  data: ViewAnalysisType[]
 }
 
 export default function ViewsChart({ data }: ViewsChartProps) {
+  console.log(data)
+
   const formattedData = data.map((item) => ({
     ...item,
     date: format(new Date(item.date), 'dd/MM', { locale: vi })
