@@ -103,9 +103,32 @@ export default function StaffEventManagement() {
     }
   })
 
-  const events = (eventsData?.data?.result as EventVersion[]) || []
+  const allEvents = (eventsData?.data?.result as EventVersion[]) || []
 
-  const totalEvents = events.length
+  // Filter events based on active tab
+  const events = allEvents.filter((event) => {
+    switch (activeTab) {
+      case 'pending':
+        return event.eventVersionStatus === EventStatusValues.Pending
+      case 'approved':
+        return (
+          event.eventVersionStatus !== EventStatusValues.Pending &&
+          event.eventVersionStatus !== EventStatusValues.PendingContract
+        )
+      case 'contracts':
+        return event.eventVersionStatus === EventStatusValues.PendingContract
+      case 'all':
+      default:
+        return true
+    }
+  })
+
+  const pendingCount = allEvents.filter((e) => e.eventVersionStatus === EventStatusValues.Pending).length
+  const approvedCount = allEvents.filter(
+    (e) => e.eventVersionStatus !== EventStatusValues.Pending && e.eventVersionStatus !== EventStatusValues.PendingContract
+  ).length
+  const contractsCount = allEvents.filter((e) => e.eventVersionStatus === EventStatusValues.PendingContract).length
+  const totalEvents = allEvents.length
 
   const handleApprove = () => {
     if (!selectedEvent) return
@@ -235,15 +258,15 @@ export default function StaffEventManagement() {
           <TabsTrigger value='all'>Tất cả ({totalEvents})</TabsTrigger>
           <TabsTrigger value='pending'>
             <AlertTriangle className='w-4 h-4 mr-2' />
-            Chờ duyệt
+            Chờ duyệt ({pendingCount})
           </TabsTrigger>
           <TabsTrigger value='approved'>
             <CheckCircle2 className='w-4 h-4 mr-2' />
-            Đã duyệt
+            Đã duyệt ({approvedCount})
           </TabsTrigger>
           <TabsTrigger value='contracts'>
             <FileText className='w-4 h-4 mr-2' />
-            Hợp đồng
+            Chờ duyệt HĐ ({contractsCount})
           </TabsTrigger>
         </TabsList>
 
