@@ -679,7 +679,7 @@ const EventDetails: React.FC = () => {
                     {event.organization.logo && (
                       <img
                         src={event.organization.logo}
-                        alt={event.organization.name}
+                        alt={`Logo ${event.organization.name}`}
                         className='w-16 h-16 rounded-lg object-cover'
                       />
                     )}
@@ -727,7 +727,7 @@ const EventDetails: React.FC = () => {
                       <div className='relative aspect-[3/4] overflow-hidden'>
                         <img
                           src={relatedEvent.bannerUrl || relatedEvent.logoUrl || '/placeholder.jpg'}
-                          alt={relatedEvent.eventName}
+                          alt={`Banner sự kiện ${relatedEvent.eventName}`}
                           className='w-full h-full object-cover group-hover:scale-110 transition-transform duration-500'
                         />
                         <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
@@ -837,7 +837,7 @@ const EventDetails: React.FC = () => {
                         <CardContent className='p-3'>
                           <div className='flex items-center gap-2 mb-2'>
                             <Avatar className='w-7 h-7 border border-cyan-200'>
-                              <AvatarImage src={post.avatarAthorUrl || '/avatar_default.jpg'} />
+                              <AvatarImage src={post.avatarAthorUrl || '/avatar_default.jpg'} alt={`${post.authorName} avatar`} />
                               <AvatarFallback className='text-xs'>{post.authorName?.[0]}</AvatarFallback>
                             </Avatar>
                             <div className='flex-1 min-w-0'>
