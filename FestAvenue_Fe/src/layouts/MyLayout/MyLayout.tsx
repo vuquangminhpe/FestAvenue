@@ -124,21 +124,22 @@ export default function MyLayout({ children }: MyLayoutProps) {
           style={
             {
               '--sidebar-width': '17.5rem',
+              '--sidebar-width-mobile': '100%',
               '--sidebar-collapsed-width': '4rem'
             } as React.CSSProperties
           }
-          className='hidden lg:flex w-fit border-r'
+          className='hidden md:flex w-fit border-r'
         >
           <Sidebar className='bg-white relative' collapsible='none'>
             <SidebarContent>
               <SidebarGroup className='p-0'>
-                <SidebarGroupLabel className='h-16 pt-6 pb-4 pl-10 text-xl font-semibold text-ellipsis overflow-hidden whitespace-nowrap'>
+                <SidebarGroupLabel className='h-14 md:h-16 pt-5 md:pt-6 pb-3 md:pb-4 pl-6 md:pl-10 text-lg md:text-xl font-semibold text-ellipsis overflow-hidden whitespace-nowrap'>
                   Trang của tôi
                 </SidebarGroupLabel>
-                <SidebarGroupContent className='py-2 px-6 relative' ref={sidebarRef}>
+                <SidebarGroupContent className='py-2 px-4 md:px-6 relative' ref={sidebarRef}>
                   {/* Animated Background Indicator */}
                   <div
-                    className='absolute left-6 right-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm'
+                    className='absolute left-4 right-4 md:left-6 md:right-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg transition-all duration-300 ease-out z-0 shadow-sm'
                     style={{
                       top: `${indicatorStyle.top}px`,
                       height: `${indicatorStyle.height}px`,
@@ -147,7 +148,7 @@ export default function MyLayout({ children }: MyLayoutProps) {
                     }}
                   />
 
-                  <SidebarMenu className='gap-y-2 relative z-10'>
+                  <SidebarMenu className='gap-y-1.5 md:gap-y-2 relative z-10'>
                     {items.map((item) => (
                       <SidebarMenuItem key={item.title} data-menu-item>
                         <SidebarMenuButton
@@ -157,17 +158,17 @@ export default function MyLayout({ children }: MyLayoutProps) {
                           <SmartLink
                             to={item.url}
                             onClick={() => setActiveTab(item.title)}
-                            className='flex items-center gap-x-2 w-full h-12 px-4 rounded-lg transition-all duration-200 ease-out hover:bg-gray-50 hover:shadow-sm relative overflow-hidden border border-transparent hover:border-gray-200'
+                            className='flex items-center gap-x-2 w-full h-11 md:h-12 px-3 md:px-4 rounded-lg transition-all duration-200 ease-out hover:bg-gray-50 hover:shadow-sm relative overflow-hidden border border-transparent hover:border-gray-200 active:scale-98'
                           >
                             {/* Hover ripple effect */}
                             <div className='absolute inset-0 bg-gradient-to-r from-blue-100/0 via-blue-100/50 to-blue-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out' />
 
-                            <div className='h-6 w-6 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110 relative z-10'>
+                            <div className='h-5 w-5 md:h-6 md:w-6 flex items-center justify-center shrink-0 transition-all duration-200 group-hover:scale-110 relative z-10'>
                               {item.icon}
                             </div>
                             <span
                               className={cn(
-                                'text-base text-ellipsis overflow-hidden whitespace-nowrap transition-all duration-200 relative z-10',
+                                'text-sm md:text-base text-ellipsis overflow-hidden whitespace-nowrap transition-all duration-200 relative z-10',
                                 item.title === activeTab
                                   ? 'text-blue-700 font-semibold'
                                   : 'text-gray-700 group-hover:text-gray-900'
@@ -191,13 +192,13 @@ export default function MyLayout({ children }: MyLayoutProps) {
           </Sidebar>
         </SidebarProvider>
 
-        <div className='lg:hidden bg-white p-3'>
-          <h3 className='text-[20px] font-semibold mb-3'>Trang của tôi</h3>
-          <div className='relative h-10 px-4 overflow-hidden'>
+        <div className='md:hidden bg-white p-3 shadow-sm'>
+          <h3 className='text-lg sm:text-[20px] font-semibold mb-3 px-1'>Trang của tôi</h3>
+          <div className='relative h-10 sm:h-11 px-2 sm:px-4 overflow-hidden'>
             <ul
               ref={mobileRef}
-              className='absolute top-0 left-0 w-full flex overflow-auto relative z-10'
-              style={{ scrollbarWidth: 'none' }}
+              className='absolute top-0 left-0 w-full flex overflow-auto z-10 snap-x snap-mandatory'
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
               {/* Mobile Animated Indicator */}
               <div
@@ -222,23 +223,22 @@ export default function MyLayout({ children }: MyLayoutProps) {
               />
 
               {items.map((item) => (
-                <li key={item.title} className='relative group' data-mobile-item>
+                <li key={item.title} className='relative group snap-center' data-mobile-item>
                   <SmartLink
                     to={item.url}
                     className={cn(
-                      'px-3 h-10 flex items-center whitespace-nowrap border border-transparent cursor-pointer transition-all duration-200 ease-out relative overflow-hidden',
-                      'hover:border-gray-200 rounded-sm',
+                      'px-2.5 sm:px-3 h-10 sm:h-11 flex items-center whitespace-nowrap border border-transparent cursor-pointer transition-all duration-200 ease-out relative overflow-hidden',
+                      'active:scale-95 rounded-sm touch-manipulation',
                       activeTab === item.title
                         ? 'text-blue-700 font-semibold bg-transparent'
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        : 'text-gray-700 active:text-gray-900 active:bg-gray-50 text-sm sm:text-base'
                     )}
                     onClick={() => setActiveTab(item.title)}
-                    // Mobile preload configuration
                   >
                     {/* Hover ripple effect */}
-                    <div className='absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-out' />
+                    <div className='absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent transform -translate-x-full group-active:translate-x-full transition-transform duration-500 ease-out' />
 
-                    <span className='transition-all duration-200 group-hover:scale-105 relative z-10'>
+                    <span className='transition-all duration-200 group-active:scale-105 relative z-10'>
                       {item.title}
                     </span>
                   </SmartLink>
@@ -249,7 +249,9 @@ export default function MyLayout({ children }: MyLayoutProps) {
         </div>
 
         {/* Optimized content area */}
-        <div className='flex-1 w-full bg-gray-50 py-9 px-7 xl:py-8 xl:pt-16'>{children}</div>
+        <div className='flex-1 w-full bg-gray-50 py-5 px-4 sm:py-6 sm:px-5 md:py-8 md:px-7 lg:py-9 xl:pt-16'>
+          {children}
+        </div>
       </div>
     </Fragment>
   )

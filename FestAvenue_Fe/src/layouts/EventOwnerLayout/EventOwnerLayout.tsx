@@ -111,11 +111,12 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
   return (
     <PermissionProvider eventCode={eventCode} isEventOwner={isEventOwner}>
       <div className='min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-white'>
-        {/* Navigation Pills - Centered */}
-        <div className='sticky top-0 z-40 py-6'>
-          <div className='container mx-auto px-4'>
-            <div className='flex justify-center'>
-              <nav className='bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-gray-200 px-3 py-3 flex items-center gap-2'>
+        {/* Navigation Pills - Responsive */}
+        <div className='sticky top-0 z-40 py-4 md:py-6 bg-gradient-to-br from-cyan-50/95 via-blue-50/95 to-white/95 backdrop-blur-sm'>
+          <div className='container mx-auto px-2 sm:px-4'>
+            {/* Desktop & Tablet: Centered horizontal navigation */}
+            <div className='hidden sm:flex justify-center'>
+              <nav className='bg-white/80 backdrop-blur-md rounded-full shadow-lg border border-gray-200 px-2 md:px-3 py-2 md:py-3 flex items-center gap-1 md:gap-2 max-w-full overflow-x-auto scrollbar-hide'>
                 {navigation.map((item) => {
                   // Extract pathname from href (remove query params for comparison)
                   const itemPath = item.href.split('?')[0]
@@ -132,14 +133,15 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                         <button
                           disabled
                           className={cn(
-                            'px-6 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all duration-300',
-                            'bg-gray-100 text-gray-400 cursor-not-allowed flex items-center gap-2',
+                            'px-3 md:px-5 lg:px-6 py-2 md:py-2.5 rounded-full font-medium text-xs md:text-sm whitespace-nowrap transition-all duration-300',
+                            'bg-gray-100 text-gray-400 cursor-not-allowed flex items-center gap-1.5 md:gap-2',
                             'opacity-60'
                           )}
                           title='Tính năng chỉ mở khi sự kiện đã bắt đầu, vui lòng chờ đến thời gian'
                         >
-                          <Lock className='w-4 h-4' />
-                          {item.name}
+                          <Lock className='w-3 h-3 md:w-4 md:h-4' />
+                          <span className='hidden md:inline'>{item.name}</span>
+                          <span className='md:hidden'>Quét QR</span>
                         </button>
                         {/* Tooltip */}
                         <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50'>
@@ -157,7 +159,7 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                       key={item.name}
                       to={item.href}
                       className={cn(
-                        'px-6 py-2.5 rounded-full font-medium text-sm whitespace-nowrap transition-all duration-300',
+                        'px-3 md:px-5 lg:px-6 py-2 md:py-2.5 rounded-full font-medium text-xs md:text-sm whitespace-nowrap transition-all duration-300',
                         'hover:shadow-md hover:scale-105',
                         isActive
                           ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200/50'
@@ -170,11 +172,63 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                 })}
               </nav>
             </div>
+
+            {/* Mobile: Vertical stacked navigation */}
+            <div className='sm:hidden'>
+              <div className='bg-white/80 backdrop-blur-md rounded-2xl shadow-lg border border-gray-200 p-3'>
+                <div className='grid grid-cols-2 gap-2'>
+                  {navigation.map((item) => {
+                    // Extract pathname from href (remove query params for comparison)
+                    const itemPath = item.href.split('?')[0]
+                    const isActive = location.pathname === itemPath
+
+                    // Check if this is the QR scan feature and event is not active
+                    const isScanQR = item.name === 'Quét mã vé sự kiện'
+                    const isDisabled = isScanQR && !isEventActive
+
+                    // If disabled, render as disabled button
+                    if (isDisabled) {
+                      return (
+                        <button
+                          key={item.name}
+                          disabled
+                          className={cn(
+                            'px-3 py-3 rounded-xl font-medium text-xs text-center transition-all duration-300',
+                            'bg-gray-100 text-gray-400 cursor-not-allowed flex flex-col items-center gap-1.5',
+                            'opacity-60'
+                          )}
+                          title='Tính năng chỉ mở khi sự kiện đã bắt đầu'
+                        >
+                          <Lock className='w-4 h-4' />
+                          <span className='line-clamp-2'>Quét QR</span>
+                        </button>
+                      )
+                    }
+
+                    return (
+                      <Link
+                        key={item.name}
+                        to={item.href}
+                        className={cn(
+                          'px-3 py-3 rounded-xl font-medium text-xs text-center transition-all duration-300',
+                          'hover:shadow-md active:scale-95',
+                          isActive
+                            ? 'bg-gradient-to-r from-cyan-400 to-blue-400 text-white shadow-lg shadow-cyan-200/50'
+                            : 'text-gray-600 bg-gray-50 hover:bg-gradient-to-r hover:from-cyan-50 hover:to-blue-50 hover:text-cyan-600'
+                        )}
+                      >
+                        <span className='line-clamp-2'>{item.name}</span>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <main className='container mx-auto px-4 py-8'>{children}</main>
+        <main className='container mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-8'>{children}</main>
       </div>
     </PermissionProvider>
   )
