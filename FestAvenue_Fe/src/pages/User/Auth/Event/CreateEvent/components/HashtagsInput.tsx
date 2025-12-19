@@ -43,8 +43,8 @@ export function HashtagsInput({ form }: HashtagsInputProps) {
         })
       }
     },
-    onError: () => {
-      toast.error('Lỗi khi tạo gợi ý hashtags', {
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi tạo gợi ý hashtags', {
         description: 'Vui lòng thử lại sau'
       })
     }

@@ -124,9 +124,8 @@ export default function StaffMessages() {
     onSuccess: (data) => {
       return data
     },
-    onError: (error) => {
-      console.error('Upload error:', error)
-      toast.error('Upload ảnh thất bại')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Upload ảnh thất bại')
       setIsUploadingImage(false)
     }
   })

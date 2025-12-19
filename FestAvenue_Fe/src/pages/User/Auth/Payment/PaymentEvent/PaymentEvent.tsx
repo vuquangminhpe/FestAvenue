@@ -84,7 +84,7 @@ export default function PaymentEvent() {
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Không thể tạo thanh toán')
+      toast.error(error?.response?.data?.message || 'Không thể tạo thanh toán')
       setPaymentError('Không thể tạo thanh toán. Vui lòng thử lại.')
     }
   })
@@ -106,7 +106,7 @@ export default function PaymentEvent() {
       } else if (status === PaymentStatus.Failed || status === PaymentStatus.Cancelled) {
         handlePaymentFailure()
       } else if (status === PaymentStatus.Pending) {
-        toast.info('Thanh toán đang chờ xử lý. Vui lòng kiểm tra lại sau.')
+        toast.info('Thanh toán đang chờ xử lý')
       } else {
         toast.warning('Trạng thái thanh toán không xác định')
       }

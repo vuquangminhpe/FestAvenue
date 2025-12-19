@@ -329,10 +329,7 @@ export default function SeatMapViewerPage() {
 
         // Join seating chart group
         await newConnection.invoke('JoinSeatingChartGroup', eventCode)
-
-        toast.success('Đã kết nối đến sơ đồ chỗ ngồi')
       } catch (error) {
-        toast.error('Không thể kết nối đến máy chủ')
         setIsConnected(false)
       }
     }
@@ -475,7 +472,7 @@ export default function SeatMapViewerPage() {
       }
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Không thể tạo thanh toán')
+      toast.error(error?.response?.data?.message || 'Không thể tạo thanh toán')
     }
   })
 
@@ -756,18 +753,22 @@ export default function SeatMapViewerPage() {
                       )}
 
                       {/* Cyan gradient glow on hover */}
-                      <div className={`absolute inset-0 transition-all duration-300 pointer-events-none ${
-                        highlightedTicketId === ticket.id
-                          ? 'bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-cyan-500/10'
-                          : 'bg-gradient-to-br from-cyan-500/0 via-blue-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:via-blue-500/5 group-hover:to-cyan-500/5'
-                      }`}></div>
+                      <div
+                        className={`absolute inset-0 transition-all duration-300 pointer-events-none ${
+                          highlightedTicketId === ticket.id
+                            ? 'bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-cyan-500/10'
+                            : 'bg-gradient-to-br from-cyan-500/0 via-blue-500/0 to-cyan-500/0 group-hover:from-cyan-500/5 group-hover:via-blue-500/5 group-hover:to-cyan-500/5'
+                        }`}
+                      ></div>
 
                       {/* Top accent line */}
-                      <div className={`h-0.5 ${
-                        highlightedTicketId === ticket.id
-                          ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 h-1'
-                          : 'bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400'
-                      }`}></div>
+                      <div
+                        className={`h-0.5 ${
+                          highlightedTicketId === ticket.id
+                            ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 h-1'
+                            : 'bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400'
+                        }`}
+                      ></div>
 
                       <div className='p-4 relative'>
                         {/* Compact Header - Single Row */}
@@ -955,23 +956,33 @@ export default function SeatMapViewerPage() {
             <div className='flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-700'>
               <div className='flex items-center gap-2'>
                 <MousePointer className='w-4 h-4 text-blue-500' />
-                <span><strong>Chọn ghế:</strong> Click vào ghế màu xanh lá để chọn</span>
+                <span>
+                  <strong>Chọn ghế:</strong> Click vào ghế màu xanh lá để chọn
+                </span>
               </div>
               <div className='flex items-center gap-2'>
                 <span className='w-3 h-3 rounded-full bg-orange-400'></span>
-                <span><strong>Bỏ chọn:</strong> Click lại ghế màu cam để bỏ chọn</span>
+                <span>
+                  <strong>Bỏ chọn:</strong> Click lại ghế màu cam để bỏ chọn
+                </span>
               </div>
               <div className='flex items-center gap-2'>
                 <span className='w-3 h-3 rounded-full bg-blue-500'></span>
-                <span><strong>Hủy giữ ghế:</strong> Click vào ghế xanh dương của bạn để hủy</span>
+                <span>
+                  <strong>Hủy giữ ghế:</strong> Click vào ghế xanh dương của bạn để hủy
+                </span>
               </div>
               <div className='flex items-center gap-2'>
                 <RefreshCw className='w-4 h-4 text-gray-500' />
-                <span><strong>Phóng to/thu nhỏ:</strong> Cuộn chuột hoặc pinch trên màn hình cảm ứng</span>
+                <span>
+                  <strong>Phóng to/thu nhỏ:</strong> Cuộn chuột hoặc pinch trên màn hình cảm ứng
+                </span>
               </div>
               <div className='flex items-center gap-2'>
                 <Eye className='w-4 h-4 text-cyan-500' />
-                <span><strong>Xem theo loại vé:</strong> Click vào loại vé để highlight ghế tương ứng trên map</span>
+                <span>
+                  <strong>Xem theo loại vé:</strong> Click vào loại vé để highlight ghế tương ứng trên map
+                </span>
               </div>
             </div>
           </AlertDescription>
@@ -1002,23 +1013,29 @@ export default function SeatMapViewerPage() {
                   )}
                 </div>
                 <div className='flex flex-wrap gap-2'>
-                  {(Array.isArray(ticketsData.data) ? ticketsData.data : [ticketsData.data]).map((ticket: TicketType) => (
-                    <button
-                      key={ticket.id}
-                      onClick={() => setHighlightedTicketId(highlightedTicketId === ticket.id ? null : ticket.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                        highlightedTicketId === ticket.id
-                          ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400/50'
-                          : 'bg-gray-100 text-gray-700 hover:bg-cyan-100 hover:text-cyan-700'
-                      }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${highlightedTicketId === ticket.id ? 'bg-white animate-pulse' : 'bg-cyan-400'}`}></span>
-                      {ticket.name}
-                      <span className='text-[10px] opacity-75'>
-                        ({ticket.isFree ? 'Miễn phí' : formatCurrency(ticket.price)})
-                      </span>
-                    </button>
-                  ))}
+                  {(Array.isArray(ticketsData.data) ? ticketsData.data : [ticketsData.data]).map(
+                    (ticket: TicketType) => (
+                      <button
+                        key={ticket.id}
+                        onClick={() => setHighlightedTicketId(highlightedTicketId === ticket.id ? null : ticket.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                          highlightedTicketId === ticket.id
+                            ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/30 ring-2 ring-cyan-400/50'
+                            : 'bg-gray-100 text-gray-700 hover:bg-cyan-100 hover:text-cyan-700'
+                        }`}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            highlightedTicketId === ticket.id ? 'bg-white animate-pulse' : 'bg-cyan-400'
+                          }`}
+                        ></span>
+                        {ticket.name}
+                        <span className='text-[10px] opacity-75'>
+                          ({ticket.isFree ? 'Miễn phí' : formatCurrency(ticket.price)})
+                        </span>
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
             )}

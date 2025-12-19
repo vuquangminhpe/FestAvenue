@@ -53,8 +53,8 @@ const EventDetails: React.FC = () => {
         toast.success(data.data.isFollowing ? 'Đã lưu sự kiện vào yêu thích' : 'Đã bỏ lưu sự kiện')
       }
     },
-    onError: () => {
-      toast.error('Không thể thực hiện thao tác')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Không thể thực hiện thao tác')
     }
   })
 

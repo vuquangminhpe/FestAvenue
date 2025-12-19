@@ -43,8 +43,9 @@ export const useCategoryQuery = () => {
 
   const uploadImageMutation = useMutation({
     mutationFn: userApi.uploadsStorage,
-    onError: () => {
-      toast.error('Có lỗi xảy ra khi tải ảnh lên')
+
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 

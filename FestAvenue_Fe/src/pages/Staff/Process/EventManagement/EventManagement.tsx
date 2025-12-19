@@ -84,8 +84,8 @@ export default function StaffEventManagement() {
       setSelectedEvent(null)
       setApproveMessage('')
     },
-    onError: () => {
-      toast.error('Lỗi khi phê duyệt sự kiện')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi phê duyệt sự kiện')
     }
   })
 
@@ -98,8 +98,8 @@ export default function StaffEventManagement() {
       setSelectedEvent(null)
       setRejectMessage('')
     },
-    onError: () => {
-      toast.error('Lỗi khi từ chối sự kiện')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi từ chối sự kiện')
     }
   })
 
@@ -166,8 +166,8 @@ export default function StaffEventManagement() {
       setSelectedEvent(null)
       setApproveContractMessage('')
     },
-    onError: () => {
-      toast.error('Lỗi khi phê duyệt hợp đồng')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi phê duyệt hợp đồng')
     }
   })
 
@@ -180,8 +180,8 @@ export default function StaffEventManagement() {
       setSelectedEvent(null)
       setRejectContractMessage('')
     },
-    onError: () => {
-      toast.error('Lỗi khi từ chối hợp đồng')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi từ chối hợp đồng')
     }
   })
 

@@ -43,8 +43,8 @@ export default function FavoriteEvents() {
         toast.success('Đã bỏ yêu thích sự kiện')
       }
     },
-    onError: () => {
-      toast.error('Không thể bỏ yêu thích sự kiện')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Không thể bỏ yêu thích sự kiện')
     }
   })
 

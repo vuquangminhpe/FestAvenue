@@ -25,8 +25,8 @@ export default function EventCard({ event, priority = false }: EventCardProps) {
       queryClient.invalidateQueries({ queryKey: ['normalSearchEvents'] })
       queryClient.invalidateQueries({ queryKey: ['top20FeaturedEvents'] })
     },
-    onError: () => {
-      toast.error('Không thể thực hiện thao tác')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Không thể thực hiện thao tác')
     }
   })
 

@@ -50,7 +50,7 @@ const AdminLogin = () => {
       }
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Đăng nhập thất bại')
+      toast.error(error?.response?.data?.message || 'Đăng nhập thất bại')
     }
   })
 

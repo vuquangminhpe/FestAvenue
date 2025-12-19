@@ -31,7 +31,7 @@ const ForgotPassword = () => {
       toast.success(data?.message || 'Đã gửi email khôi phục mật khẩu thành công')
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Có lỗi xảy ra, vui lòng thử lại')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại')
     }
   })
 

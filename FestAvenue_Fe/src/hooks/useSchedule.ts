@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import serviceScheduleManagementApis from '@/apis/serviceScheduleManagement.api'
 import type { ScheduleFormData } from '@/types/schedule.types'
 import { mapEventItemToSchedule, mapScheduleToCreateRequest, mapScheduleToUpdateRequest } from '@/utils/scheduleMapper'
+import { toast } from 'sonner'
 
 // Query keys
 export const scheduleKeys = {
@@ -95,6 +96,9 @@ export function useCreateSchedule() {
         queryKey: scheduleKeys.list(variables.eventCode),
         type: 'active'
       })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -157,6 +161,9 @@ export function useUpdateSchedule() {
       // Invalidate tất cả schedules lists (bất kể filters)
       queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() })
       queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(variables.scheduleId) })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -187,6 +194,9 @@ export function useDeleteSchedule() {
         queryKey: scheduleKeys.lists(),
         type: 'active'
       })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -269,6 +279,9 @@ export function useUpdateSubTask() {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: scheduleKeys.detail(variables.scheduleId) })
       queryClient.invalidateQueries({ queryKey: scheduleKeys.lists() })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }

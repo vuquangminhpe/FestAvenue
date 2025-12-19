@@ -173,7 +173,7 @@ export default function Packages() {
       resetPackageForm()
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi tạo gói')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo gói')
     }
   })
 
@@ -186,7 +186,7 @@ export default function Packages() {
       resetPackageForm()
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi cập nhật gói')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật gói')
     }
   })
 
@@ -197,7 +197,7 @@ export default function Packages() {
       toast.success('Cập nhật trạng thái thành công!')
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật trạng thái')
     }
   })
 
@@ -211,7 +211,7 @@ export default function Packages() {
       resetServiceForm()
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi tạo dịch vụ')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo dịch vụ')
     }
   })
 
@@ -225,7 +225,7 @@ export default function Packages() {
       resetServiceForm()
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi cập nhật dịch vụ')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật dịch vụ')
     }
   })
 
@@ -236,7 +236,7 @@ export default function Packages() {
       toast.success('Cập nhật trạng thái dịch vụ thành công!')
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra')
     }
   })
 
@@ -248,7 +248,7 @@ export default function Packages() {
       setDeleteServiceId(null)
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Có lỗi xảy ra khi xóa dịch vụ')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi xóa dịch vụ')
     }
   })
 

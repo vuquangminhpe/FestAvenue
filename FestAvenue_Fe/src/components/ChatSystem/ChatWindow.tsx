@@ -122,9 +122,9 @@ export default function ChatWindow({
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
     onSuccess: (data) => data,
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Upload error:', error)
-      toast.error('Upload ảnh thất bại')
+      toast.error(error?.response?.data?.message || 'Upload ảnh thất bại')
       setIsUploadingImage(false)
     }
   })

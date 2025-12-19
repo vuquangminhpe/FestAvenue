@@ -169,8 +169,8 @@ function CreateEvent() {
         setShowModerateDialog(true)
       }
     },
-    onError: () => {
-      toast.error('Lỗi khi kiểm tra nội dung', {
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Lỗi khi kiểm tra nội dung', {
         description: 'Vui lòng thử lại sau'
       })
     }

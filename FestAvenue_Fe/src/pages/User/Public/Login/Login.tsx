@@ -46,8 +46,8 @@ const Login = () => {
       navigate(path.home)
       toast.success('Đăng nhập thành công')
     },
-    onError: () => {
-      toast.error('Bạn đã nhập sai tài khoản hoặc mật khẩu, vui lòng kiểm tra lại !!!')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Đăng nhập thất bại')
     }
   })
 

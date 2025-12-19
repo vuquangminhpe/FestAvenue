@@ -152,7 +152,7 @@ export default function MyEvents() {
       setSelectedEventForContract(null)
     },
     onError: (error: any) => {
-      toast.error(error?.message || 'Lỗi khi upload hợp đồng')
+      toast.error(error?.response?.data?.message || 'Lỗi khi upload hợp đồng')
     }
   })
 
@@ -433,7 +433,7 @@ export default function MyEvents() {
           </div>
           <Button
             onClick={() => navigate(path.user.event.create_event)}
-            className='bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
+            className='create-event-btn bg-gradient-to-r from-cyan-400 to-blue-300 hover:from-cyan-500 hover:to-blue-400 text-white'
           >
             <Plus className='w-4 h-4 mr-2' />
             Tạo sự kiện mới
@@ -447,7 +447,7 @@ export default function MyEvents() {
             placeholder='Tìm kiếm sự kiện...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='pl-10'
+            className='search-events pl-10'
           />
         </div>
       </div>
@@ -455,9 +455,15 @@ export default function MyEvents() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
         <TabsList className='grid w-full grid-cols-3 mb-6'>
-          <TabsTrigger value='myEvents'>Sự kiện của tôi ({myEventsCount})</TabsTrigger>
-          <TabsTrigger value='pendingRejected'>Đang xử lý duyệt & Bị từ chối ({pendingRejectedCount})</TabsTrigger>
-          <TabsTrigger value='invitations'>Các sự kiện được mời tham gia</TabsTrigger>
+          <TabsTrigger value='myEvents' className='tab-my-events'>
+            Sự kiện của tôi ({myEventsCount})
+          </TabsTrigger>
+          <TabsTrigger value='pendingRejected' className='tab-pending-rejected'>
+            Đang xử lý duyệt & Bị từ chối ({pendingRejectedCount})
+          </TabsTrigger>
+          <TabsTrigger value='invitations' className='tab-invitations'>
+            Các sự kiện được mời tham gia
+          </TabsTrigger>
         </TabsList>
 
         {/* My Events Tab */}

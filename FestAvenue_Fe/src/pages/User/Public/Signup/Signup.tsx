@@ -85,8 +85,7 @@ const SignUp = () => {
       navigate(path.auth.login)
     },
     onError: (err: any) => {
-      const msg =
-        err?.response?.data?.status?.message || err?.response?.data?.message || err?.message || 'Đăng ký thất bại'
+      const msg = err?.response?.data?.message || 'Đăng ký thất bại'
       toast.error(msg)
     }
   })

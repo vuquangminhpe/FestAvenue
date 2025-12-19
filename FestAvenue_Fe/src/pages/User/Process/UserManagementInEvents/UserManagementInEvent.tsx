@@ -50,7 +50,7 @@ export default function UserManagementInEvents() {
       queryClient.invalidateQueries({ queryKey: ['group-chats'] })
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Tạo nhóm chat thất bại')
+      toast.error(error?.response?.data?.message || 'Tạo nhóm chat thất bại')
     }
   })
 

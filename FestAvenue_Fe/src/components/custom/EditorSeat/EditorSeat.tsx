@@ -185,8 +185,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
       setIsImageImportMode(true)
       toast.success(`Successfully extracted ${newSections.length} sections!`)
     },
-    onError: () => {
-      toast.error('Failed to extract seat map from image')
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Failed to extract seat map from image')
     }
   })
 

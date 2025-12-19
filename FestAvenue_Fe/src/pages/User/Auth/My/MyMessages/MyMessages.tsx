@@ -204,9 +204,9 @@ export default function ChatMyMessagesSystem() {
   const uploadsImagesMutation = useMutation({
     mutationFn: (file: File) => userApi.uploadsStorage(file),
     onSuccess: (data) => data,
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Upload error:', error)
-      toast.error('Upload ảnh thất bại')
+      toast.error(error?.response?.data?.message || 'Upload ảnh thất bại')
       setIsUploadingImage(false)
     }
   })
@@ -877,7 +877,7 @@ export default function ChatMyMessagesSystem() {
       queryClient.invalidateQueries({ queryKey: ['group-chats'] })
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Không thể thêm thành viên')
+      toast.error(error?.response?.data?.message || 'Không thể thêm thành viên')
     }
   })
 
@@ -889,7 +889,7 @@ export default function ChatMyMessagesSystem() {
       queryClient.invalidateQueries({ queryKey: ['group-chats'] })
     },
     onError: (error: any) => {
-      toast.error(error?.data?.message || 'Không thể cập nhật thành viên')
+      toast.error(error?.response?.data?.message || 'Không thể cập nhật thành viên')
     }
   })
 

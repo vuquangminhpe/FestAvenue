@@ -6,6 +6,7 @@ import type {
   bodyUpdateCommentInImagePost,
   queryReactionImagePost
 } from '@/types/serviceSocialMedia.types'
+import { toast } from 'sonner'
 
 // Query keys
 export const socialMediaDetailKeys = {
@@ -57,6 +58,10 @@ export const useReactionImageInPost = () => {
         queryKey: socialMediaDetailKeys.imageDetail(variables.postId, variables.imageInPostId),
         refetchType: 'active'
       })
+    },
+
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -87,6 +92,9 @@ export const useCommentImageInPost = () => {
         queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
         refetchType: 'active'
       })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -117,6 +125,9 @@ export const useDeleteCommentInPost = () => {
         queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
         refetchType: 'active'
       })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }
@@ -147,6 +158,9 @@ export const useUpdateCommentInPost = () => {
         queryKey: socialMediaDetailKeys.imageDetail(variables.postSocialMediaId, variables.imageInPostId),
         refetchType: 'active'
       })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Thông báo mặc định')
     }
   })
 }

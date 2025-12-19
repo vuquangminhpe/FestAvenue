@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { useState, useEffect, useRef } from 'react'
-import {  Loader2, ShieldCheck, ChevronDown, ChevronRight } from 'lucide-react'
+import { Loader2, ShieldCheck, ChevronDown, ChevronRight } from 'lucide-react'
 import type { UserServicePackageResult } from '@/types/userManagement.types'
 import gsap from 'gsap'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -47,20 +47,21 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
       queryClient.invalidateQueries({ queryKey: ['userPermissions', eventId] })
       onClose()
     },
-    onError: () => {
-      toast.error('Cập nhật quyền thất bại')
+
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Cập nhật quyền thất bại')
     }
   })
 
   // Initialize state when data is loaded
   useEffect(() => {
     const userData = (userPermissionsData?.data as any)?.[0]
-    
+
     if (userData?.servicePackagePermissions && allPermissionsData?.data) {
       // Create ID -> Name map
       const actionIdToNameMap: Record<string, string> = {}
-      allPermissionsData.data.forEach(pkg => {
-        pkg.permissionActions.forEach(action => {
+      allPermissionsData.data.forEach((pkg) => {
+        pkg.permissionActions.forEach((action) => {
           actionIdToNameMap[action.permissionActionId] = action.actionName
         })
       })
@@ -71,13 +72,13 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
         const actionNames = (pkg.permissions || [])
           .map((id: string) => actionIdToNameMap[id])
           .filter((name: string) => !!name)
-        
+
         initialActions[pkg.servicePackageId] = actionNames
       })
-      
+
       setSelectedActions(initialActions)
       setOriginalActions(JSON.parse(JSON.stringify(initialActions))) // Deep copy
-      
+
       // Open packages that have active permissions by default
       const activePackages = userData.servicePackagePermissions
         .filter((pkg: any) => pkg.permissions && pkg.permissions.length > 0)
@@ -101,7 +102,7 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
     setSelectedActions((prev) => {
       const currentPackageActions = prev[packageId] || []
       const isSelected = currentPackageActions.includes(actionName)
-      
+
       let newPackageActions
       if (isSelected) {
         newPackageActions = currentPackageActions.filter((a) => a !== actionName)
@@ -119,8 +120,8 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
   const handleSelectAllPackage = (packageId: string, allActions: string[]) => {
     setSelectedActions((prev) => {
       const currentPackageActions = prev[packageId] || []
-      const isAllSelected = allActions.every(a => currentPackageActions.includes(a))
-      
+      const isAllSelected = allActions.every((a) => currentPackageActions.includes(a))
+
       return {
         ...prev,
         [packageId]: isAllSelected ? [] : [...allActions]
@@ -129,11 +130,7 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
   }
 
   const togglePackageOpen = (packageId: string) => {
-    setOpenPackages(prev => 
-      prev.includes(packageId) 
-        ? prev.filter(id => id !== packageId)
-        : [...prev, packageId]
-    )
+    setOpenPackages((prev) => (prev.includes(packageId) ? prev.filter((id) => id !== packageId) : [...prev, packageId]))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -145,18 +142,15 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
     // Create a map of actionName -> permissionActionId for easy lookup
     const actionNameToIdMap: Record<string, string> = {}
     if (allPermissionsData?.data) {
-      allPermissionsData.data.forEach(pkg => {
-        pkg.permissionActions.forEach(action => {          
+      allPermissionsData.data.forEach((pkg) => {
+        pkg.permissionActions.forEach((action) => {
           actionNameToIdMap[action.actionName] = action.permissionActionId
         })
       })
     }
 
     // Iterate over all packages found in allPermissionsData (or combined keys)
-    const allPackageIds = new Set([
-      ...Object.keys(selectedActions),
-      ...Object.keys(originalActions)
-    ])
+    const allPackageIds = new Set([...Object.keys(selectedActions), ...Object.keys(originalActions)])
 
     for (const packageId of allPackageIds) {
       const currentNames = selectedActions[packageId] || []
@@ -165,15 +159,13 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
       // Check if there are any changes (order doesn't matter, so sort or set compare)
       const currentSet = new Set(currentNames)
       const originalSet = new Set(originalNames)
-      
-      const hasChanges = currentNames.length !== originalNames.length || 
-                         [...currentSet].some(name => !originalSet.has(name))
+
+      const hasChanges =
+        currentNames.length !== originalNames.length || [...currentSet].some((name) => !originalSet.has(name))
 
       if (hasChanges) {
         // Map ALL current names to IDs
-        const permissionIds = currentNames
-          .map(name => actionNameToIdMap[name])
-          .filter((id): id is string => !!id)
+        const permissionIds = currentNames.map((name) => actionNameToIdMap[name]).filter((id): id is string => !!id)
 
         permissionsChanges.push({
           servicePackageId: packageId,
@@ -223,7 +215,7 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
             ) : (
               <div className='space-y-4'>
                 {allPackages.map((pkg) => {
-                  const packageActions = pkg.permissionActions.map(a => a.actionName)
+                  const packageActions = pkg.permissionActions.map((a) => a.actionName)
                   const selectedCount = (selectedActions[pkg.servicePackageId] || []).length
                   const totalCount = packageActions.length
                   const isAllSelected = totalCount > 0 && selectedCount === totalCount
@@ -239,15 +231,15 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
                       <div className='flex items-center justify-between p-4 bg-white border-b'>
                         <div className='flex items-center gap-3 flex-1'>
                           <CollapsibleTrigger asChild>
-                            <Button variant="ghost" size="sm" className="p-0 h-6 w-6 hover:bg-transparent">
+                            <Button variant='ghost' size='sm' className='p-0 h-6 w-6 hover:bg-transparent'>
                               {isOpen ? (
-                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                                <ChevronDown className='h-4 w-4 text-gray-500' />
                               ) : (
-                                <ChevronRight className="h-4 w-4 text-gray-500" />
+                                <ChevronRight className='h-4 w-4 text-gray-500' />
                               )}
                             </Button>
                           </CollapsibleTrigger>
-                          
+
                           <div className='flex flex-col'>
                             <span className='font-medium text-gray-900'>{pkg.servicePackageName}</span>
                             <span className='text-xs text-gray-500'>
@@ -258,9 +250,9 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
 
                         <div className='flex items-center gap-2'>
                           <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
+                            type='button'
+                            variant='ghost'
+                            size='sm'
                             onClick={(e) => {
                               e.stopPropagation()
                               handleSelectAllPackage(pkg.servicePackageId, packageActions)
@@ -281,8 +273,8 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
                                 key={action.permissionActionId}
                                 className={cn(
                                   'flex items-start space-x-3 p-3 rounded-md transition-colors border',
-                                  isChecked 
-                                    ? 'bg-cyan-50 border-cyan-200' 
+                                  isChecked
+                                    ? 'bg-cyan-50 border-cyan-200'
                                     : 'bg-white border-gray-100 hover:border-gray-200'
                                 )}
                               >
@@ -299,9 +291,7 @@ export default function EditUserModal({ isOpen, onClose, user, eventId }: EditUs
                                   >
                                     {action.actionName}
                                   </Label>
-                                  <p className='text-xs text-gray-500'>
-                                    {action.description}
-                                  </p>
+                                  <p className='text-xs text-gray-500'>{action.description}</p>
                                 </div>
                               </div>
                             )

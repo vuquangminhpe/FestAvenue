@@ -63,16 +63,11 @@ const TicketVerification: React.FC = () => {
       playSound(true)
     },
     onError: (error: any, variables) => {
-      // Error case - still get user profile to show info
-      const errorData = error?.response?.data
-      if (errorData) {
-        setError(error?.response?.data)
-        setCurrentEmail(variables.email)
-        playSound(false)
-      } else {
-        setError(error?.response?.data?.message || error.message || 'Xác thực thất bại')
-        playSound(false)
-      }
+      setCurrentEmail(variables.email)
+      playSound(false)
+
+      setError(error?.response?.data?.message || error.message || 'Xác thực thất bại')
+      playSound(false)
     }
   })
 

@@ -74,7 +74,10 @@ const AccountSettings: React.FC = () => {
   // })
 
   const deletedImagesStorageMutation = useMutation({
-    mutationFn: userApi.deletedFileStorage
+    mutationFn: userApi.deletedFileStorage,
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Xóa ảnh thất bại')
+    }
   })
   const { isProfile: userProfile, setIsAuth, setUserAvatar } = useUsersStore((state) => state)
 
@@ -91,22 +94,37 @@ const AccountSettings: React.FC = () => {
     }
   })
   const updateAvatarMutation = useMutation({
-    mutationFn: userApi.updateAvatarProfile
+    mutationFn: userApi.updateAvatarProfile,
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Cập nhật avatar thất bại')
+    }
   })
   const { isPending: pendingUpdateProfile, mutateAsync: updateProfileMutation } = useMutation({
     mutationFn: userApi.updateMyProfile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getMyProfile'] })
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Cập nhật thông tin thất bại')
     }
   })
   const deletedAccountMutation = useMutation({
-    mutationFn: userApi.deleteMyAccount
+    mutationFn: userApi.deleteMyAccount,
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Xóa tài khoản thất bại')
+    }
   })
   const uploadsStorageMutation = useMutation({
-    mutationFn: (file: File) => userApi.uploadsStorage(file)
+    mutationFn: (file: File) => userApi.uploadsStorage(file),
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Upload ảnh thất bại')
+    }
   })
   const updatePasswordMutation = useMutation({
-    mutationFn: userApi.updateMyPassword
+    mutationFn: userApi.updateMyPassword,
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || 'Đổi mật khẩu thất bại')
+    }
   })
 
   const handleClickUploadAvatar = () => {
