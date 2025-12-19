@@ -496,7 +496,7 @@ export default function SeatMapViewer({
     if (!svgRef.current || !zoomBehaviorRef.current) return
 
     const svg = d3.select(svgRef.current)
-    const seatGroup = svg.select(`.seat-${seatId}`)
+    const seatGroup = svg.select(`.seat-${safeId(seatId)}`)
 
     if (seatGroup.empty()) return
 
@@ -567,7 +567,7 @@ export default function SeatMapViewer({
           const countdown = getSeatCountdown(seat.id)
           const isClickable = isSeatClickable(seat.id)
 
-          const seatGroup = svg.select(`.seat-${seat.id}`)
+          const seatGroup = svg.select(`.seat-${safeId(seat.id)}`)
           if (seatGroup.empty()) return
 
           // Update seat color
@@ -973,7 +973,8 @@ export default function SeatMapViewer({
 
         const hitboxGroup = sectionGroup
           .append('g')
-          .attr('class', `seat-group seat-${seat.id}`)
+          .attr('class', `seat-group seat-${safeId(seat.id)}`)
+          .attr('data-seat-id', seat.id)
           .style('cursor', isClickable && !readonly ? 'pointer' : 'not-allowed')
           .attr('data-origin-x', seat.x)
           .attr('data-origin-y', seat.y)

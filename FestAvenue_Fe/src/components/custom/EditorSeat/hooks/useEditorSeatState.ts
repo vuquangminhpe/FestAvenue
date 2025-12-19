@@ -103,6 +103,7 @@ export const useEditorSeatState = (eventCode: string) => {
   const [splitFirstPoint, setSplitFirstPoint] = useState<Point | null>(null)
   const [editingPoints, setEditingPoints] = useState<{ sectionId: string; points: Point[] } | null>(null)
   const [selectedPointIndex, setSelectedPointIndex] = useState<number | null>(null)
+  const [selectedPointIndices, setSelectedPointIndices] = useState<Set<number>>(new Set())
   const [pointConstraint, setPointConstraint] = useState<PointConstraint | null>(null)
   const pointConstraintRef = useRef<PointConstraint | null>(null)
   const editingPointsRef = useRef<typeof editingPoints>(null)
@@ -129,6 +130,8 @@ export const useEditorSeatState = (eventCode: string) => {
   useEffect(() => {
     if (editTool !== 'edit-points') {
       setPointConstraint(null)
+      setSelectedPointIndices(new Set())
+      setSelectedPointIndex(null)
     }
   }, [editTool])
 
@@ -319,6 +322,8 @@ export const useEditorSeatState = (eventCode: string) => {
     setEditingPoints,
     selectedPointIndex,
     setSelectedPointIndex,
+    selectedPointIndices,
+    setSelectedPointIndices,
     pointConstraint,
     setPointConstraint,
     pointConstraintRef,

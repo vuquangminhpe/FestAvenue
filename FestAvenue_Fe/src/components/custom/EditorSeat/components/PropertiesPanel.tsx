@@ -65,10 +65,13 @@ interface PropertiesPanelProps {
   setSplitFirstPoint: React.Dispatch<React.SetStateAction<Point | null>>
   setSplitLine: React.Dispatch<React.SetStateAction<{ start: Point; end: Point } | null>>
   editingPoints: { sectionId: string; points: Point[] } | null
+  setEditingPoints: React.Dispatch<React.SetStateAction<{ sectionId: string; points: Point[] } | null>>
   replaceEditingPoints: (points: Point[]) => void
   applyEditedPoints: () => void
   cancelPointEditing: () => void
   setPointConstraint: React.Dispatch<React.SetStateAction<PointConstraint | null>>
+  selectedPointIndices: Set<number>
+  setSelectedPointIndices: React.Dispatch<React.SetStateAction<Set<number>>>
   selectedShape: ShapeType
   setSelectedShape: React.Dispatch<React.SetStateAction<ShapeType>>
   colorPicker: {
@@ -142,10 +145,13 @@ export default function PropertiesPanel({
   setSplitFirstPoint,
   setSplitLine,
   editingPoints,
+  setEditingPoints,
   replaceEditingPoints,
   applyEditedPoints,
   cancelPointEditing,
   setPointConstraint,
+  selectedPointIndices,
+  setSelectedPointIndices,
   selectedShape,
   setSelectedShape,
   colorPicker,
@@ -491,6 +497,17 @@ export default function PropertiesPanel({
                 onApplyChanges={applyEditedPoints}
                 onCancel={cancelPointEditing}
                 onConstraintChange={setPointConstraint}
+                selectedPointIndices={selectedPointIndices}
+                onClearSelection={() => setSelectedPointIndices(new Set())}
+                onDeleteSelectedPoints={() => {
+                  if (!editingPoints || selectedPointIndices.size === 0) return
+                  // Filter out selected points, keeping minimum 3 points
+                  const newPoints = editingPoints.points.filter((_, i) => !selectedPointIndices.has(i))
+                  if (newPoints.length >= 3) {
+                    setEditingPoints({ ...editingPoints, points: newPoints })
+                    setSelectedPointIndices(new Set())
+                  }
+                }}
               />
             )}
 
@@ -628,14 +645,29 @@ export default function PropertiesPanel({
               <div className='space-y-3 pt-4 border-t border-purple-500/30'>
                 <h3 className='text-sm font-semibold text-purple-300 flex items-center gap-2'>
                   ⚙️ Cấu Hình Section
+                  {!selectedSectionCanBeModified && (
+                    <span className='text-xs text-red-400'>🔒 Có ghế đã đặt</span>
+                  )}
                 </h3>
 
+                {/* Warning for locked sections */}
+                {!selectedSectionCanBeModified && (
+                  <Alert className='bg-red-600/20 border-red-500/50'>
+                    <AlertCircle className='w-4 h-4 text-red-400' />
+                    <AlertDescription className='text-xs text-red-200'>
+                      Khu vực này có ghế đã được đặt/mua. Không thể thay đổi cấu hình ghế.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Has Seats Toggle */}
-                <div className='flex items-center gap-2 p-2 bg-slate-700/50 rounded'>
+                <div className={`flex items-center gap-2 p-2 bg-slate-700/50 rounded ${!selectedSectionCanBeModified ? 'opacity-50' : ''}`}>
                   <Checkbox
                     id='selectedHasSeats'
                     checked={selectedSection.hasSeats === false}
+                    disabled={!selectedSectionCanBeModified}
                     onCheckedChange={(checked) => {
+                      if (!selectedSectionCanBeModified) return
                       const updatedSections = mapData.sections.map((s) =>
                         s.id === selectedSection.id
                           ? {
@@ -648,21 +680,73 @@ export default function PropertiesPanel({
                       setMapData({ ...mapData, sections: updatedSections })
                       setSelectedSection({ ...selectedSection, hasSeats: !checked })
                     }}
-                    className='border-purple-400 data-[state=checked]:bg-purple-600'
+                    className='border-purple-400 data-[state=checked]:bg-purple-600 disabled:cursor-not-allowed'
                   />
-                  <label htmlFor='selectedHasSeats' className='text-xs text-gray-300 cursor-pointer flex-1'>
+                  <label
+                    htmlFor='selectedHasSeats'
+                    className={`text-xs cursor-pointer flex-1 ${!selectedSectionCanBeModified ? 'text-gray-500 cursor-not-allowed' : 'text-gray-300'}`}
+                  >
                     Section không có ghế (Standing zone)
                   </label>
                 </div>
 
-                {/* Custom Seat Count */}
+                {/* Rows and Seats Per Row Config for Selected Section */}
                 {selectedSection.hasSeats !== false && (
-                  <div>
+                  <div className={!selectedSectionCanBeModified ? 'opacity-50' : ''}>
+                    <div className='flex gap-2 mb-2'>
+                      <div className='flex-1'>
+                        <label className='text-xs text-gray-400 block mb-1'>Số Hàng</label>
+                        <input
+                          type='number'
+                          value={selectedSection.rows}
+                          disabled={!selectedSectionCanBeModified}
+                          onChange={(e) => {
+                            if (!selectedSectionCanBeModified) return
+                            const rows = parseInt(e.target.value) || 2
+                            const updatedSections = mapData.sections.map((s) =>
+                              s.id === selectedSection.id ? { ...s, rows } : s
+                            )
+                            setMapData({ ...mapData, sections: updatedSections })
+                            setSelectedSection({ ...selectedSection, rows })
+                          }}
+                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm disabled:cursor-not-allowed disabled:opacity-60'
+                          min='1'
+                          max='30'
+                        />
+                      </div>
+                      <div className='flex-1'>
+                        <label className='text-xs text-gray-400 block mb-1'>Ghế Mỗi Hàng</label>
+                        <input
+                          type='number'
+                          value={selectedSection.seatsPerRow}
+                          disabled={!selectedSectionCanBeModified}
+                          onChange={(e) => {
+                            if (!selectedSectionCanBeModified) return
+                            const seatsPerRow = parseInt(e.target.value) || 3
+                            const updatedSections = mapData.sections.map((s) =>
+                              s.id === selectedSection.id ? { ...s, seatsPerRow } : s
+                            )
+                            setMapData({ ...mapData, sections: updatedSections })
+                            setSelectedSection({ ...selectedSection, seatsPerRow })
+                          }}
+                          className='w-full px-2 py-1 bg-slate-700 rounded text-sm disabled:cursor-not-allowed disabled:opacity-60'
+                          min='1'
+                          max='30'
+                        />
+                      </div>
+                    </div>
+                    <p className='text-xs text-gray-500 mb-2'>
+                      Tổng: {selectedSection.rows * selectedSection.seatsPerRow} ghế
+                    </p>
+
+                    {/* Custom Seat Count */}
                     <label className='text-xs text-gray-400 block mb-1'>Số ghế tùy chỉnh (Tùy chọn)</label>
                     <input
                       type='number'
                       value={selectedSection.customSeatCount || ''}
+                      disabled={!selectedSectionCanBeModified}
                       onChange={(e) => {
+                        if (!selectedSectionCanBeModified) return
                         const customCount = e.target.value ? parseInt(e.target.value) : undefined
                         const updatedSections = mapData.sections.map((s) =>
                           s.id === selectedSection.id
@@ -675,21 +759,21 @@ export default function PropertiesPanel({
                         setMapData({ ...mapData, sections: updatedSections })
                         setSelectedSection({ ...selectedSection, customSeatCount: customCount })
                       }}
-                      placeholder={`Mặc định: ${selectedSection.rows} × ${selectedSection.seatsPerRow} = ${
-                        selectedSection.rows * selectedSection.seatsPerRow
-                      } ghế`}
-                      className='w-full px-2 py-1 bg-slate-700 rounded text-sm'
+                      placeholder={`Mặc định: ${selectedSection.rows} × ${selectedSection.seatsPerRow} ghế`}
+                      className='w-full px-2 py-1 bg-slate-700 rounded text-sm disabled:cursor-not-allowed disabled:opacity-60'
                       min='1'
                     />
                     {selectedSection.customSeatCount && (
                       <p className='text-xs text-blue-300 mt-1'>
-                        ✓ Section này có {selectedSection.customSeatCount} ghế
+                        ✓ Section này có {selectedSection.customSeatCount} ghế (thay vì {selectedSection.rows * selectedSection.seatsPerRow})
                       </p>
                     )}
                     <Button
                       size='sm'
-                      className='w-full mt-2 bg-purple-600 hover:bg-purple-700'
+                      className='w-full mt-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                      disabled={!selectedSectionCanBeModified}
                       onClick={() => {
+                        if (!selectedSectionCanBeModified) return
                         const updatedSections = mapData.sections.map((s) => {
                           if (s.id === selectedSection.id) {
                             const newSeats = generateSeatsForSection(s, seatStatuses)

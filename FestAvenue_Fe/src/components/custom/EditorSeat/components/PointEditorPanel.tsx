@@ -17,6 +17,9 @@ interface PointEditorPanelProps {
   onApplyChanges: () => void
   onCancel: () => void
   onConstraintChange: (constraint: PointConstraint | null) => void
+  selectedPointIndices?: Set<number>
+  onClearSelection?: () => void
+  onDeleteSelectedPoints?: () => void
 }
 
 const MIN_POINT_COUNT = 6
@@ -27,7 +30,10 @@ export default function PointEditorPanel({
   onUpdatePoints,
   onApplyChanges,
   onCancel,
-  onConstraintChange
+  onConstraintChange,
+  selectedPointIndices,
+  onClearSelection,
+  onDeleteSelectedPoints
 }: PointEditorPanelProps) {
   const [pointCount, setPointCount] = useState<number>(editingPoints?.points.length ?? MIN_POINT_COUNT)
   const [semiOrientation, setSemiOrientation] = useState<SemiCircleOrientation>('top')
@@ -74,6 +80,9 @@ export default function PointEditorPanel({
 
   const clearConstraint = () => onConstraintChange(null)
 
+  const selectedCount = selectedPointIndices?.size || 0
+  const canDelete = selectedCount > 0 && editingPoints && editingPoints.points.length - selectedCount >= 3
+
   return (
     <Alert className='bg-teal-600/20 border-teal-600/50 space-y-3'>
       <AlertDescription className='text-xs text-black space-y-3'>
@@ -86,6 +95,50 @@ export default function PointEditorPanel({
             </p>
           )}
         </div>
+
+        {/* Instructions */}
+        <div className='bg-white/30 rounded p-2 text-[11px] text-gray-700 space-y-1'>
+          <p>• <strong>Ctrl+Click</strong>: Chọn nhiều điểm</p>
+          <p>• <strong>Double-click cạnh</strong>: Thêm điểm mới</p>
+          <p>• <strong>Kéo điểm</strong>: Di chuyển điểm</p>
+          <p>• <strong>Shift+Kéo</strong>: Giữ thẳng hàng</p>
+        </div>
+
+        {/* Multi-select actions */}
+        {selectedCount > 0 && (
+          <div className='bg-red-100 border border-red-300 rounded p-2 space-y-2'>
+            <p className='text-xs text-red-700 font-semibold'>
+              Đã chọn {selectedCount} điểm
+            </p>
+            <div className='flex gap-2'>
+              {canDelete && onDeleteSelectedPoints && (
+                <Button
+                  size='sm'
+                  variant='destructive'
+                  className='flex-1 text-xs'
+                  onClick={onDeleteSelectedPoints}
+                >
+                  🗑️ Xóa điểm
+                </Button>
+              )}
+              {onClearSelection && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='flex-1 text-xs'
+                  onClick={onClearSelection}
+                >
+                  Bỏ chọn
+                </Button>
+              )}
+            </div>
+            {!canDelete && selectedCount > 0 && (
+              <p className='text-[10px] text-red-500'>
+                Cần ít nhất 3 điểm để tạo hình
+              </p>
+            )}
+          </div>
+        )}
 
         <PointTransformControls
           pointCount={pointCount}

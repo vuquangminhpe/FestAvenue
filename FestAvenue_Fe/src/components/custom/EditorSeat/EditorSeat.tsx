@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { calculateBounds, getPolygonColor, lineIntersection } from './utils/geometry'
+import { calculateBounds, getPolygonColor, lineIntersection, isSilverOrGrayColor } from './utils/geometry'
 import { generateShapePath } from './utils/shapes'
 import { generateSeatsForSection } from './utils/seats'
 import { SECTION_TEMPLATES, generateSectionFromTemplate } from './utils/templates'
@@ -95,6 +95,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
     setEditingPoints,
     selectedPointIndex,
     setSelectedPointIndex,
+    selectedPointIndices,
+    setSelectedPointIndices,
     pointConstraint,
     setPointConstraint,
     pointConstraintRef,
@@ -149,16 +151,23 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
           y: (bounds.minY + bounds.maxY) / 2
         }
 
-        // Find label inside polygon
-        const label = data.detected_text.find((text) => {
-          const tx = (text.bbox[0] + text.bbox[2]) / 2
-          const ty = (text.bbox[1] + text.bbox[3]) / 2
-          // Simple bounding box check
-          return tx >= bounds.minX && tx <= bounds.maxX && ty >= bounds.minY && ty <= bounds.maxY
-        })
+        // Use label from API response or find from detected text
+        let sectionName = data.labels?.[index]
+        if (!sectionName) {
+          const label = data.detected_text.find((text) => {
+            const tx = (text.bbox[0] + text.bbox[2]) / 2
+            const ty = (text.bbox[1] + text.bbox[3]) / 2
+            return tx >= bounds.minX && tx <= bounds.maxX && ty >= bounds.minY && ty <= bounds.maxY
+          })
+          sectionName = label ? label.text : `Section ${index + 1}`
+        }
 
-        const sectionName = label ? label.text : `Section ${index + 1}`
-        const color = getPolygonColor(index, data.polygons.length)
+        // Use color from API response or fallback to generated color
+        const extractedColor = data.colors?.[index]
+        const color = extractedColor || getPolygonColor(index, data.polygons.length)
+
+        // Auto-detect standing zone: silver/gray colors indicate no seats
+        const isStandingZone = extractedColor ? isSilverOrGrayColor(extractedColor) : false
 
         const section: Section = {
           id: `${sectionName}-${index + 1}`,
@@ -166,24 +175,40 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
           color,
           points,
           position: center,
-          rows: sectionConfig.rows,
-          seatsPerRow: sectionConfig.seatsPerRow,
+          rows: isStandingZone ? 0 : sectionConfig.rows,
+          seatsPerRow: isStandingZone ? 0 : sectionConfig.seatsPerRow,
           price: 0,
           bounds,
           labelPosition: { x: center.x, y: center.y },
-          hasSeats: true
+          hasSeats: !isStandingZone
         }
-        // Generate seats
-        section.seats = generateSeatsForSection(section, seatStatuses)
+
+        // Generate seats only if not a standing zone
+        if (!isStandingZone) {
+          section.seats = generateSeatsForSection(section, seatStatuses)
+        }
+
         return section
       })
+
+      // Count standing zones for notification
+      const standingZonesCount = newSections.filter((s) => !s.hasSeats).length
+      const seatedSectionsCount = newSections.filter((s) => s.hasSeats).length
 
       setMapData((prev) => ({
         ...prev,
         sections: [...prev.sections, ...newSections]
       }))
       setIsImageImportMode(true)
-      toast.success(`Successfully extracted ${newSections.length} sections!`)
+
+      // Show detailed success message
+      if (standingZonesCount > 0) {
+        toast.success(
+          `Đã trích xuất ${newSections.length} khu vực: ${seatedSectionsCount} khu vực có ghế, ${standingZonesCount} khu vực đứng (standing zone)`
+        )
+      } else {
+        toast.success(`Successfully extracted ${newSections.length} sections!`)
+      }
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || 'Failed to extract seat map from image')
@@ -826,10 +851,13 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
         setSplitFirstPoint={setSplitFirstPoint}
         setSplitLine={setSplitLine}
         editingPoints={editingPoints}
+        setEditingPoints={setEditingPoints}
         replaceEditingPoints={replaceEditingPoints}
         applyEditedPoints={applyEditedPoints}
         cancelPointEditing={cancelPointEditing}
         setPointConstraint={setPointConstraint}
+        selectedPointIndices={selectedPointIndices}
+        setSelectedPointIndices={setSelectedPointIndices}
         selectedShape={selectedShape}
         setSelectedShape={setSelectedShape}
         colorPicker={colorPicker}
@@ -890,6 +918,8 @@ export default function AdvancedSeatMapDesigner({ eventCode, ticketPackageId }: 
             setEditingPoints={setEditingPoints}
             selectedPointIndex={selectedPointIndex}
             setSelectedPointIndex={setSelectedPointIndex}
+            selectedPointIndices={selectedPointIndices}
+            setSelectedPointIndices={setSelectedPointIndices}
             pointConstraint={pointConstraint}
             setPointConstraint={setPointConstraint}
             drawingPoints={drawingPoints}

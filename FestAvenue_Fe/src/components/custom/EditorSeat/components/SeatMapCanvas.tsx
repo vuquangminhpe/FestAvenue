@@ -69,6 +69,8 @@ interface SeatMapCanvasProps {
   setEditingPoints: React.Dispatch<React.SetStateAction<{ sectionId: string; points: Point[] } | null>>
   selectedPointIndex: number | null
   setSelectedPointIndex: React.Dispatch<React.SetStateAction<number | null>>
+  selectedPointIndices: Set<number>
+  setSelectedPointIndices: React.Dispatch<React.SetStateAction<Set<number>>>
   pointConstraint: PointConstraint | null
   setPointConstraint: React.Dispatch<React.SetStateAction<PointConstraint | null>>
   drawingPoints: Point[]
@@ -114,8 +116,11 @@ export default function SeatMapCanvas({
   splitFirstPoint,
   setSplitFirstPoint,
   editingPoints,
+  setEditingPoints,
   selectedPointIndex,
   setSelectedPointIndex,
+  selectedPointIndices,
+  setSelectedPointIndices,
 
   drawingPoints,
   setDrawingPoints,
@@ -286,6 +291,7 @@ export default function SeatMapCanvas({
     splitFirstPoint,
     editingPoints,
     selectedPointIndex,
+    selectedPointIndices,
     selectedShape,
     ticketsForSeats,
     getSeatColor,
@@ -730,13 +736,17 @@ export default function SeatMapCanvas({
           // Get booking info for seat icon
           const bookingInfo = seatBookingMap.get(seat.id)
 
+          // Check if seat is locked (purchased or being held) - should not be interactive
+          const isSeatLocked = bookingInfo?.isPayment || bookingInfo?.isSeatLock || status === 'locked'
+
           const seatGroup = sectionGroup
             .append('g')
-            .attr('class', `seat-group seat-${seat.id}`)
-            .style('cursor', 'pointer')
+            .attr('class', `seat-group seat-${safeId(seat.id)}`)
+            .attr('data-seat-id', seat.id)
+            .style('cursor', isSeatLocked ? 'not-allowed' : 'pointer')
             .attr('data-origin-x', seat.x)
             .attr('data-origin-y', seat.y)
-            .attr('data-hover-scale', seatHoverScale.toString())
+            .attr('data-hover-scale', isSeatLocked ? '1' : seatHoverScale.toString())
 
           // Invisible hitbox for better click area
           seatGroup
@@ -866,11 +876,67 @@ export default function SeatMapCanvas({
           }
 
           // Context menu on right-click for Lock and Edit Price
+          // Only allow context menu for seats that are not purchased or being held
           seatGroup.on('contextmenu', (event) => {
             event.preventDefault()
             event.stopPropagation()
 
-            // Create context menu
+            const seatLabel = `${section.displayName || section.name} R${seat.row}S${seat.number}`
+
+            // If seat is purchased or being held by another user, show info-only menu
+            if (bookingInfo?.isPayment || bookingInfo?.isSeatLock) {
+              const infoMenu = document.createElement('div')
+              infoMenu.style.cssText = `
+                position: fixed;
+                left: ${event.clientX}px;
+                top: ${event.clientY}px;
+                background: #1f2937;
+                border: 1px solid #374151;
+                border-radius: 8px;
+                padding: 8px;
+                z-index: 10000;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                min-width: 200px;
+              `
+
+              const header = document.createElement('div')
+              header.style.cssText = `
+                padding: 8px 12px;
+                color: #9ca3af;
+                font-size: 12px;
+                border-bottom: 1px solid #374151;
+                margin-bottom: 4px;
+                font-weight: bold;
+              `
+              header.textContent = seatLabel
+              infoMenu.appendChild(header)
+
+              const statusInfo = document.createElement('div')
+              statusInfo.style.cssText = `
+                padding: 8px 12px;
+                color: ${bookingInfo?.isPayment ? '#9ca3af' : '#ef4444'};
+                font-size: 13px;
+              `
+              if (bookingInfo?.isPayment) {
+                statusInfo.innerHTML = `🔒 <strong>Đã mua</strong><br/><span style="font-size: 11px; color: #6b7280;">Ghế này không thể chỉnh sửa</span>`
+              } else {
+                statusInfo.innerHTML = `⏳ <strong>Đang giữ</strong><br/><span style="font-size: 11px; color: #6b7280;">Ghế đang được giữ, không thể chỉnh sửa</span>`
+              }
+              infoMenu.appendChild(statusInfo)
+
+              document.body.appendChild(infoMenu)
+
+              const closeMenu = (e: MouseEvent) => {
+                if (!infoMenu.contains(e.target as Node)) {
+                  infoMenu.remove()
+                  document.removeEventListener('click', closeMenu)
+                }
+              }
+              setTimeout(() => document.addEventListener('click', closeMenu), 0)
+              return
+            }
+
+            // Create context menu for editable seats
             const menu = document.createElement('div')
             menu.style.cssText = `
               position: fixed;
@@ -884,8 +950,6 @@ export default function SeatMapCanvas({
               box-shadow: 0 10px 25px rgba(0,0,0,0.5);
               min-width: 180px;
             `
-
-            const seatLabel = `${section.displayName || section.name} R${seat.row}S${seat.number}`
 
             const menuItems = [
               {
@@ -950,7 +1014,7 @@ export default function SeatMapCanvas({
             setTimeout(() => document.addEventListener('click', closeMenu), 0)
           })
 
-          // Hover effects
+          // Hover effects - only apply scale effect for non-locked seats
           seatGroup
             .on('mouseover', function () {
               const group = d3.select(this as SVGGElement)
@@ -958,33 +1022,47 @@ export default function SeatMapCanvas({
               const originX = Number(group.attr('data-origin-x')) || seat.x
               const originY = Number(group.attr('data-origin-y')) || seat.y
               const baseTransformAttr = group.attr('data-base-transform') || ''
-              const transformSequence = `${
-                baseTransformAttr ? `${baseTransformAttr} ` : ''
-              }translate(${originX}, ${originY}) scale(${hoverScale}) translate(${-originX}, ${-originY})`
-              group.attr('transform', transformSequence)
 
+              // Only apply scale transform for non-locked seats
+              if (!isSeatLocked && hoverScale !== 1) {
+                const transformSequence = `${
+                  baseTransformAttr ? `${baseTransformAttr} ` : ''
+                }translate(${originX}, ${originY}) scale(${hoverScale}) translate(${-originX}, ${-originY})`
+                group.attr('transform', transformSequence)
+              }
+
+              // Show tooltip with additional status info for locked seats
               const tooltip = g.append('g').attr('class', 'seat-tooltip')
-              const tooltipText = `${section.displayName || section.name} R${seat.row}S${seat.number}\n$${
+              let tooltipText = `${section.displayName || section.name} R${seat.row}S${seat.number}\n$${
                 seat.price || section.price || 0
               }`
+
+              // Add status info for locked/purchased seats
+              if (bookingInfo?.isPayment) {
+                tooltipText += '\n🔒 Đã mua'
+              } else if (bookingInfo?.isSeatLock) {
+                tooltipText += '\n⏳ Đang giữ'
+              }
+
               const lines = tooltipText.split('\n')
+              const tooltipHeight = 20 + lines.length * 12
 
               tooltip
                 .append('rect')
                 .attr('x', seat.x - 50)
-                .attr('y', seat.y - 40)
+                .attr('y', seat.y - 30 - lines.length * 6)
                 .attr('width', 100)
-                .attr('height', 30)
-                .attr('fill', '#FFFF')
+                .attr('height', tooltipHeight)
+                .attr('fill', isSeatLocked ? '#374151' : '#FFFFFF')
                 .attr('rx', 4)
 
               lines.forEach((line, i) => {
                 tooltip
                   .append('text')
                   .attr('x', seat.x)
-                  .attr('y', seat.y - 30 + i * 12)
+                  .attr('y', seat.y - 20 - (lines.length - 1 - i) * 12)
                   .attr('text-anchor', 'middle')
-                  .attr('fill', '#000000')
+                  .attr('fill', isSeatLocked ? '#FFFFFF' : '#000000')
                   .attr('font-size', '11px')
                   .text(line)
               })
@@ -1077,24 +1155,77 @@ export default function SeatMapCanvas({
         .attr('stroke-width', 3)
         .attr('stroke-dasharray', '5,5')
 
-      // Draw control points
+      // Draw edges with ability to add new points on double-click
+      for (let i = 0; i < editingPoints.points.length; i++) {
+        const p1 = editingPoints.points[i]
+        const p2 = editingPoints.points[(i + 1) % editingPoints.points.length]
+
+        // Draw edge line (clickable area for adding points)
+        editPointsGroup
+          .append('line')
+          .attr('x1', p1.x)
+          .attr('y1', p1.y)
+          .attr('x2', p2.x)
+          .attr('y2', p2.y)
+          .attr('stroke', 'transparent')
+          .attr('stroke-width', 15) // Wide hit area
+          .style('cursor', 'copy')
+          .on('dblclick', (event) => {
+            event.stopPropagation()
+            const svg = svgRef.current
+            if (!svg) return
+
+            const pt = svg.createSVGPoint()
+            pt.x = event.clientX
+            pt.y = event.clientY
+            const svgP = pt.matrixTransform(svg.getScreenCTM()?.inverse())
+
+            // Insert new point after index i
+            const newPoints = [...editingPoints.points]
+            newPoints.splice(i + 1, 0, { x: svgP.x, y: svgP.y })
+            setEditingPoints({ ...editingPoints, points: newPoints })
+          })
+      }
+
+      // Draw control points with multi-select support
       editingPoints.points.forEach((point, index) => {
+        const isSelected = selectedPointIndex === index || selectedPointIndices.has(index)
+        const isMultiSelected = selectedPointIndices.has(index)
         const pointGroup = editPointsGroup.append('g').attr('class', `edit-point-${index}`)
 
         pointGroup
           .append('circle')
           .attr('cx', point.x)
           .attr('cy', point.y)
-          .attr('r', selectedPointIndex === index ? 10 : 7)
-          .attr('fill', selectedPointIndex === index ? '#ffaa00' : '#4488ff')
-          .attr('stroke', '#fff')
-          .attr('stroke-width', 2)
+          .attr('r', isSelected ? 10 : 7)
+          .attr('fill', isMultiSelected ? '#ff6b6b' : (isSelected ? '#ffaa00' : '#4488ff'))
+          .attr('stroke', isMultiSelected ? '#fff' : '#fff')
+          .attr('stroke-width', isMultiSelected ? 3 : 2)
           .style('cursor', 'move')
-          .on('mousedown', (event) => {
+          .on('mousedown', (event: MouseEvent) => {
             event.stopPropagation()
+
+            // Handle Ctrl+click for multi-select
+            if (event.ctrlKey || event.metaKey) {
+              const newSelection = new Set(selectedPointIndices)
+              if (newSelection.has(index)) {
+                newSelection.delete(index)
+              } else {
+                newSelection.add(index)
+              }
+              setSelectedPointIndices(newSelection)
+              setSelectedPointIndex(index)
+              return
+            }
+
+            // Clear multi-select if clicking without Ctrl
+            if (!selectedPointIndices.has(index)) {
+              setSelectedPointIndices(new Set())
+            }
             setSelectedPointIndex(index)
 
             const snapshot = editingPointsRef.current
+            const startPoint = { x: point.x, y: point.y }
             const dragBounds = snapshot ? calculateBounds(snapshot.points) : null
             const dragCenter = dragBounds
               ? {
@@ -1107,6 +1238,10 @@ export default function SeatMapCanvas({
                 ? snapshot.points.reduce((sum, pt) => sum + Math.hypot(pt.x - dragCenter.x, pt.y - dragCenter.y), 0) /
                   snapshot.points.length
                 : null
+
+            // Capture initial positions for multi-select drag
+            const initialPositions = snapshot ? snapshot.points.map(p => ({ ...p })) : []
+            const activeIndices = selectedPointIndices.has(index) ? selectedPointIndices : new Set([index])
 
             const onMouseMove = (moveEvent: MouseEvent) => {
               const svg = svgRef.current
@@ -1132,11 +1267,11 @@ export default function SeatMapCanvas({
                 const latest = editingPointsRef.current
                 if (latest && latest.points.length > 1) {
                   const prevIndex = (index - 1 + latest.points.length) % latest.points.length
-                  const nextIndex = (index + 1) % latest.points.length
+                  const nextIdx = (index + 1) % latest.points.length
                   const anchor =
                     prevIndex !== index && latest.points[prevIndex]
                       ? latest.points[prevIndex]
-                      : latest.points[nextIndex]
+                      : latest.points[nextIdx]
 
                   if (anchor) {
                     const deltaX = Math.abs(nextPoint.x - anchor.x)
@@ -1150,7 +1285,26 @@ export default function SeatMapCanvas({
                 }
               }
 
-              updatePointPosition(index, nextPoint)
+              // Move multiple selected points together
+              if (activeIndices.size > 1) {
+                const dx = nextPoint.x - startPoint.x
+                const dy = nextPoint.y - startPoint.y
+                const latest = editingPointsRef.current
+                if (latest) {
+                  const newPoints = latest.points.map((p, i) => {
+                    if (activeIndices.has(i)) {
+                      return {
+                        x: initialPositions[i].x + dx,
+                        y: initialPositions[i].y + dy
+                      }
+                    }
+                    return p
+                  })
+                  setEditingPoints({ ...latest, points: newPoints })
+                }
+              } else {
+                updatePointPosition(index, nextPoint)
+              }
             }
 
             const onMouseUp = () => {
@@ -1168,12 +1322,24 @@ export default function SeatMapCanvas({
           .attr('x', point.x)
           .attr('y', point.y - 12)
           .attr('text-anchor', 'middle')
-          .attr('fill', '#fff')
+          .attr('fill', isMultiSelected ? '#ff6b6b' : '#fff')
           .attr('font-size', '10px')
           .attr('font-weight', 'bold')
           .attr('pointer-events', 'none')
           .text(index + 1)
       })
+
+      // Add hint text for multi-select
+      if (selectedPointIndices.size > 0) {
+        editPointsGroup
+          .append('text')
+          .attr('x', 10)
+          .attr('y', 20)
+          .attr('fill', '#ff6b6b')
+          .attr('font-size', '12px')
+          .attr('font-weight', 'bold')
+          .text(`Đã chọn ${selectedPointIndices.size} điểm`)
+      }
     }
   }
 

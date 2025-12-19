@@ -98,14 +98,36 @@ export interface DetectedText {
   language: string
 }
 
+export interface GeoJSONFeature {
+  type: 'Feature'
+  properties: {
+    color: string
+    area: number
+    label?: string
+    index: number
+    [key: string]: unknown
+  }
+  geometry: {
+    type: 'Polygon'
+    coordinates: number[][][]
+  }
+}
+
+export interface GeoJSON {
+  type: 'FeatureCollection'
+  features: GeoJSONFeature[]
+}
+
 export interface ExtractionResult {
   polygons: number[][][]
+  colors: string[] // Màu sắc của từng section được trích xuất từ ảnh
+  labels: string[] // Tên của từng section
   confidence_scores: number[]
   areas: number[]
   bounding_boxes: number[][]
-  labels: string[]
   seat_groups: Record<string, number[]>
   detected_text: DetectedText[]
+  geojson?: GeoJSON // GeoJSON format với thông tin chi tiết
   processing_info: {
     total_polygons: number
     processing_time: number
