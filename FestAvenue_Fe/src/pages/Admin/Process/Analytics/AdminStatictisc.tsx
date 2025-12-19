@@ -12,7 +12,6 @@ import {
   Ticket,
   DollarSign,
   RefreshCw,
-  Download,
   Calendar as CalendarIcon,
   Filter,
   Loader2
@@ -63,10 +62,6 @@ const Analytics = () => {
   const handleRefresh = () => {
     refetch()
     toast('Đang làm mới dữ liệu...')
-  }
-
-  const handleExport = () => {
-    toast('Đang xuất dữ liệu')
   }
 
   const handleTimePresetChange = (value: string) => {
@@ -192,10 +187,6 @@ const Analytics = () => {
                   className='bg-white'
                 >
                   <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-                </Button>
-                <Button variant='default' onClick={handleExport} className='gap-2'>
-                  <Download className='h-4 w-4' />
-                  <span className='hidden sm:inline'>Xuất Excel</span>
                 </Button>
               </div>
             </div>
@@ -347,7 +338,6 @@ const Analytics = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
     </div>
   )
