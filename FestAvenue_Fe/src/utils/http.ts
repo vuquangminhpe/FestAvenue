@@ -4,6 +4,7 @@ import axios, { AxiosError, type AxiosInstance, HttpStatusCode } from 'axios'
 import configBase from '../constants/config'
 import { clearLocalStorage, getAccessTokenFromLS, saveAccessTokenToLS } from './auth'
 import path from '@/constants/path'
+import { toast } from 'sonner'
 
 const ADMIN_URL_PREFIX = '/admin'
 class Http {
@@ -56,6 +57,8 @@ class Http {
           const hasAdminToken = Boolean(localStorage.getItem('admin_token'))
           const currentPath = location.pathname
 
+          toast.warning('Hãy đăng nhập để có thể sử dụng đầy đủ các tính năng nhé')
+
           if (currentPath && currentPath.startsWith(ADMIN_URL_PREFIX) && hasAdminToken) {
             this.accessToken = ''
             clearLocalStorage()
@@ -91,6 +94,8 @@ class Http {
             const isAdminRequest = Boolean(requestUrl && requestUrl.startsWith(ADMIN_URL_PREFIX))
             const hasAdminToken = Boolean(localStorage.getItem('admin_token'))
             const hasUserToken = Boolean(getAccessTokenFromLS())
+
+            toast.warning('Hãy đăng nhập để có thể sử dụng đầy đủ các tính năng nhé')
 
             if (isAdminRequest && hasAdminToken) {
               this.accessToken = ''
