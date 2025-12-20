@@ -818,19 +818,31 @@ export default function SeatMapViewerPage() {
                         </div>
 
                         {/* Sale Period - Compact */}
-                        <div className='flex items-center justify-between text-[11px] mb-3 pb-3 border-b border-gray-100'>
-                          <span className='text-gray-500'>Thời gian bán</span>
-                          <span className='font-semibold text-gray-700'>
-                            {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
-                              day: '2-digit',
-                              month: '2-digit'
-                            })}{' '}
-                            {'->'}{' '}
-                            {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
-                              day: '2-digit',
-                              month: '2-digit'
-                            })}
-                          </span>
+                        <div className='space-y-1 text-[11px] mb-3 pb-3 border-b border-gray-100'>
+                          <div className='flex items-center justify-between'>
+                            <span className='text-gray-500'>Bắt đầu:</span>
+                            <span className='font-semibold text-gray-700'>
+                              {new Date(ticket.startSaleDate).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <div className='flex items-center justify-between'>
+                            <span className='text-gray-500'>Kết thúc:</span>
+                            <span className='font-semibold text-gray-700'>
+                              {new Date(ticket.endSaleDate).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
                         </div>
 
                         {/* Benefits - Full with 2 Column Grid */}
@@ -907,19 +919,31 @@ export default function SeatMapViewerPage() {
                             </div>
                           </div>
 
-                          <div className='flex items-center justify-between text-[11px] mb-3 pb-3 border-b border-gray-100'>
-                            <span className='text-gray-500'>Thời gian bán</span>
-                            <span className='font-semibold text-gray-700'>
-                              {new Date(ticket.startSaleDate).toLocaleDateString('vi-VN', {
-                                day: '2-digit',
-                                month: '2-digit'
-                              })}{' '}
-                              -{' '}
-                              {new Date(ticket.endSaleDate).toLocaleDateString('vi-VN', {
-                                day: '2-digit',
-                                month: '2-digit'
-                              })}
-                            </span>
+                          <div className='space-y-1 text-[11px] mb-3 pb-3 border-b border-gray-100'>
+                            <div className='flex items-center justify-between'>
+                              <span className='text-gray-500'>Bắt đầu:</span>
+                              <span className='font-semibold text-gray-700'>
+                                {new Date(ticket.startSaleDate).toLocaleString('vi-VN', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                            <div className='flex items-center justify-between'>
+                              <span className='text-gray-500'>Kết thúc:</span>
+                              <span className='font-semibold text-gray-700'>
+                                {new Date(ticket.endSaleDate).toLocaleString('vi-VN', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
                           </div>
 
                           {ticket.benefits && ticket.benefits.length > 0 && (
