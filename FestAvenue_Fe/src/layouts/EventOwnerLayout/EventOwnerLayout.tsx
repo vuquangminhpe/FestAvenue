@@ -10,7 +10,7 @@ import {
 import { getIdFromNameId } from '@/utils/utils'
 import { Loader2, Lock } from 'lucide-react'
 import { PermissionProvider } from '@/contexts/PermissionContext'
-import { useGetEventByCode } from '@/pages/User/Auth/Event/EventDetails/hooks'
+import { useGetEventByCodeOwner } from '@/pages/User/Auth/Event/EventDetails/hooks'
 
 interface EventOwnerLayoutProps {
   children: ReactNode
@@ -54,7 +54,7 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
   const { isLoading: isLoadingPackages } = useEventPackages(eventCode)
   const { data: ownerCheckData, isLoading: isCheckingOwner } = useCheckIsEventOwner(eventCode)
   const { isLoading: isLoadingPermissions } = useUserPermissionsInEvent(eventCode)
-  const { data: dataEventCodeDetail } = useGetEventByCode(eventCode)
+  const { data: dataEventCodeDetail } = useGetEventByCodeOwner(eventCode)
   const isEventOwner: boolean =
     ownerCheckData &&
     typeof ownerCheckData === 'object' &&

@@ -8,6 +8,7 @@ import type { TicketSearchRequest } from '@/types/serviceTicketManagement.types'
 export const eventDetailsKeys = {
   all: ['eventDetails'] as const,
   detail: (eventCode: string) => [...eventDetailsKeys.all, 'detail', eventCode] as const,
+  detailEventOwner: (eventCode: string) => [...eventDetailsKeys.all, 'detailEventOwner', eventCode] as const,
   tickets: (eventCode: string) => [...eventDetailsKeys.all, 'tickets', eventCode] as const,
   posts: (eventCode: string) => [...eventDetailsKeys.all, 'posts', eventCode] as const
 }
@@ -27,7 +28,21 @@ export const useGetEventByCode = (eventCode: string) => {
     retry: 2
   })
 }
-
+/**
+ * Hook để lấy chi tiết sự kiện theo eventCode
+ */
+export const useGetEventByCodeOwner = (eventCode: string) => {
+  return useQuery({
+    queryKey: eventDetailsKeys.detailEventOwner(eventCode),
+    queryFn: async () => {
+      const response = await eventApis.getEventByEventCodeForEventOwner(eventCode)
+      return response?.data
+    },
+    enabled: !!eventCode,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2
+  })
+}
 /**
  * Hook để lấy danh sách vé của sự kiện
  */

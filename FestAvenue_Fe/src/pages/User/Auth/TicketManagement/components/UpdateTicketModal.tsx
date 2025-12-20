@@ -43,7 +43,7 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
   const { data: eventData } = useQuery({
     queryKey: ['event', eventCode],
     queryFn: async () => {
-      const response = await eventApis.getEventByEventCode(eventCode)
+      const response = await eventApis.getEventByEventCodeForEventOwner(eventCode)
       return response?.data
     },
     enabled: !!eventCode && isOpen

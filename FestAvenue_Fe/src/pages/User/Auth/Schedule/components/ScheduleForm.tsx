@@ -52,7 +52,7 @@ ScheduleFormProps) {
   // Fetch event data to get lifecycle times
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
     queryKey: ['event', eventCode],
-    queryFn: () => eventApis.getEventByEventCode(eventCode as string),
+    queryFn: () => eventApis.getEventByEventCodeForEventOwner(eventCode as string),
     enabled: !!eventCode
   })
 

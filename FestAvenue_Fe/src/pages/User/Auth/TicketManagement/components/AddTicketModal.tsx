@@ -66,7 +66,7 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
   const { data: eventData } = useQuery({
     queryKey: ['event', eventCode],
     queryFn: async () => {
-      const response = await eventApis.getEventByEventCode(eventCode)
+      const response = await eventApis.getEventByEventCodeForEventOwner(eventCode)
       return response?.data
     },
     enabled: !!eventCode && isOpen

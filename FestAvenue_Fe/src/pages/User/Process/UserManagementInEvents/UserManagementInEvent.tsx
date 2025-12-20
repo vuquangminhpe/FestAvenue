@@ -19,7 +19,7 @@ import { useGetUsersInEvent, useGetInvitationsEvent } from './hooks/useUserManag
 import { getIdFromNameId } from '@/utils/utils'
 import { PermissionGuard } from '@/components/guards/PermissionGuard'
 import chatApi from '@/apis/chat.api'
-import { useGetEventByCode } from '../../Auth/Event/EventDetails/hooks'
+import { useGetEventByCodeOwner } from '../../Auth/Event/EventDetails/hooks'
 
 export default function UserManagementInEvents() {
   const [searchParams] = useSearchParams()
@@ -54,7 +54,7 @@ export default function UserManagementInEvents() {
     }
   })
 
-  const { data: detailEvent } = useGetEventByCode(eventId)
+  const { data: detailEvent } = useGetEventByCodeOwner(eventId)
   const { data: usersData, isLoading } = useGetUsersInEvent(
     {
       eventCode: eventId,
