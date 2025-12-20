@@ -177,3 +177,22 @@ interface result {
   commentText: string
   commentedAt: string
 }
+export interface Service {
+  id: string
+  createdAt: string // ISO datetime
+  updatedAt: string // ISO datetime
+  name: string
+  description: string
+  icon: string
+  price: number
+  isActive: boolean
+}
+
+export interface PackageData {
+  packageId: string
+  packageName: string
+  description: string
+  price: number
+  isActive: boolean
+  services: Service[]
+}

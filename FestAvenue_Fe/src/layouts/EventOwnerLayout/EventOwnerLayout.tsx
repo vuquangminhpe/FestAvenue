@@ -11,6 +11,8 @@ import { getIdFromNameId } from '@/utils/utils'
 import { Loader2, Lock } from 'lucide-react'
 import { PermissionProvider } from '@/contexts/PermissionContext'
 import { useGetEventByCodeOwner } from '@/pages/User/Auth/Event/EventDetails/hooks'
+import { useQuery } from '@tanstack/react-query'
+import eventApis from '@/apis/event.api'
 
 interface EventOwnerLayoutProps {
   children: ReactNode
@@ -49,6 +51,11 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
   const [searchParams] = useSearchParams()
   const nameId = Array.from(searchParams.keys())[0] || ''
   const eventCode = getIdFromNameId(nameId)
+  const { data: dataPackageInEvent } = useQuery({
+    queryKey: ['dataPackageInEvent', eventCode],
+    queryFn: () => eventApis.getPackageEventCode(eventCode)
+  })
+  const dataPackageEvents = dataPackageInEvent?.data
 
   // Fetch event packages và check owner status
   const { isLoading: isLoadingPackages } = useEventPackages(eventCode)
@@ -74,27 +81,33 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
     return now >= eventStartTime && now < eventEndTime
   }, [dataEventCodeDetail])
 
-  // Build navigation items - Hiển thị tất cả services cho mọi người
+  // Build navigation items - Phân quyền dựa trên services có trong package
   const navigation = useMemo(() => {
     // Helper function to append nameId to href
     const appendNameId = (href: string) => {
       return nameId ? `${href}?${nameId}` : href
     }
 
-    const navItems: Array<{ name: string; href: string }> = []
+    const navItems: Array<{ name: string; href: string; hasAccess: boolean }> = []
 
-    // Hiển thị tất cả routes có trong SERVICE_PACKAGE_ROUTE_MAP cho mọi user
-    // Logic phân quyền action sẽ được xử lý trong từng page
+    // Lấy danh sách service names từ dataPackageEvents
+    const availableServices = dataPackageEvents?.services?.map((service) => service.name) || []
+
+    // Hiển thị tất cả routes có trong SERVICE_PACKAGE_ROUTE_MAP
+    // Nhưng kiểm tra xem user có quyền truy cập service đó không
     Object.keys(SERVICE_PACKAGE_ROUTE_MAP).forEach((packageName) => {
       const route = SERVICE_PACKAGE_ROUTE_MAP[packageName]
+      const hasAccess = availableServices.includes(packageName)
+
       navItems.push({
         name: route.displayName,
-        href: appendNameId(route.href)
+        href: appendNameId(route.href),
+        hasAccess
       })
     })
 
     return navItems
-  }, [nameId])
+  }, [nameId, dataPackageEvents])
 
   // Loading state
   if (isLoadingPackages || isCheckingOwner || isLoadingPermissions) {
@@ -124,10 +137,13 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
 
                   // Check if this is the QR scan feature and event is not active
                   const isScanQR = item.name === 'Quét mã vé sự kiện'
-                  const isDisabled = isScanQR && !isEventActive
+                  const isDisabledQR = isScanQR && !isEventActive
 
-                  // If disabled, render as disabled button with tooltip
-                  if (isDisabled) {
+                  // Check if user doesn't have access to this service
+                  const isLocked = !item.hasAccess
+
+                  // If QR is disabled due to event not active
+                  if (isDisabledQR) {
                     return (
                       <div key={item.name} className='relative group'>
                         <button
@@ -146,6 +162,33 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                         {/* Tooltip */}
                         <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50'>
                           Tính năng chỉ mở khi sự kiện đã bắt đầu
+                          <div className='absolute top-full left-1/2 transform -translate-x-1/2 -mt-1'>
+                            <div className='border-4 border-transparent border-t-gray-800'></div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  // If user doesn't have access to this service (locked)
+                  if (isLocked) {
+                    return (
+                      <div key={item.name} className='relative group'>
+                        <button
+                          disabled
+                          className={cn(
+                            'px-3 md:px-5 lg:px-6 py-2 md:py-2.5 rounded-full font-medium text-xs md:text-sm whitespace-nowrap transition-all duration-300',
+                            'bg-gray-100 text-gray-400 cursor-not-allowed flex items-center gap-1.5 md:gap-2',
+                            'opacity-60'
+                          )}
+                          title='Gói dịch vụ của bạn không bao gồm tính năng này'
+                        >
+                          <Lock className='w-3 h-3 md:w-4 md:h-4' />
+                          <span>{item.name}</span>
+                        </button>
+                        {/* Tooltip */}
+                        <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50'>
+                          Gói dịch vụ không bao gồm tính năng này
                           <div className='absolute top-full left-1/2 transform -translate-x-1/2 -mt-1'>
                             <div className='border-4 border-transparent border-t-gray-800'></div>
                           </div>
@@ -184,10 +227,13 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
 
                     // Check if this is the QR scan feature and event is not active
                     const isScanQR = item.name === 'Quét mã vé sự kiện'
-                    const isDisabled = isScanQR && !isEventActive
+                    const isDisabledQR = isScanQR && !isEventActive
 
-                    // If disabled, render as disabled button
-                    if (isDisabled) {
+                    // Check if user doesn't have access to this service
+                    const isLocked = !item.hasAccess
+
+                    // If QR is disabled due to event not active
+                    if (isDisabledQR) {
                       return (
                         <button
                           key={item.name}
@@ -201,6 +247,25 @@ export default function EventOwnerLayout({ children }: EventOwnerLayoutProps) {
                         >
                           <Lock className='w-4 h-4' />
                           <span className='line-clamp-2'>Quét QR</span>
+                        </button>
+                      )
+                    }
+
+                    // If user doesn't have access to this service (locked)
+                    if (isLocked) {
+                      return (
+                        <button
+                          key={item.name}
+                          disabled
+                          className={cn(
+                            'px-3 py-3 rounded-xl font-medium text-xs text-center transition-all duration-300',
+                            'bg-gray-100 text-gray-400 cursor-not-allowed flex flex-col items-center gap-1.5',
+                            'opacity-60'
+                          )}
+                          title='Gói dịch vụ không bao gồm tính năng này'
+                        >
+                          <Lock className='w-4 h-4' />
+                          <span className='line-clamp-2'>{item.name}</span>
                         </button>
                       )
                     }

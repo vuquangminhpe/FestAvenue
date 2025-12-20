@@ -24,7 +24,7 @@ import type {
   WithdrawalRequestItem
 } from '@/types/event.types'
 import type { ResponseEventDashBoardGeneral } from '@/types/eventDashboard.types'
-import type { top5latestRes } from '@/types/serviceSocialMedia.types'
+import type { PackageData, top5latestRes } from '@/types/serviceSocialMedia.types'
 import http from '@/utils/http'
 export type sendApproveEventWithOrg = createEvent & {
   eventId: string
@@ -175,6 +175,12 @@ const eventApis = {
   getRelatedPostByPostId: async (postId: string) => {
     const data = await http.get<APIResponse<top5latestRes[]>>('/post-social-media/get-relate-post-by-post-id', {
       params: { postId }
+    })
+    return data?.data
+  },
+  getPackageEventCode: async (eventCode: string) => {
+    const data = await http.get<APIResponse<PackageData>>('/package/get-package-service-by-event-code', {
+      params: { eventCode }
     })
     return data?.data
   }
