@@ -58,7 +58,6 @@ import type {
   resChatMessage,
   resChatPaging
 } from '@/types/ChatMessage.types'
-import type { MemberAddGroup } from '@/types/GroupChat.types'
 import { EmojiPicker } from '@/utils/helper'
 import { toast } from 'sonner'
 
@@ -90,7 +89,6 @@ const buildEmptyGifResult = (offset = 0): GifsResult =>
 
 const MESSAGE_PAGE_SIZE = 20
 const IMAGE_REGEX = /\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i
-const INITIAL_MEMBER_ROW: MemberAddGroup = { name: '', email: '', phone: '' }
 
 const isImageUrl = (value: string) => {
   if (!value?.startsWith('http')) return false
@@ -150,7 +148,7 @@ export default function ChatMyMessagesSystem() {
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false)
   const [memberSearch, setMemberSearch] = useState('')
   const [membersToRemove, setMembersToRemove] = useState<Set<string>>(new Set())
-  const [newMembers, setNewMembers] = useState<MemberAddGroup[]>([INITIAL_MEMBER_ROW])
+  const [newMembers, setNewMembers] = useState<string[]>([''])
   const [isNearBottom, setIsNearBottom] = useState(true)
   const [managerTab, setManagerTab] = useState<'management' | 'media'>('management')
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null)
@@ -648,7 +646,7 @@ export default function ChatMyMessagesSystem() {
     setRealtimeMessages([])
     setMessageReadReceipts({})
     setMembersToRemove(new Set())
-    setNewMembers([INITIAL_MEMBER_ROW])
+    setNewMembers([''])
     setMemberSearch('')
     setUnreadCounters((prev) => ({ ...prev, [selectedChatId]: 0 }))
     requestMarkMessagesAsRead(selectedChatId)
@@ -857,23 +855,23 @@ export default function ChatMyMessagesSystem() {
   }
 
   const handleAddMemberRow = () => {
-    setNewMembers((prev) => [...prev, { ...INITIAL_MEMBER_ROW }])
+    setNewMembers((prev) => [...prev, ''])
   }
 
   const handleRemoveMemberRow = (index: number) => {
     setNewMembers((prev) => (prev.length === 1 ? prev : prev.filter((_, idx) => idx !== index)))
   }
 
-  const handleNewMemberChange = (index: number, field: keyof MemberAddGroup, value: string) => {
-    setNewMembers((prev) => prev.map((member, idx) => (idx === index ? { ...member, [field]: value } : member)))
+  const handleNewMemberChange = (index: number, value: string) => {
+    setNewMembers((prev) => prev.map((email, idx) => (idx === index ? value : email)))
   }
 
   const addMembersMutation = useMutation({
-    mutationFn: (body: { groupChatId: string; informationNewMembers: MemberAddGroup[] }) =>
+    mutationFn: (body: { groupChatId: string; informationNewMembers: string[] }) =>
       chatApi.GroupChat.addMemberInGroup(body),
     onSuccess: () => {
       toast.success('Đã thêm thành viên mới')
-      setNewMembers([INITIAL_MEMBER_ROW])
+      setNewMembers([''])
       queryClient.invalidateQueries({ queryKey: ['group-chats'] })
     },
     onError: (error: any) => {
@@ -895,9 +893,9 @@ export default function ChatMyMessagesSystem() {
 
   const handleSubmitNewMembers = () => {
     if (!selectedChatId) return
-    const sanitized = newMembers.filter((member) => member.email && member.name)
+    const sanitized = newMembers.filter((email) => email && email.trim())
     if (!sanitized.length) {
-      toast.warning('Vui lòng nhập đầy đủ thông tin thành viên mới')
+      toast.warning('Vui lòng nhập ít nhất một email')
       return
     }
     addMembersMutation.mutate({ groupChatId: selectedChatId, informationNewMembers: sanitized })
@@ -1496,41 +1494,29 @@ export default function ChatMyMessagesSystem() {
                           </Badge>
                         </div>
                         <p className='text-xs text-gray-500 mb-4'>
-                          Điền thông tin cơ bản cho từng thành viên bạn muốn mời.
+                          Nhập email của các thành viên bạn muốn mời vào nhóm.
                         </p>
                         <div className='space-y-3'>
-                          {newMembers.map((member, index) => (
+                          {newMembers.map((email, index) => (
                             <div
                               key={`member-${index}`}
-                              className='grid grid-cols-1 gap-2 border border-dashed border-cyan-200 p-3 rounded-2xl bg-cyan-50/40'
+                              className='flex gap-2 border border-dashed border-cyan-200 p-3 rounded-2xl bg-cyan-50/40'
                             >
                               <Input
-                                value={member.name}
-                                onChange={(e) => handleNewMemberChange(index, 'name', e.target.value)}
-                                placeholder='Họ và tên'
-                                className='bg-white'
-                              />
-                              <Input
-                                value={member.email}
-                                onChange={(e) => handleNewMemberChange(index, 'email', e.target.value)}
-                                placeholder='Email'
+                                value={email}
+                                onChange={(e) => handleNewMemberChange(index, e.target.value)}
+                                placeholder='Email thành viên'
                                 type='email'
-                                className='bg-white'
-                              />
-                              <Input
-                                value={member.phone}
-                                onChange={(e) => handleNewMemberChange(index, 'phone', e.target.value)}
-                                placeholder='Số điện thoại (tuỳ chọn)'
-                                className='bg-white'
+                                className='bg-white flex-1'
                               />
                               {newMembers.length > 1 && (
                                 <Button
                                   variant='ghost'
                                   size='sm'
-                                  className='justify-start text-red-500'
+                                  className='text-red-500 px-3'
                                   onClick={() => handleRemoveMemberRow(index)}
                                 >
-                                  Xoá dòng này
+                                  <X className='w-4 h-4' />
                                 </Button>
                               )}
                             </div>

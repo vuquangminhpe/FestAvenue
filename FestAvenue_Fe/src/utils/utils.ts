@@ -74,9 +74,28 @@ export function formatDateToLocalISO(date: Date): string {
 /**
  * Format Date to local ISO string without seconds (YYYY-MM-DDTHH:mm)
  * Useful for datetime-local inputs
- * @param date - The date to format
+ * @param date - The date to convert (assumes local time should be treated as Vietnam time)
  * @returns ISO-like string without seconds (e.g., "2024-11-04T14:30")
  */
 export function formatDateToLocalISOShort(date: Date): string {
   return formatDateToLocalISO(date).slice(0, 16)
+}
+
+/**
+ * Convert a Date to ISO string in UTC
+ * Date picker returns local time, and toISOString() automatically converts to UTC
+ * @param date - The date to convert (local time from date picker)
+ * @returns ISO string in UTC (e.g., "2024-12-17T05:00:00.000Z" for VN time "2024-12-17T12:00:00")
+ *
+ * Example:
+ * - User selects: 17/12/2025 12:00 (Vietnam time)
+ * - Browser creates: Date object with local time 12:00
+ * - toISOString(): "2025-12-17T05:00:00.000Z" (UTC)
+ * - API receives UTC and converts back to VN time correctly
+ */
+export function toVietnamTimeISO(date: Date): string {
+  // Date picker gives us local time (VN timezone in browser)
+  // toISOString() automatically converts to UTC
+  // No manual offset needed!
+  return date.toISOString()
 }

@@ -12,6 +12,7 @@ import { useCreateTicket } from '../hooks/useTicketManagement'
 import type { bodyCreateTicketInEvent } from '@/types/serviceTicketManagement.types'
 import { validateTicketForm, sanitizeTicketName, sanitizeDescription, type EventConstraints } from '../utils/validation'
 import eventApis from '@/apis/event.api'
+import { toVietnamTimeISO } from '@/utils/utils'
 
 interface AddTicketModalProps {
   isOpen: boolean
@@ -230,8 +231,8 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
       isPublic: formData.isPublic,
       eventCode,
       benefits: formData.benefits,
-      startSaleDate: formData.startSaleDate,
-      endSaleDate: formData.endSaleDate
+      startSaleDate: toVietnamTimeISO(new Date(formData.startSaleDate)),
+      endSaleDate: toVietnamTimeISO(new Date(formData.endSaleDate))
     }
 
     createTicketMutation.mutate(payload, {

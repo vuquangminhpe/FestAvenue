@@ -12,6 +12,7 @@ import { DateTimePicker } from '../../../../../components/ui/DateTimePicker'
 import { validateTicketForm, sanitizeTicketName, sanitizeDescription, type EventConstraints } from '../utils/validation'
 import { useQuery } from '@tanstack/react-query'
 import eventApis from '@/apis/event.api'
+import { toVietnamTimeISO } from '@/utils/utils'
 
 interface UpdateTicketModalProps {
   isOpen: boolean
@@ -127,8 +128,8 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
       isFree: formData.isFree,
       isPublic: formData.isPublic,
       benefits: formData.benefits,
-      startSaleDate: formData.startSaleDate,
-      endSaleDate: formData.endSaleDate
+      startSaleDate: toVietnamTimeISO(new Date(formData.startSaleDate)),
+      endSaleDate: toVietnamTimeISO(new Date(formData.endSaleDate))
     }
 
     updateTicketMutation.mutate(updateData, {

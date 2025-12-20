@@ -5,7 +5,7 @@ export interface bodyCreateEventCode {
 }
 export interface bodyAddMemberInGroup {
   groupChatId: string
-  informationNewMembers: MemberAddGroup[]
+  informationNewMembers: string[]
 }
 export interface MemberAddGroup {
   email: string
