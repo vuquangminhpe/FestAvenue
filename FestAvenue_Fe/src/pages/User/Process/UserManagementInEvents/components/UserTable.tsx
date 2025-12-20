@@ -66,7 +66,7 @@ export default function UserTable({
           <TableHeader>
             <TableRow className='bg-gradient-to-r from-cyan-50 to-blue-50 hover:from-cyan-100 hover:to-blue-100 transition-all duration-300'>
               <TableHead className='font-semibold text-gray-700 w-16 text-center'>STT</TableHead>
-              <TableHead className='font-semibold text-gray-700 text-left'>Thông tin User</TableHead>
+              <TableHead className='font-semibold text-gray-700 text-left'>Thông tin nhân viên</TableHead>
               <TableHead className='font-semibold text-gray-700 text-left'>Chức năng có thể dùng</TableHead>
               <TableHead className='font-semibold text-gray-700 text-center'>Thao tác</TableHead>
             </TableRow>
