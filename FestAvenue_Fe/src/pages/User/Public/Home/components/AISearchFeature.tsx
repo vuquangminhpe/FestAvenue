@@ -76,14 +76,7 @@ export default function AISearchFeature() {
       title: 'Tìm Kiếm Văn Bản',
       description: 'Tìm kiếm sự kiện bằng từ khóa với độ chính xác cao, hỗ trợ tiếng Việt và ngôn ngữ quốc tế.'
     },
-    {
-      title: 'Tìm Kiếm Hình Ảnh',
-      description: 'Upload hình ảnh để tìm các sự kiện tương tự với công nghệ AI nhận diện hình ảnh tiên tiến.'
-    },
-    {
-      title: 'Tìm Kiếm Kết Hợp',
-      description: 'Kết hợp cả văn bản và hình ảnh để có kết quả tìm kiếm chính xác và phù hợp nhất.'
-    },
+
     {
       title: 'Lọc & Sắp Xếp',
       description: 'Lọc theo danh mục, khoảng thời gian và sắp xếp kết quả theo nhiều tiêu chí khác nhau.'

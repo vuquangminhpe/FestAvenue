@@ -31,8 +31,6 @@ type FormState = {
   endSaleDate: string
 }
 
-const isoWithoutSeconds = (date: Date) => date.toISOString().slice(0, 16)
-
 const buildDefaultFormState = (): FormState => {
   const now = new Date()
   const oneWeekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -45,8 +43,8 @@ const buildDefaultFormState = (): FormState => {
     benefits: [],
     isFree: false,
     isPublic: true,
-    startSaleDate: isoWithoutSeconds(now),
-    endSaleDate: isoWithoutSeconds(oneWeekLater)
+    startSaleDate: now.toISOString(),
+    endSaleDate: oneWeekLater.toISOString()
   }
 }
 
@@ -113,8 +111,8 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
 
       return {
         ...prev,
-        startSaleDate: isoWithoutSeconds(clampedStart),
-        endSaleDate: isoWithoutSeconds(clampedEnd)
+        startSaleDate: clampedStart.toISOString(),
+        endSaleDate: clampedEnd.toISOString()
       }
     })
   }, [eventConstraints])
@@ -232,8 +230,8 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
       isPublic: formData.isPublic,
       eventCode,
       benefits: formData.benefits,
-      startSaleDate: new Date(formData.startSaleDate).toISOString(),
-      endSaleDate: new Date(formData.endSaleDate).toISOString()
+      startSaleDate: formData.startSaleDate,
+      endSaleDate: formData.endSaleDate
     }
 
     createTicketMutation.mutate(payload, {
@@ -417,7 +415,7 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
                 value={formData.startSaleDate ? new Date(formData.startSaleDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    updateField('startSaleDate', isoWithoutSeconds(date))
+                    updateField('startSaleDate', date.toISOString())
                   }
                 }}
                 minDate={eventConstraints?.lifecycleStart}
@@ -442,7 +440,7 @@ export default function AddTicketModal({ isOpen, onClose, eventCode }: AddTicket
                 value={formData.endSaleDate ? new Date(formData.endSaleDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    updateField('endSaleDate', isoWithoutSeconds(date))
+                    updateField('endSaleDate', date.toISOString())
                   }
                 }}
                 minDate={formData.startSaleDate ? new Date(formData.startSaleDate) : eventConstraints?.lifecycleStart}

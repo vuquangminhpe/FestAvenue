@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query'
 import userApi from './apis/user.api'
 import ChatSystem from './components/ChatSystem/ChatSystem'
 import ChatBot from './components/ChatBot/ChatBot'
-import ChatStaff from './components/ChatStaff/ChatStaff'
+import path from './constants/path'
 function App() {
   const location = useLocation()
   const check_accessToken = location.search.includes('accessToken')
@@ -40,13 +40,13 @@ function App() {
 
   const routeElement = useRouteElement()
   const isAuthenticated = !!getAccessTokenFromLS()
+  const isMessagesPage = location.pathname === path.user.my.messages
 
   return (
     <>
       {routeElement}
-      {isAuthenticated && <ChatSystem />}
-      {isAuthenticated && <ChatBot />}
-      {isAuthenticated && <ChatStaff />}
+      {isAuthenticated && !isMessagesPage && <ChatSystem />}
+      {isAuthenticated && !isMessagesPage && <ChatBot />}
     </>
   )
 }

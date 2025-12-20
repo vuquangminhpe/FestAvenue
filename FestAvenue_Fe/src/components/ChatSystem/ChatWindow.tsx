@@ -513,14 +513,14 @@ export default function ChatWindow({
         style={{ right: `${rightPosition}px`, zIndex }}
       >
         <div className='bg-gradient-to-r from-cyan-400 to-blue-300 p-3 rounded-t-lg flex items-center justify-between cursor-pointer'>
-          <div className='flex items-center space-x-2 flex-1' onClick={onMinimize}>
-            <Avatar className='w-8 h-8'>
+          <div className='flex items-center space-x-2 flex-1 min-w-0' onClick={onMinimize}>
+            <Avatar className='w-8 h-8 flex-shrink-0'>
               <AvatarImage src={groupAvatar || groupName} />
               <AvatarFallback>{groupName.slice(0, 2)}</AvatarFallback>
             </Avatar>
-            <span className='font-semibold text-white text-sm truncate'>{groupName}</span>
+            <span className='font-semibold text-white text-sm break-words leading-tight'>{groupName}</span>
           </div>
-          <button onClick={onClose} className='text-white hover:bg-white/20 rounded-full p-1'>
+          <button onClick={onClose} className='text-white hover:bg-white/20 rounded-full p-1 flex-shrink-0'>
             <X className='w-4 h-4' />
           </button>
         </div>
@@ -534,15 +534,15 @@ export default function ChatWindow({
       style={{ right: `${rightPosition}px`, zIndex }}
     >
       {/* Header */}
-      <div className='bg-gradient-to-r  from-cyan-400 to-blue-300 p-3 rounded-t-lg flex items-center justify-between'>
-        <div className='flex items-center space-x-2 flex-1'>
-          <Avatar className='w-8 h-8'>
+      <div className='bg-gradient-to-r from-cyan-400 to-blue-300 p-3 rounded-t-lg flex items-center justify-between'>
+        <div className='flex items-center space-x-2 flex-1 min-w-0'>
+          <Avatar className='w-8 h-8 flex-shrink-0'>
             <AvatarImage src={groupAvatar || groupName} />
             <AvatarFallback>{groupName.slice(0, 2)}</AvatarFallback>
           </Avatar>
-          <span className='font-semibold text-white text-sm truncate'>{groupName}</span>
+          <span className='font-semibold text-white text-sm break-words leading-tight'>{groupName}</span>
         </div>
-        <div className='flex items-center space-x-1'>
+        <div className='flex items-center space-x-1 flex-shrink-0'>
           <button onClick={onMinimize} className='text-white hover:bg-white/20 rounded-full p-1'>
             <Minus className='w-4 h-4' />
           </button>

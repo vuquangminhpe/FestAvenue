@@ -3,7 +3,7 @@ import LOGO_IMG from '../../../../../public/Images/Fest.png'
 import { Link, useNavigate, useLocation } from 'react-router'
 import { useEffect, useState, useMemo } from 'react'
 import { clearLocalStorage } from '@/utils/auth'
-import { Search, Heart, LogOut, Menu, X, Building, HelpCircle } from 'lucide-react'
+import { Search, Heart, LogOut, Menu, X, Building, HelpCircle, Headphones, Loader2 } from 'lucide-react'
 import { useUsersStore } from '@/contexts/app.context'
 import LOGO_DEFAULT from '../../../../../public/Images/FestDefault.png'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -17,6 +17,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import chatApi from '@/apis/chat.api'
+import { toast } from 'sonner'
 
 export default function Header() {
   const navigate = useNavigate()
@@ -27,6 +29,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [showOrgNotification, setShowOrgNotification] = useState(true)
+  const [isConnectingStaff, setIsConnectingStaff] = useState(false)
 
   // Joyride states
   const [runTour, setRunTour] = useState(false)
@@ -262,6 +265,23 @@ export default function Header() {
     setIsUserMenuOpen(!isUserMenuOpen)
   }
 
+  const handleConnectStaff = async () => {
+    if (!profile?.id || isConnectingStaff) return
+
+    setIsConnectingStaff(true)
+    try {
+      const response = await chatApi.GroupChat.addGroupSupport(profile.id)
+      if (response?.data) {
+        toast.success('Đã kết nối với hỗ trợ! Kiểm tra tin nhắn trong Chat.')
+      }
+    } catch (error) {
+      console.error('Error connecting to staff:', error)
+      toast.error('Không thể kết nối với hỗ trợ')
+    } finally {
+      setIsConnectingStaff(false)
+    }
+  }
+
   return (
     <>
       {/* Joyride Tour */}
@@ -449,6 +469,21 @@ export default function Header() {
                   )}
 
                   <div className='w-px h-6 bg-gray-300 mx-2' />
+
+                  {/* Staff Support Button */}
+                  <button
+                    onClick={handleConnectStaff}
+                    disabled={isConnectingStaff}
+                    className='px-3 py-2 text-teal-600 hover:text-teal-700 font-medium rounded-lg hover:bg-teal-50 transition-all duration-200 flex items-center space-x-1 disabled:opacity-50'
+                    title='Nhắn tin với nhân viên CSKH'
+                  >
+                    {isConnectingStaff ? (
+                      <Loader2 className='h-4 w-4 animate-spin' />
+                    ) : (
+                      <Headphones className='h-4 w-4' />
+                    )}
+                    <span className='hidden xl:inline'>CSKH</span>
+                  </button>
 
                   {/* Guide Button */}
                   <button
@@ -644,6 +679,23 @@ export default function Header() {
                   )}
 
                   <div className='border-t border-gray-100 my-2' />
+
+                  {/* Mobile Staff Support Button */}
+                  <button
+                    onClick={() => {
+                      handleConnectStaff()
+                      setIsMobileMenuOpen(false)
+                    }}
+                    disabled={isConnectingStaff}
+                    className='w-full flex items-center space-x-2 px-4 py-3 text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors font-medium disabled:opacity-50'
+                  >
+                    {isConnectingStaff ? (
+                      <Loader2 className='h-4 w-4 animate-spin' />
+                    ) : (
+                      <Headphones className='h-4 w-4' />
+                    )}
+                    <span>Nhắn tin với nhân viên CSKH</span>
+                  </button>
 
                   {/* Mobile Guide Button for authenticated users */}
                   <button

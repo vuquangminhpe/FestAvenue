@@ -5,6 +5,7 @@ import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import ChatWindow from './ChatWindow'
+import chatApi from '@/apis/chat.api'
 
 interface GroupChat {
   id: string
@@ -49,9 +50,50 @@ export default function ChatSystem() {
 
   const connectionRef = useRef<signalR.HubConnection | null>(null)
 
+  // Load initial group chats and auto-open top 3
+  useEffect(() => {
+    const loadGroupChats = async () => {
+      const token = getAccessTokenFromLS()
+      if (!userProfile?.id || !token) return
+
+      try {
+        const groupChatList = await chatApi.GroupChat.getGroupChatByUserId(userProfile.id)
+        if (groupChatList && groupChatList.length > 0) {
+          // Sort by updated time (most recent first)
+          const sortedGroups = groupChatList
+            .map((group) => ({
+              id: group.id,
+              name: group.name,
+              avatar: group.avatar || undefined,
+              lastMessage: undefined,
+              lastMessageTime: group.updatedAt ? new Date(group.updatedAt) : undefined,
+              unreadCount: 0
+            }))
+            .sort((a, b) => {
+              if (!a.lastMessageTime) return 1
+              if (!b.lastMessageTime) return -1
+              return b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
+            })
+
+          // Set top 3 groups
+          const top3Groups = sortedGroups.slice(0, 3)
+          setGroupChats(top3Groups)
+
+          // Auto-open top 3 chat windows
+          setOpenChatWindows(top3Groups.map((g) => g.id))
+        }
+      } catch (error) {
+        console.error('Error loading group chats:', error)
+      }
+    }
+
+    loadGroupChats()
+  }, [userProfile?.id])
+
   // Initialize SignalR notification connection
   useEffect(() => {
-    if (!userProfile?.id) return
+    const token = getAccessTokenFromLS()
+    if (!userProfile?.id || !token) return
 
     let activeConnection: signalR.HubConnection | null = null
 
@@ -218,8 +260,8 @@ export default function ChatSystem() {
             </button>
 
             {/* Tooltip on hover */}
-            <div className='absolute  right-20 top-1/2 -translate-y-14 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 pointer-events-none'>
-              <div className='bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl whitespace-nowrap'>
+            <div className='absolute right-20 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 pointer-events-none'>
+              <div className='bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl max-w-xs break-words'>
                 {group.name}
                 <div className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-full'>
                   <div className='w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-900' />

@@ -58,8 +58,7 @@ export default function SeatManagementFeature() {
     {
       image: Home_1,
       title: 'AI Phát Hiện Tự Động',
-      description:
-        'Upload ảnh hoặc video sơ đồ ghế, AI sẽ tự động phát hiện và tạo cấu trúc ghế ngồi chính xác với công nghệ machine learning tiên tiến.'
+      description: 'Upload ảnh hoặc video sơ đồ ghế, AI sẽ tự động phát hiện và tạo cấu trúc ghế ngồi chính xác với AI.'
     },
     {
       image: Home_2,

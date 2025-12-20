@@ -78,8 +78,8 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
         benefits: ticket.benefits || [],
         isFree: ticket.isFree,
         isPublic: ticket.isPublic,
-        startSaleDate: ticket.startSaleDate?.slice(0, 16) || '',
-        endSaleDate: ticket.endSaleDate?.slice(0, 16) || ''
+        startSaleDate: ticket.startSaleDate || '',
+        endSaleDate: ticket.endSaleDate || ''
       })
       setErrors({})
       setTouched({})
@@ -353,7 +353,7 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
                 value={formData.startSaleDate ? new Date(formData.startSaleDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    updateField('startSaleDate', date.toISOString().slice(0, 16))
+                    updateField('startSaleDate', date.toISOString())
                   }
                 }}
                 minDate={eventConstraints?.lifecycleStart}
@@ -380,7 +380,7 @@ export default function UpdateTicketModal({ isOpen, ticket, eventCode, onClose }
                 value={formData.endSaleDate ? new Date(formData.endSaleDate) : undefined}
                 onChange={(date) => {
                   if (date) {
-                    updateField('endSaleDate', date.toISOString().slice(0, 16))
+                    updateField('endSaleDate', date.toISOString())
                   }
                 }}
                 minDate={formData.startSaleDate ? new Date(formData.startSaleDate) : eventConstraints?.lifecycleStart}
