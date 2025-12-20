@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,9 @@ import {
   ExternalLink,
   Upload,
   FileText,
-  CalendarX
+  CalendarX,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -109,21 +111,28 @@ export default function MyEvents() {
   const [contractFile, setContractFile] = useState<File | null>(null)
   const [showViewContractDialog, setShowViewContractDialog] = useState(false)
   const [contractUrl, setContractUrl] = useState<string>('')
+  const [pageIndex, setPageIndex] = useState(1)
 
   const searchFilter: EventSearchFilter = {
     pagination: {
-      pageIndex: 1,
+      pageIndex: pageIndex,
       isPaging: true,
-      pageSize: 20
+      pageSize: 10
     }
   } as any
 
   const { data: eventsData, isLoading } = useQuery({
-    queryKey: ['myEvents'],
+    queryKey: ['myEvents', pageIndex],
     queryFn: () => eventApis.getEventWithFilterPaging(searchFilter)
   })
 
   const events = eventsData?.result || []
+  const paginationEvents = eventsData?.pagination
+
+  // Reset page index when switching tabs
+  useEffect(() => {
+    setPageIndex(1)
+  }, [activeTab])
 
   // Contract upload mutation
   const uploadContractMutation = useMutation({
@@ -226,6 +235,41 @@ export default function MyEvents() {
         version.eventVersionStatus === EventStatusValues.Reject
     )
   ).length
+
+  const renderPagination = () => {
+    if (!paginationEvents || paginationEvents.totalPage <= 1) return null
+
+    return (
+      <div className='flex items-center justify-between px-4 py-3 border-t'>
+        <div className='flex items-center gap-2'>
+          <p className='text-sm text-slate-600'>
+            Trang {pageIndex} / {paginationEvents.totalPage}
+          </p>
+          <span className='text-sm text-slate-500'>({paginationEvents.total} sự kiện)</span>
+        </div>
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => setPageIndex((prev) => Math.max(1, prev - 1))}
+            disabled={pageIndex === 1}
+          >
+            <ChevronLeft className='w-4 h-4' />
+            Trước
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => setPageIndex((prev) => Math.min(paginationEvents.totalPage, prev + 1))}
+            disabled={pageIndex >= paginationEvents.totalPage}
+          >
+            Sau
+            <ChevronRight className='w-4 h-4' />
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const renderTableRow = (eventVersion: ReqFilterOwnerEvent) => {
     const status = statusConfig[eventVersion.eventVersionStatus as keyof typeof statusConfig]
@@ -512,6 +556,7 @@ export default function MyEvents() {
                   )}
                 </TableBody>
               </Table>
+              {renderPagination()}
             </Card>
           )}
         </TabsContent>
@@ -554,6 +599,7 @@ export default function MyEvents() {
                   )}
                 </TableBody>
               </Table>
+              {renderPagination()}
             </Card>
           )}
         </TabsContent>
