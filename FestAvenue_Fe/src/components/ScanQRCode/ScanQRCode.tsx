@@ -329,7 +329,6 @@ const TicketVerification: React.FC = () => {
     const isValid = checkInMutation.isSuccess
     const isAlreadyScanned = checkInData.status === 3 && checkInMutation.isError
     const isNotActivated = checkInData.status === 1 && checkInMutation.isError
-    const isPaymentIncomplete = !checkInData.isPayment
 
     if (isAlreadyScanned) {
       return {
@@ -352,18 +351,6 @@ const TicketVerification: React.FC = () => {
         borderColor: 'border-yellow-200',
         message: 'Vé chưa kích hoạt',
         customMessage: `Ghế ${checkInData.seatIndex} chưa được kích hoạt`
-      }
-    }
-
-    if (isPaymentIncomplete) {
-      return {
-        isValid: false,
-        icon: XCircle,
-        color: 'text-orange-500',
-        bgColor: 'bg-orange-50',
-        borderColor: 'border-orange-200',
-        message: 'Thanh toán chưa hoàn tất',
-        customMessage: `Thanh toán cho ghế ${checkInData.seatIndex} chưa hoàn tất`
       }
     }
 
