@@ -14,9 +14,11 @@ import {
   AlertCircle,
   Mail,
   Hash,
-  Calendar
+  Calendar,
+  Zap,
+  ZapOff
 } from 'lucide-react'
-import { Scanner } from '@yudiel/react-qr-scanner'
+import { Scanner, useDevices } from '@yudiel/react-qr-scanner'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import serviceSeatManagementApi from '@/apis/serviceSeatManagement.api'
 import userApi from '@/apis/user.api'
@@ -42,8 +44,10 @@ interface ScanResult {
 
 const TicketVerification: React.FC = () => {
   const navigate = useNavigate()
+  const devices = useDevices()
   const [isScanning, setIsScanning] = useState(false)
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
+  const [selectedDevice, setSelectedDevice] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [manualInput, setManualInput] = useState({
     eventCode: '',
@@ -53,6 +57,8 @@ const TicketVerification: React.FC = () => {
   const [lastScannedCode, setLastScannedCode] = useState<string>('')
   const [scanCooldown, setScanCooldown] = useState<number>(0)
   const [currentEmail, setCurrentEmail] = useState<string>('')
+  const [torchEnabled, setTorchEnabled] = useState(false)
+  const [lastScanTime, setLastScanTime] = useState<number>(0)
 
   // Mutation for check-in
   const checkInMutation = useMutation({
@@ -149,18 +155,25 @@ const TicketVerification: React.FC = () => {
     if (!detectedCodes || detectedCodes.length === 0) return
 
     const qrCodeString = detectedCodes[0].rawValue
+    const now = Date.now()
 
-    // Prevent duplicate scans
-    if (qrCodeString === lastScannedCode || scanCooldown > 0 || checkInMutation.isPending) {
+    // Prevent duplicate scans within 2 seconds (less restrictive than before)
+    if (qrCodeString === lastScannedCode && now - lastScanTime < 2000) {
+      return
+    }
+
+    // Don't scan if already processing
+    if (checkInMutation.isPending) {
       return
     }
 
     console.log('QR Code detected:', qrCodeString)
     setLastScannedCode(qrCodeString)
+    setLastScanTime(now)
     handleVerifyTicket(qrCodeString)
 
-    // Set cooldown
-    setScanCooldown(3)
+    // Set short cooldown
+    setScanCooldown(2)
     const cooldownInterval = setInterval(() => {
       setScanCooldown((prev) => {
         if (prev <= 1) {
@@ -340,6 +353,28 @@ const TicketVerification: React.FC = () => {
                 <h2 className='text-xl font-semibold text-gray-800'>QR Scanner</h2>
               </div>
 
+              {/* Camera Selection */}
+              {devices && devices.length > 1 && (
+                <div className='mb-4'>
+                  <label className='block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2'>
+                    <Camera className='w-4 h-4 text-cyan-600' />
+                    Chọn camera
+                  </label>
+                  <select
+                    value={selectedDevice}
+                    onChange={(e) => setSelectedDevice(e.target.value)}
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent bg-white'
+                  >
+                    <option value=''>Camera mặc định (Sau)</option>
+                    {devices.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Camera ${device.deviceId.substring(0, 8)}...`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Camera View */}
               <div className='relative mb-6'>
                 <div className='aspect-video bg-gray-900 rounded-xl overflow-hidden relative border-2 border-gray-200'>
@@ -348,8 +383,14 @@ const TicketVerification: React.FC = () => {
                       <Scanner
                         onScan={handleScan}
                         onError={handleScanError}
+                        formats={['qr_code']}
+                        scanDelay={200}
+                        allowMultiple={true}
                         constraints={{
-                          facingMode: 'environment'
+                          ...(selectedDevice ? { deviceId: selectedDevice } : { facingMode: 'environment' }),
+                          aspectRatio: 1,
+                          width: { ideal: 1920 },
+                          height: { ideal: 1080 }
                         }}
                         styles={{
                           container: {
@@ -364,7 +405,8 @@ const TicketVerification: React.FC = () => {
                           }
                         }}
                         components={{
-                          finder: true
+                          finder: true,
+                          torch: torchEnabled
                         }}
                       />
                     </div>
@@ -378,9 +420,30 @@ const TicketVerification: React.FC = () => {
                   )}
                 </div>
 
-                {scanCooldown > 0 && (
-                  <div className='mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center'>
-                    <p className='text-yellow-700 text-sm font-medium'>Chờ quét tiếp: {scanCooldown}s</p>
+                {/* Scanning Status */}
+                {isScanning && (
+                  <div className='mt-3 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-3'>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-2'>
+                        <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse'></div>
+                        <p className='text-cyan-700 text-sm font-medium'>
+                          {scanCooldown > 0
+                            ? `Chờ ${scanCooldown}s để quét tiếp`
+                            : 'Đang quét - Giữ QR code trong khung hình'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setTorchEnabled(!torchEnabled)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          torchEnabled
+                            ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title={torchEnabled ? 'Tắt đèn flash' : 'Bật đèn flash'}
+                      >
+                        {torchEnabled ? <Zap className='w-4 h-4' /> : <ZapOff className='w-4 h-4' />}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -646,37 +709,68 @@ const TicketVerification: React.FC = () => {
           </div>
 
           {/* Instructions */}
-          <div className='mt-8 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-2xl p-6'>
-            <div className='flex items-start gap-3'>
-              <AlertTriangle className='h-6 w-6 text-cyan-600 mt-1' />
-              <div>
-                <h3 className='font-semibold text-cyan-800 mb-3'>Hướng dẫn check-in</h3>
-                <ul className='text-cyan-700 text-sm space-y-2'>
-                  <li className='flex items-start gap-2'>
-                    <CheckCircle className='h-4 w-4 mt-0.5 text-green-600' />
-                    <span>
-                      <strong>Xanh lá:</strong> Vé hợp lệ - Cho phép vào
-                    </span>
-                  </li>
-                  <li className='flex items-start gap-2'>
-                    <XCircle className='h-4 w-4 mt-0.5 text-red-600' />
-                    <span>
-                      <strong>Đỏ:</strong> Vé đã được quét - Từ chối
-                    </span>
-                  </li>
-                  <li className='flex items-start gap-2'>
-                    <AlertTriangle className='h-4 w-4 mt-0.5 text-yellow-600' />
-                    <span>
-                      <strong>Vàng:</strong> Vé chưa kích hoạt - Từ chối
-                    </span>
-                  </li>
-                  <li className='flex items-start gap-2'>
-                    <XCircle className='h-4 w-4 mt-0.5 text-orange-600' />
-                    <span>
-                      <strong>Cam:</strong> Chưa thanh toán - Từ chối
-                    </span>
-                  </li>
-                </ul>
+          <div className='mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6'>
+            {/* Check-in Status Guide */}
+            <div className='bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-2xl p-6'>
+              <div className='flex items-start gap-3'>
+                <AlertTriangle className='h-6 w-6 text-cyan-600 mt-1' />
+                <div>
+                  <h3 className='font-semibold text-cyan-800 mb-3'>Hướng dẫn check-in</h3>
+                  <ul className='text-cyan-700 text-sm space-y-2'>
+                    <li className='flex items-start gap-2'>
+                      <CheckCircle className='h-4 w-4 mt-0.5 text-green-600' />
+                      <span>
+                        <strong>Xanh lá:</strong> Vé hợp lệ - Cho phép vào
+                      </span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <XCircle className='h-4 w-4 mt-0.5 text-red-600' />
+                      <span>
+                        <strong>Đỏ:</strong> Vé đã được quét - Từ chối
+                      </span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <AlertTriangle className='h-4 w-4 mt-0.5 text-yellow-600' />
+                      <span>
+                        <strong>Vàng:</strong> Vé chưa kích hoạt - Từ chối
+                      </span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <XCircle className='h-4 w-4 mt-0.5 text-orange-600' />
+                      <span>
+                        <strong>Cam:</strong> Chưa thanh toán - Từ chối
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Scanning Tips */}
+            <div className='bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-6'>
+              <div className='flex items-start gap-3'>
+                <Camera className='h-6 w-6 text-purple-600 mt-1' />
+                <div>
+                  <h3 className='font-semibold text-purple-800 mb-3'>Mẹo quét nhanh</h3>
+                  <ul className='text-purple-700 text-sm space-y-2'>
+                    <li className='flex items-start gap-2'>
+                      <ScanLine className='h-4 w-4 mt-0.5 text-purple-600' />
+                      <span>Giữ QR code cách camera 15-30cm</span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <Zap className='h-4 w-4 mt-0.5 text-yellow-600' />
+                      <span>Bật đèn flash nếu ánh sáng yếu</span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <CheckCircle className='h-4 w-4 mt-0.5 text-green-600' />
+                      <span>Đảm bảo QR code không bị mờ hay nhăn</span>
+                    </li>
+                    <li className='flex items-start gap-2'>
+                      <RefreshCw className='h-4 w-4 mt-0.5 text-blue-600' />
+                      <span>Quét tự động - không cần nhấn nút</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
