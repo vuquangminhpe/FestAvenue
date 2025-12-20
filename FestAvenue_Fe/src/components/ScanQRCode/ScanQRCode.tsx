@@ -60,8 +60,7 @@ const TicketVerification: React.FC = () => {
     if ('BarcodeDetector' in window) {
       console.log('✅ [SCANNER] Native Barcode Detection API available')
       // @ts-ignore
-      BarcodeDetector.getSupportedFormats()
-      .catch((err: Error) => {
+      BarcodeDetector.getSupportedFormats().catch((err: Error) => {
         console.error('❌ [SCANNER] Error getting supported formats:', err)
       })
     } else {
@@ -728,12 +727,6 @@ const TicketVerification: React.FC = () => {
                       <div>
                         <p className='text-sm text-gray-600'>Vị trí ghế</p>
                         <p className='font-medium text-gray-800'>{scanResult.checkInData.seatIndex}</p>
-                      </div>
-                      <div>
-                        <p className='text-sm text-gray-600'>Giá vé</p>
-                        <p className='font-medium text-gray-800'>
-                          {scanResult.checkInData.seatPrice.toLocaleString('vi-VN')} VND
-                        </p>
                       </div>
                     </div>
                   </div>

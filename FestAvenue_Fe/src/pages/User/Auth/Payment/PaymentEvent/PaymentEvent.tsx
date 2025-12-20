@@ -171,7 +171,7 @@ export default function PaymentEvent() {
     }, 100)
   }
 
-  const handleCreatePayment = () => {
+  const handleCreatePayment = async () => {
     if (!eventId || !selectedPackage) {
       toast.error('Thiếu thông tin cần thiết')
       return
@@ -182,7 +182,7 @@ export default function PaymentEvent() {
       toast.success('Gói miễn phí! Đang kích hoạt cho sự kiện...')
 
       // Create free payment and redirect immediately
-      createPaymentMutation.mutate(
+      createPaymentMutation.mutateAsync(
         {
           eventCode: eventId,
           packageId: selectedPackage.id
@@ -202,7 +202,7 @@ export default function PaymentEvent() {
 
     setPaymentError(null)
     setIsTimeout(false)
-    createPaymentMutation.mutate({
+    createPaymentMutation.mutateAsync({
       eventCode: eventId,
       packageId: selectedPackage.id
     })

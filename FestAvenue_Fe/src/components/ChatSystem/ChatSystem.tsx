@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import * as signalR from '@microsoft/signalr'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, X } from 'lucide-react'
 import { getAccessTokenFromLS } from '@/utils/auth'
 import { useUsersStore } from '@/contexts/app.context'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -47,6 +47,7 @@ export default function ChatSystem() {
   const [openChatWindows, setOpenChatWindows] = useState<string[]>([])
   const [minimizedChats, setMinimizedChats] = useState<Set<string>>(new Set())
   const [notifications, setNotifications] = useState<Record<string, Notification>>({})
+  const [isExpanded, setIsExpanded] = useState(false) // New state for expand/collapse
 
   const connectionRef = useRef<signalR.HubConnection | null>(null)
 
@@ -79,8 +80,8 @@ export default function ChatSystem() {
           const top3Groups = sortedGroups.slice(0, 3)
           setGroupChats(top3Groups)
 
-          // Auto-open top 3 chat windows
-          setOpenChatWindows(top3Groups.map((g) => g.id))
+          // Don't auto-open chat windows anymore - keep them minimized
+          // setOpenChatWindows(top3Groups.map((g) => g.id))
         }
       } catch (error) {
         console.error('Error loading group chats:', error)
@@ -213,6 +214,12 @@ export default function ChatSystem() {
     }
   }
 
+  const handleToggleExpand = () => {
+    setIsExpanded((prev) => !prev)
+  }
+
+  const totalUnreadCount = groupChats.reduce((sum, group) => sum + group.unreadCount, 0)
+
   const handleCloseChatWindow = (groupId: string) => {
     setOpenChatWindows((prev) => prev.filter((id) => id !== groupId))
     setMinimizedChats((prev) => {
@@ -236,52 +243,78 @@ export default function ChatSystem() {
 
   return (
     <>
-      {/* 3 Floating Chat Bubbles */}
-      <div className='fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end space-y-reverse space-y-3'>
-        {groupChats.slice(0, 3).map((group) => (
-          <div key={group.id} className='relative group/bubble'>
-            <button
-              onClick={() => handleGroupClick(group)}
-              className='relative -translate-y-10 bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-1 border-2 border-gray-100 hover:border-cyan-300'
-            >
-              <Avatar className='w-14 h-14'>
-                <AvatarImage src={group.avatar || group.name} />
-                <AvatarFallback className='bg-gradient-to-r from-cyan-400 to-blue-300 text-white font-semibold'>
-                  {group.name.slice(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              {group.unreadCount > 0 && (
-                <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md animate-pulse'>
-                  {group.unreadCount}
-                </span>
-              )}
-              {/* Online indicator */}
-              <div className='absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white' />
-            </button>
+      {/* Collapsed Message Box - Always show as one box */}
+      <div className='fixed bottom-6 right-6 z-50'>
+        {!isExpanded ? (
+          // Collapsed State - Single Box
+          <button
+            onClick={handleToggleExpand}
+            className='relative bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 p-4 border-2 border-white hover:scale-105'
+          >
+            <MessageCircle className='w-7 h-7' />
+            {totalUnreadCount > 0 && (
+              <span className='absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shadow-md animate-pulse'>
+                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+              </span>
+            )}
+            {groupChats.length > 0 && (
+              <span className='absolute -bottom-1 -left-1 bg-purple-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md border-2 border-white'>
+                {groupChats.length}
+              </span>
+            )}
+            {/* Online indicator */}
+            <div
+              className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+            />
+          </button>
+        ) : (
+          // Expanded State - Show 3 Chat Items
+          <div className='flex flex-col-reverse items-end space-y-reverse space-y-3'>
+            {groupChats.slice(0, 3).map((group, idx) => (
+              <div key={group.id} className='relative group/bubble animate-in slide-in-from-bottom-2'>
+                <button
+                  onClick={() => handleGroupClick(group)}
+                  className='relative bg-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-1 border-2 border-gray-100 hover:border-cyan-300'
+                  style={{
+                    animationDelay: `${idx * 50}ms`
+                  }}
+                >
+                  <Avatar className='w-14 h-14'>
+                    <AvatarImage src={group.avatar || group.name} />
+                    <AvatarFallback className='bg-gradient-to-r from-cyan-400 to-blue-300 text-white font-semibold'>
+                      {group.name.slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {group.unreadCount > 0 && (
+                    <span className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-md animate-pulse'>
+                      {group.unreadCount}
+                    </span>
+                  )}
+                  {/* Online indicator */}
+                  <div className='absolute bottom-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white' />
+                </button>
 
-            {/* Tooltip on hover */}
-            <div className='absolute right-20 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 pointer-events-none'>
-              <div className='bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl max-w-xs break-words'>
-                {group.name}
-                <div className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-full'>
-                  <div className='w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-900' />
+                {/* Tooltip on hover */}
+                <div className='absolute right-20 top-1/2 -translate-y-1/2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 pointer-events-none'>
+                  <div className='bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-xl max-w-xs break-words'>
+                    {group.name}
+                    <div className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-full'>
+                      <div className='w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-gray-900' />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        ))}
+            ))}
 
-        {/* Connection Status Indicator */}
-        {groupChats.length === 0 && (
-          <div className='bg-white rounded-full shadow-lg p-1 border-2 border-gray-100'>
-            <div className='relative bg-gradient-to-r from-cyan-400 to-blue-300 text-white p-4 rounded-full'>
-              <MessageCircle className='w-6 h-6' />
-              <div
-                className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
-                  isConnected ? 'bg-green-500' : 'bg-red-500'
-                }`}
-              />
-            </div>
+            {/* Collapse Button */}
+            <button
+              onClick={handleToggleExpand}
+              className='bg-gray-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 p-3 hover:bg-gray-800'
+            >
+              <X className='w-6 h-6' />
+            </button>
           </div>
         )}
       </div>

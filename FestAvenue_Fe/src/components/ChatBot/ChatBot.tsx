@@ -152,7 +152,7 @@ export default function ChatBot() {
     : isProfile?.email?.split('@')[0]
 
   const [isOpen, setIsOpen] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(true) // Always start minimized
   const [messageInput, setMessageInput] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -195,6 +195,7 @@ export default function ChatBot() {
       const timer = setTimeout(() => {
         if (!hasPurchasedEvents) {
           setIsOpen(true)
+          setIsMinimized(true) // Keep it minimized
           setHasAutoOpened(true)
         }
       }, 3000)
@@ -453,7 +454,7 @@ export default function ChatBot() {
 
   const handleToggleOpen = () => {
     setIsOpen(!isOpen)
-    setIsMinimized(false)
+    setIsMinimized(true) // Always open in minimized state
   }
 
   const handleClose = () => {
