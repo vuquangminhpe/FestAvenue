@@ -34,6 +34,7 @@
     "@types/google-map-react": "^2.1.10",
     "@types/qrcode": "^1.5.5",
     "@types/three": "^0.180.0",
+    "@undecaf/barcode-detector-polyfill": "^0.9.23",
     "@vitejs/plugin-react": "^5.0.4",
     "@yudiel/react-qr-scanner": "^2.5.0",
     "axios": "^1.11.0",

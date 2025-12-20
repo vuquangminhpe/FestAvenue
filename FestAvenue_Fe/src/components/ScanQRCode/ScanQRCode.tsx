@@ -1,5 +1,6 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import '@undecaf/barcode-detector-polyfill'
 import React, { useState, useEffect } from 'react'
 import {
   Camera,
@@ -49,6 +50,46 @@ const TicketVerification: React.FC = () => {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
   const [selectedDevice, setSelectedDevice] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
+
+  // 🔍 LOG: Component mount and API support check
+  useEffect(() => {
+    console.log('🚀 [SCANNER] Component mounted')
+    console.log('🌐 [SCANNER] User Agent:', navigator.userAgent)
+    console.log('🔍 [SCANNER] BarcodeDetector supported:', 'BarcodeDetector' in window)
+
+    if ('BarcodeDetector' in window) {
+      console.log('✅ [SCANNER] Native Barcode Detection API available')
+      // @ts-ignore
+      BarcodeDetector.getSupportedFormats()
+      .catch((err: Error) => {
+        console.error('❌ [SCANNER] Error getting supported formats:', err)
+      })
+    } else {
+      console.warn('⚠️ [SCANNER] Native Barcode Detection API NOT available - library may use polyfill')
+    }
+
+    // Check camera permissions
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+      console.log('✅ [SCANNER] getUserMedia API available')
+    } else {
+      console.error('❌ [SCANNER] getUserMedia API NOT available')
+    }
+  }, [])
+
+  // 🔍 LOG: Devices detection
+  useEffect(() => {
+    console.log('📷 [SCANNER] Devices detected:', devices)
+    console.log('📷 [SCANNER] Number of devices:', devices?.length || 0)
+    if (devices && devices.length > 0) {
+      devices.forEach((device, index) => {
+        console.log(`📷 [SCANNER] Device ${index + 1}:`, {
+          deviceId: device.deviceId,
+          label: device.label,
+          kind: device.kind
+        })
+      })
+    }
+  }, [devices])
   const [manualInput, setManualInput] = useState({
     eventCode: '',
     seatIndex: '',
@@ -62,13 +103,21 @@ const TicketVerification: React.FC = () => {
 
   // Mutation for check-in
   const checkInMutation = useMutation({
-    mutationFn: (data: bodyCheckInSeat) => serviceSeatManagementApi.CheckInSeat(data),
-    onSuccess: (_, variables) => {
+    mutationFn: (data: bodyCheckInSeat) => {
+      console.log('🔄 [API] Calling CheckInSeat API with:', data)
+      return serviceSeatManagementApi.CheckInSeat(data)
+    },
+    onSuccess: (response, variables) => {
+      console.log('✅ [API] Check-in SUCCESS:', response)
+      console.log('✅ [API] Variables:', variables)
       // Success case - get user profile
       setCurrentEmail(variables.email)
       playSound(true)
     },
     onError: (error: any, variables) => {
+      console.error('❌ [API] Check-in ERROR:', error)
+      console.error('❌ [API] Error response:', error?.response?.data)
+      console.error('❌ [API] Variables:', variables)
       setCurrentEmail(variables.email)
       playSound(false)
 
@@ -150,24 +199,43 @@ const TicketVerification: React.FC = () => {
     }
   }
 
+  // 🔍 LOG: Scanning state changes
+  useEffect(() => {
+    console.log('🎥 [SCANNER] Scanning state changed:', isScanning)
+    if (isScanning) {
+      console.log('🎥 [SCANNER] Selected device:', selectedDevice || 'Default (rear camera)')
+      console.log('🎥 [SCANNER] Torch enabled:', torchEnabled)
+    }
+  }, [isScanning, selectedDevice, torchEnabled])
+
   // Handle QR code scan
   const handleScan = (detectedCodes: any[]) => {
-    if (!detectedCodes || detectedCodes.length === 0) return
+    console.log('🔍 [SCAN] handleScan called with:', detectedCodes)
+
+    if (!detectedCodes || detectedCodes.length === 0) {
+      console.log('⚠️ [SCAN] No codes detected')
+      return
+    }
 
     const qrCodeString = detectedCodes[0].rawValue
     const now = Date.now()
 
+    console.log('✅ [SCAN] QR Code detected:', qrCodeString)
+    console.log('🕐 [SCAN] Last scan time:', lastScanTime, 'Current:', now, 'Diff:', now - lastScanTime)
+
     // Prevent duplicate scans within 2 seconds (less restrictive than before)
     if (qrCodeString === lastScannedCode && now - lastScanTime < 2000) {
+      console.log('⏸️ [SCAN] Duplicate scan blocked (within 2s)')
       return
     }
 
     // Don't scan if already processing
     if (checkInMutation.isPending) {
+      console.log('⏸️ [SCAN] Check-in already pending, blocking scan')
       return
     }
 
-    console.log('QR Code detected:', qrCodeString)
+    console.log('✅ [SCAN] Proceeding with verification')
     setLastScannedCode(qrCodeString)
     setLastScanTime(now)
     handleVerifyTicket(qrCodeString)
@@ -188,13 +256,19 @@ const TicketVerification: React.FC = () => {
 
   // Handle scan error
   const handleScanError = (error: any) => {
-    console.error('Scan error:', error)
+    console.error('❌ [SCANNER] Scan error:', error)
+    console.error('❌ [SCANNER] Error type:', error?.name)
+    console.error('❌ [SCANNER] Error message:', error?.message)
     // Don't show error for normal scanning failures, only critical errors
   }
 
   // Verify ticket code
   const handleVerifyTicket = (qrCodeString: string) => {
+    console.log('🎫 [VERIFY] Starting ticket verification')
+    console.log('🎫 [VERIFY] QR String:', qrCodeString)
+
     if (!qrCodeString.trim() || checkInMutation.isPending) {
+      console.log('⚠️ [VERIFY] Verification blocked - empty string or pending mutation')
       return
     }
 
@@ -203,20 +277,30 @@ const TicketVerification: React.FC = () => {
 
     let qrData: QRCodeData
     try {
+      console.log('🔄 [VERIFY] Parsing QR code JSON...')
       qrData = JSON.parse(qrCodeString.trim()) as QRCodeData
+      console.log('✅ [VERIFY] Parsed QR data:', qrData)
 
       if (!qrData.eventCode || !qrData.seatIndex || !qrData.email) {
+        console.error('❌ [VERIFY] Missing required fields:', {
+          hasEventCode: !!qrData.eventCode,
+          hasSeatIndex: !!qrData.seatIndex,
+          hasEmail: !!qrData.email
+        })
         setError('Định dạng QR code không hợp lệ. Thiếu thông tin bắt buộc.')
         playSound(false)
         return
       }
     } catch (parseError) {
+      console.error('❌ [VERIFY] JSON parse error:', parseError)
+      console.error('❌ [VERIFY] Raw QR string:', qrCodeString)
       setError('Định dạng QR code không hợp lệ. Yêu cầu JSON với eventCode, seatIndex và email.')
       playSound(false)
       return
     }
 
     // Trigger check-in mutation
+    console.log('🚀 [VERIFY] Triggering check-in mutation with data:', qrData)
     checkInMutation.mutate({
       eventCode: qrData.eventCode,
       seatIndex: qrData.seatIndex,
@@ -381,17 +465,14 @@ const TicketVerification: React.FC = () => {
                   {isScanning ? (
                     <div className='w-full h-full'>
                       <Scanner
-                        onScan={handleScan}
+                        onScan={(result) => {
+                          console.log('📸 [SCANNER] onScan triggered!', result)
+                          handleScan(result)
+                        }}
                         onError={handleScanError}
                         formats={['qr_code']}
-                        scanDelay={200}
-                        allowMultiple={true}
-                        constraints={{
-                          ...(selectedDevice ? { deviceId: selectedDevice } : { facingMode: 'environment' }),
-                          aspectRatio: 1,
-                          width: { ideal: 1920 },
-                          height: { ideal: 1080 }
-                        }}
+                        scanDelay={500}
+                        constraints={selectedDevice ? { deviceId: selectedDevice } : { facingMode: 'environment' }}
                         styles={{
                           container: {
                             width: '100%',
