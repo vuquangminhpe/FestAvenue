@@ -739,16 +739,6 @@ const TicketVerification: React.FC = () => {
                             : 'Đã quét'}
                         </p>
                       </div>
-                      <div>
-                        <p className='text-sm text-gray-600'>Thanh toán</p>
-                        <p
-                          className={`font-medium ${
-                            scanResult.checkInData.isPayment ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {scanResult.checkInData.isPayment ? 'Hoàn tất' : 'Chưa thanh toán'}
-                        </p>
-                      </div>
                     </div>
                     {scanResult.checkInData.paymentTime && (
                       <div className='mt-3 pt-3 border-t'>
