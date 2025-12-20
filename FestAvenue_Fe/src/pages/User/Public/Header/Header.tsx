@@ -375,7 +375,7 @@ export default function Header() {
               </div>
 
               {/* Desktop Search Bar */}
-              <div className='hidden lg:flex flex-1 max-w-[400px] lg:w-[400px] md:w-[200px] sm:w-full mx-8'>
+              <div className='hidden lg:flex flex-1 max-w-[300px] lg:w-[300px] md:w-[200px] sm:w-full mx-8'>
                 <form onSubmit={handleSearch} className='w-full'>
                   <div className='relative flex items-center search-bar'>
                     <Search className='absolute left-4 h-5 w-5 text-gray-400' />

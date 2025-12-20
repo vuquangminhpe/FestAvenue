@@ -99,7 +99,8 @@ export default function PaymentEvent() {
     setIsCheckingStatus(true)
     try {
       const response = await paymentApis.getStatusPaymentByPaymentId(paymentId)
-      const status = response?.data?.data
+
+      const status = response?.data as any
 
       if (status === PaymentStatus.Completed) {
         handlePaymentSuccess()
@@ -150,7 +151,7 @@ export default function PaymentEvent() {
     stopCountdown()
     toast.success('Thanh toán thành công!')
     setTimeout(() => {
-      navigate(path.user.my.payment)
+      navigate(path.user.my.events)
     }, 2000)
   }
 

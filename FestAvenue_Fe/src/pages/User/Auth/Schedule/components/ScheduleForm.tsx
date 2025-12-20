@@ -96,12 +96,6 @@ ScheduleFormProps) {
         newErrors.endDate = 'Ngày kết thúc phải sau ngày bắt đầu'
       }
 
-      // Check if dates are in the past
-      const now = new Date()
-      if (end < now) {
-        newErrors.endDate = 'Ngày kết thúc không thể trong quá khứ'
-      }
-
       // Validate against event lifecycle if available
       if (event) {
         const lifecycleStart = event.startEventLifecycleTime
