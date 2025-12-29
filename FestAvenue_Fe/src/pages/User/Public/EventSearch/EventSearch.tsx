@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Filter, X, Loader2, Sparkles, List, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search, Filter, X, Loader2, List, ChevronDown, ChevronUp } from 'lucide-react'
 import eventApis from '@/apis/event.api'
 import categoryApis from '@/apis/categories.api'
 import EventCard from '@/components/custom/EventCard'
@@ -229,17 +229,6 @@ export default function EventSearch() {
             >
               <List className='w-5 h-5' />
               Tìm kiếm thông thường
-            </button>
-            <button
-              onClick={() => setSearchMode('ai')}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-                searchMode === 'ai'
-                  ? 'bg-gradient-to-r from-cyan-400 to-blue-300 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <Sparkles className='w-5 h-5' />
-              Tìm kiếm với AI
             </button>
           </div>
 
