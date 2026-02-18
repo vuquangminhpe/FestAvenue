@@ -160,48 +160,50 @@ export default function ChatBot() {
   const [statusMessage, setStatusMessage] = useState('')
   const [chatMode, setChatMode] = useState<'sales' | 'feedback'>('sales')
   const [showSuggestionBubbles, setShowSuggestionBubbles] = useState(true)
-  const [hasAutoOpened, setHasAutoOpened] = useState(false)
+  // const [hasAutoOpened, setHasAutoOpened] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
   const currentMessageRef = useRef('')
   // Fetch purchased events for logged-in user
-  const { data: purchasedEventData, isLoading: isLoadingPurchased } = useQuery({
-    queryKey: ['purchased-event', userId],
-    queryFn: () => eventApis.getPurchaseEventByUserId(userId!),
-    enabled: isAuth && !!userId
-  })
+  // const { data: purchasedEventData, isLoading: isLoadingPurchased } = useQuery({
+  //   queryKey: ['purchased-event', userId],
+  //   queryFn: () => eventApis.getPurchaseEventByUserId(userId!),
+  //   enabled: isAuth && !!userId
+  // })
 
-  // Fetch list of events that user already submitted feedback
-  const { data: feedbackedEventsData } = useQuery({
-    queryKey: ['feedbacked-events', userId],
-    queryFn: () => eventApis.getPurchaseIsCheckFeedBack(userId!),
-    enabled: isAuth && !!userId
-  })
+  // // Fetch list of events that user already submitted feedback
+  // const { data: feedbackedEventsData } = useQuery({
+  //   queryKey: ['feedbacked-events', userId],
+  //   queryFn: () => eventApis.getPurchaseIsCheckFeedBack(userId!),
+  //   enabled: isAuth && !!userId
+  // })
 
   // Filter out events that already have feedback
-  const feedbackedEventCodes = (feedbackedEventsData as any)?.events.map((e: any) => e.eventCode) || []
-  const eventsNeedingFeedback =
-    purchasedEventData?.data?.filter((event) => !feedbackedEventCodes.includes(event.eventCode)) || []
+  // const feedbackedEventCodes = (feedbackedEventsData as any)?.events.map((e: any) => e.eventCode) || []
+  // console.log(feedbackedEventsData)
+
+  // const eventsNeedingFeedback =
+  //   purchasedEventData?.data?.filter((event) => !feedbackedEventCodes.includes(event.eventCode)) || []
 
   // Only show feedback mode if there are events that need feedback
   // If all purchased events have been feedbacked, hasPurchasedEvents = false -> hide feedback bubbles
-  const hasPurchasedEvents = eventsNeedingFeedback.length > 0
+  // const hasPurchasedEvents = eventsNeedingFeedback.length > 0
 
   // Auto-open chatbot after 3 seconds for new visitors (no purchased events)
-  useEffect(() => {
-    if (!hasAutoOpened && !isLoadingPurchased) {
-      const timer = setTimeout(() => {
-        if (!hasPurchasedEvents) {
-          setIsOpen(true)
-          setIsMinimized(true) // Keep it minimized
-          setHasAutoOpened(true)
-        }
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [hasAutoOpened, hasPurchasedEvents, isLoadingPurchased])
+  // useEffect(() => {
+  //   if (!hasAutoOpened && !isLoadingPurchased) {
+  //     const timer = setTimeout(() => {
+  //       if (!hasPurchasedEvents) {
+  //         setIsOpen(true)
+  //         setIsMinimized(true) // Keep it minimized
+  //         setHasAutoOpened(true)
+  //       }
+  //     }, 3000)
+  //     return () => clearTimeout(timer)
+  //   }
+  // }, [hasAutoOpened, hasPurchasedEvents, isLoadingPurchased])
 
   // NOTE: Removed auto-change chatMode based on hasPurchasedEvents
   // Mode should only change when user explicitly clicks a bubble or starts new chat
@@ -528,8 +530,8 @@ export default function ChatBot() {
               {isStreaming
                 ? statusMessage || 'Đang trả lời...'
                 : chatMode === 'feedback'
-                ? '💬 Chế độ phản hồi'
-                : '💼 Tư vấn sự kiện 24/7'}
+                  ? '💬 Chế độ phản hồi'
+                  : '💼 Tư vấn sự kiện 24/7'}
             </span>
           </div>
         </div>
@@ -586,7 +588,7 @@ export default function ChatBot() {
                 <p className='text-xs text-gray-500 text-center mb-1'>Chọn một chủ đề bên dưới:</p>
 
                 {/* Show feedback bubbles for all events that need feedback */}
-                {hasPurchasedEvents &&
+                {/* {hasPurchasedEvents &&
                   eventsNeedingFeedback.map((event) => (
                     <button
                       key={event.eventCode}
@@ -597,7 +599,7 @@ export default function ChatBot() {
                       <span className='text-base'>⭐</span>
                       <span>Chia sẻ cảm nhận về "{event.eventName}"</span>
                     </button>
-                  ))}
+                  ))} */}
 
                 {/* Sales suggestion bubbles */}
                 {SALES_SUGGESTION_BUBBLES.map((bubble, index) => (
